@@ -7,6 +7,7 @@ import jinja2
 import pypdf
 import question
 import argparse
+import subprocess
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -16,6 +17,7 @@ def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--num_exams", default=1, type=int)
   parser.add_argument("--questions_file", default="questions.json")
+  parser.add_argument("--debug", action="store_true")
   return parser.parse_args()
 
 
@@ -57,12 +59,25 @@ def main():
   
   for _ in range(args.num_exams):
     exam_text = generate_exam(questions_file=args.questions_file)
-    with tempfile.NamedTemporaryFile('w') as tmp_tex:
-    # with open("exam.tex", 'w') as tmp_tex:
-      tmp_tex.write(exam_text)
-      tmp_tex.flush()
-      os.system(f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}")
-      os.system(f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}")
+    if args.debug:
+      tmp_tex = open("exam.tex", 'w')
+    else:
+      tmp_tex = tempfile.NamedTemporaryFile('w')
+      
+    tmp_tex.write(exam_text)
+    tmp_tex.flush()
+    p = subprocess.Popen(f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}", shell=True)
+    try:
+      p.wait(30)
+    except subprocess.TimeoutExpired:
+      logging.error("Latex Compile timedout")
+      p.kill()
+      logging.error("Copying output to debug.tex")
+      shutil.copy(f"{tmp_tex.name}", "debug.tex")
+      tmp_tex.close()
+      return
+    subprocess.Popen(f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}", shell=True)
+    tmp_tex.close()
   
   writer = pypdf.PdfWriter()
   for pdf_file in [os.path.join("out", f) for f in os.listdir("out") if f.endswith(".pdf")]:
