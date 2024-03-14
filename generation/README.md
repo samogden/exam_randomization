@@ -19,3 +19,7 @@ options:
   --questions_file QUESTIONS_FILE
   --debug
 ```
+
+## Note
+
+You have to have `latexmk` installed on your system to run this tool.
