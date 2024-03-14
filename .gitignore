@@ -2,3 +2,4 @@ __pycache__/
 exam.pdf
 out/
 .idea/
+.DS_Store
