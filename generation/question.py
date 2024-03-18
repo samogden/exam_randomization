@@ -1,12 +1,19 @@
 #!env python
+from __future__ import annotations
+
 import json
 import logging
 import math
 import random
+from typing import List, Dict
 
 import jinja2
 import inspect
 import re
+
+from exam_generation_functions import QuickFunctions
+
+import yaml
 
 class QuestionSet():
   def __init__(self, questions_file="questions.json"):
@@ -25,16 +32,23 @@ class QuestionSet():
       print(func)
       self.env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
     
-    self.questions = self.load_from_json(self.env, questions_file)
+    self.questions = self.load_questions(questions_file)
   
-  @classmethod
-  def load_from_json(cls, env, questions_file="questions.json"):
-    with open(questions_file) as fid:
-      questions_dict = json.load(fid)
+  def load_questions(self, questions_file: str) -> List[Question]:
+    if questions_file.endswith(".json"):
+      questions_list = self.load_from_json(questions_file)
+    elif questions_file.endswith(".yaml") or questions_file.endswith(".yml"):
+      questions_list = self.load_from_yaml(questions_file)
+    else:
+      logging.error("Question file in unsupported format.  Please provide either JSON or YAML")
+      return []
     
     questions = []
-    for question in questions_dict["questions"]:
-      if "enabled" in question and not question["enabled"]: continue
+    for question in questions_list:
+      logging.debug(f"question: {question}")
+      if "enabled" in question and not question["enabled"]:
+        continue
+      logging.debug(f"question: {question}")
       questions.append(
         Question(
           question["value"],
@@ -47,16 +61,28 @@ class QuestionSet():
             ) #.replace('[', '{[').replace(']', ']}')
             for line in question["lines"]
           ]),
-          env,
-          subject=question["subject"]
+          subject=question["subject"],
+          env=self.env
         )
       )
-    
     return questions
+  
+  @classmethod
+  def load_from_json(cls, env, questions_file="questions.json") -> List[Dict]:
+    with open(questions_file) as fid:
+      questions_dict = json.load(fid)
+    return questions_dict["questions"]
+    
+  @classmethod
+  def load_from_yaml(cls, env, questions_file="templates/questions.yaml") -> List[Dict]:
+    with open(questions_file) as fid:
+      loaded_questions = list(yaml.load_all(fid, Loader=yaml.SafeLoader))
+    return loaded_questions
+    
 
 class Question():
   
-  def __init__(self, value, question_text, env, *args, **kwargs):
+  def __init__(self, value, question_text, env=None, *args, **kwargs):
     self.value = value
     self.text = question_text
     self.subject = None if "subject" not in kwargs else kwargs["subject"]
@@ -65,65 +91,19 @@ class Question():
     self.kwargs = kwargs
   
   
-  def fill_in(self):
+  def fill_in(self, env):
     logging.debug(f"self.text: {self.text}")
-    template = self.env.from_string(self.text)
+    template = env.from_string(self.text)
     return template.render()
   
-  def get_question(self):
-    return f"\\question{{{self.value}}}{{\n{self.fill_in().replace('[', '{[').replace(']', ']}')}\n}}"
+  def get_question(self, env):
+    return f"\\question{{{self.value}}}{{\n{self.fill_in(env).replace('[', '{[').replace(']', ']}')}\n}}"
+  
+  def generate_latex(self):
+    return f"\\question{{{self.value}}}{{\n{self.fill_in(self.env).replace('[', '{[').replace(']', ']}')}\n}}"
   
 
-class QuickFunctions:
-  
-  @classmethod
-  def add_spaces_to_str(cls, input_str, every=4):
-    if len(input_str) < 2*every:
-      return input_str
-    return ' '.join([input_str[i:i+every] for i in range(0, len(input_str), every)])
-  
-  @classmethod
-  def random_binary_number(cls, num_bits):
-    return random.randrange(0, int(math.pow(2, num_bits)))
-    return '0b ' + cls.add_spaces_to_str(cls.random_binary_bits(num_bits))
-  
-  @classmethod
-  def random_binary_bits(cls, num_bits):
-    return ''.join(random.choices("01", k=num_bits))
-  @classmethod
-  def random_hex_number(cls, num_digits):
-    return '0x' + cls.random_hex_digits(num_digits)
-  
-  @classmethod
-  def random_hex_digits(cls, num_digits):
-    return ''.join(random.choices("0123456789abcdef".upper(), k=num_digits))
-  
-  @classmethod
-  def pick_replacement_algo(cls):
-    return cls.pick_a_choice(["LRU", "FIFO", "Belady"])
-  
-  @classmethod
-  def pick_a_choice(cls, list_of_choices):
-    return str(random.choice(list_of_choices))
-  
-  @classmethod
-  def number_in_range(cls, lower_bound, upper_bound):
-    return random.randrange(lower_bound, upper_bound)
-  
-  @classmethod
-  def print_as_hex(cls, in_number, pad_to_length=0, show_prefix=True, add_spaces=False):
-    out_str = f"{in_number : x}".zfill(pad_to_length)
-    if add_spaces:
-      out_str = ' ' + cls.add_spaces_to_str(out_str)
-    if show_prefix:
-      out_str = '0x' + out_str
-    return out_str
-  
-  @classmethod
-  def print_as_binary(cls, in_number, pad_to_length=0, show_prefix=True, add_spaces=False, every=4):
-    out_str = f"{in_number : b}".zfill(pad_to_length)
-    if add_spaces:
-      out_str = ' ' + cls.add_spaces_to_str(out_str)
-    if show_prefix:
-      out_str = '0b' + out_str
-    return out_str
+if __name__ == "__main__":
+  logging.getLogger().setLevel(logging.DEBUG)
+  question_dict = QuestionSet.load_from_yaml(None)
+  logging.debug(question_dict)

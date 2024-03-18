@@ -33,6 +33,7 @@ def generate_exam(questions_file="questions.json"):
   )
   
   question_set = question.QuestionSet(questions_file).questions
+  logging.debug(f"question_set: {question_set}")
   question_set = sorted(
     question_set,
     key=lambda q: (-q.value, ["memory", "io"].index(q.subject))
@@ -40,7 +41,7 @@ def generate_exam(questions_file="questions.json"):
   
   def make_questions(*args, **kwargs):
     ## In this function we'll make the questions for the exam
-    questions = [q.get_question() for q in question_set]
+    questions = [q.generate_latex() for q in question_set]
     
     return '\n\n'.join(questions)
   
