@@ -52,15 +52,7 @@ class QuestionSet():
       questions.append(
         Question(
           question["value"],
-          # ' \\\\\n'.join([
-          ' \n'.join([
-            re.sub(
-              r'\[[\w_][\w_]+\]',
-              "\\\\answerblank{3}",
-              line
-            ) #.replace('[', '{[').replace(']', ']}')
-            for line in question["lines"]
-          ]),
+          question["text"],
           subject=question["subject"],
           env=self.env
         )
@@ -71,7 +63,17 @@ class QuestionSet():
   def load_from_json(cls, env, questions_file="questions.json") -> List[Dict]:
     with open(questions_file) as fid:
       questions_dict = json.load(fid)
-    return questions_dict["questions"]
+    questions_list = questions_dict["questions"]
+    for q in questions_list:
+      q["text"] = ' \n'.join([
+          re.sub(
+            r'\[[\w_][\w_]+\]',
+            "\\\\answerblank{3}",
+            line
+          ) #.replace('[', '{[').replace(']', ']}')
+          for line in q["lines"]
+        ])
+    return questions_list
     
   @classmethod
   def load_from_yaml(cls, env, questions_file="templates/questions.yaml") -> List[Dict]:

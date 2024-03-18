@@ -5,7 +5,7 @@
       "value" : 8,
       "lines" : [
         "Given the random hex number, <VAR> random_hex_number(4) </VAR>, convert it to binary.",
-        "[answer] (or \\answerblank{5}"
+        "[answer] (or \\answerblank{5})"
       ]
     }
   ]

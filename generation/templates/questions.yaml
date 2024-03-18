@@ -1,0 +1,11 @@
+subject: memory
+value: 8
+text: |
+  Given the random hex number, <VAR>random_hex_number(4)</VAR>, convert it to binary.
+    [answer]
+---
+subject: memory
+value: 8
+text: |
+  Given the random hex number, <VAR>random_hex_number(4)</VAR>, convert it to binary.
+  [answer]
