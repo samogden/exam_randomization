@@ -16,7 +16,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--num_exams", default=1, type=int)
-  parser.add_argument("--questions_file", default="questions.json")
+  parser.add_argument("--questions_file", default="templates/questions.yaml")
   parser.add_argument("--debug", action="store_true")
   return parser.parse_args()
 
