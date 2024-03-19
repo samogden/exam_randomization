@@ -3,9 +3,15 @@ value: 8
 text: |
   Given the random hex number, <VAR>random_hex_number(4)</VAR>, convert it to binary.
     [answer]
+answer_func: |
+  def get_answer(inputs=[], outputs=[]):
+    return random.random()
 ---
 subject: memory
 value: 8
 text: |
   Given the random hex number, <VAR>random_hex_number(4)</VAR>, convert it to binary.
-  [answer]
+    [answer]
+answer_func: |
+  def get_answer(inputs=[], outputs=[]):
+    return random.randint(0,10)

@@ -29,7 +29,6 @@ class QuestionSet():
     
     functions = [method for name, method in inspect.getmembers(QuickFunctions, lambda m: inspect.ismethod(m))]
     for func in functions:
-      print(func)
       self.env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
     
     self.questions = self.load_questions(questions_file)
@@ -42,6 +41,7 @@ class QuestionSet():
     else:
       logging.error("Question file in unsupported format.  Please provide either JSON or YAML")
       return []
+  
     
     questions = []
     for question in questions_list:
@@ -49,12 +49,21 @@ class QuestionSet():
       if "enabled" in question and not question["enabled"]:
         continue
       logging.debug(f"question: {question}")
+    
+      if "answer_func" in question:
+        exec(question["answer_func"], globals())
+        logging.debug(get_answer())
+        answer_func = get_answer
+      else:
+        answer_func = (lambda *args : None)
+      
       questions.append(
         Question(
           question["value"],
           question["text"],
           subject=question["subject"],
-          env=self.env
+          env=self.env,
+          answer_func=answer_func
         )
       )
     return questions
@@ -76,7 +85,7 @@ class QuestionSet():
     return questions_list
     
   @classmethod
-  def load_from_yaml(cls, env, questions_file="templates/questions.yaml") -> List[Dict]:
+  def load_from_yaml(cls, questions_file="templates/questions.yaml") -> List[Dict]:
     with open(questions_file) as fid:
       loaded_questions = list(yaml.load_all(fid, Loader=yaml.SafeLoader))
     return loaded_questions
@@ -107,5 +116,7 @@ class Question():
 
 if __name__ == "__main__":
   logging.getLogger().setLevel(logging.DEBUG)
-  question_dict = QuestionSet.load_from_yaml(None)
-  logging.debug(question_dict)
+  
+  question_set = QuestionSet("templates/questions.yaml")
+  logging.debug(question_set)
+  
