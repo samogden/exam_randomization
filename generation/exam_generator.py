@@ -21,7 +21,7 @@ def parse_args():
   return parser.parse_args()
 
 
-def generate_exam(questions_file="questions.json"):
+def generate_exam(questions_file):
   env = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
     block_start_string='<BLOCK>',
@@ -31,9 +31,7 @@ def generate_exam(questions_file="questions.json"):
     comment_start_string='<COMMENT>',
     comment_end_string='</COMMENT>',
   )
-  
   question_set = question.QuestionSet(questions_file).questions
-  logging.debug(f"question_set: {question_set}")
   question_set = sorted(
     question_set,
     key=lambda q: (-q.value, ["memory", "io"].index(q.subject))

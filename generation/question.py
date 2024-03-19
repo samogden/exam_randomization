@@ -16,7 +16,7 @@ from exam_generation_functions import QuickFunctions
 import yaml
 
 class QuestionSet():
-  def __init__(self, questions_file="questions.json"):
+  def __init__(self, questions_file):
     
     self.env = jinja2.Environment(
       block_start_string='<BLOCK>',
@@ -30,7 +30,6 @@ class QuestionSet():
     functions = [method for name, method in inspect.getmembers(QuickFunctions, lambda m: inspect.ismethod(m))]
     for func in functions:
       self.env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
-    
     self.questions = self.load_questions(questions_file)
   
   def load_questions(self, questions_file: str) -> List[Question]:
@@ -45,14 +44,11 @@ class QuestionSet():
     
     questions = []
     for question in questions_list:
-      logging.debug(f"question: {question}")
       if "enabled" in question and not question["enabled"]:
         continue
-      logging.debug(f"question: {question}")
     
       if "answer_func" in question:
         exec(question["answer_func"], globals())
-        logging.debug(get_answer())
         answer_func = get_answer
       else:
         answer_func = (lambda *args : None)
@@ -69,7 +65,7 @@ class QuestionSet():
     return questions
   
   @classmethod
-  def load_from_json(cls, env, questions_file="questions.json") -> List[Dict]:
+  def load_from_json(cls, questions_file) -> List[Dict]:
     with open(questions_file) as fid:
       questions_dict = json.load(fid)
     questions_list = questions_dict["questions"]
@@ -85,7 +81,7 @@ class QuestionSet():
     return questions_list
     
   @classmethod
-  def load_from_yaml(cls, questions_file="templates/questions.yaml") -> List[Dict]:
+  def load_from_yaml(cls, questions_file) -> List[Dict]:
     with open(questions_file) as fid:
       loaded_questions = list(yaml.load_all(fid, Loader=yaml.SafeLoader))
     return loaded_questions
@@ -103,7 +99,6 @@ class Question():
   
   
   def fill_in(self, env):
-    logging.debug(f"self.text: {self.text}")
     template = env.from_string(self.text)
     return template.render()
   
