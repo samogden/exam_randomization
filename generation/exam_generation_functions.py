@@ -12,7 +12,7 @@ class QuickFunctions:
   
   @classmethod
   def random_binary_number(cls, num_bits):
-    return random.randrange(0, int(math.pow(2, num_bits)))
+    # return random.randrange(0, int(math.pow(2, num_bits)))
     return '0b ' + cls.add_spaces_to_str(cls.random_binary_bits(num_bits))
   
   @classmethod
