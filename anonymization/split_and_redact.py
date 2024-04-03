@@ -20,6 +20,7 @@ def parse_flags():
   
   parser.add_argument("--input_dir", required=True)
   parser.add_argument("--leave_name", dest="override_name", action="store_false")
+  parser.add_argument("--base", default=0, type=int)
   
   parser.add_argument("--testing", action="store_true")
   
@@ -39,14 +40,14 @@ def get_file_list(dir_to_deduplicate) -> List[str]:
     )
   )
 
-def add_randomization(files, separator=" - ", out_dir="randomized", override_name=False) -> List[str]:
+def add_randomization(files, separator=" - ", out_dir="randomized", override_name=False, base=0) -> List[str]:
   new_names = []
   directory = out_dir
   for i, f in enumerate(random.sample(files, len(files))):
     stem = pathlib.Path(f).name
-    new_path = os.path.join(directory, f"{str(i).zfill(int(math.log10(len(files)) + 1))}{separator}{stem}")
+    new_path = os.path.join(directory, f"{str(i+base).zfill(int(math.log10(len(files)+base) + 1))}{separator}{stem}")
     if override_name:
-      new_path = os.path.join(directory, f"{str(i).zfill(int(math.log10(len(files)) + 1))}.{stem.split('.')[-1]}")
+      new_path = os.path.join(directory, f"{str(i+base).zfill(int(math.log10(len(files)+base) + 1))}.{stem.split('.')[-1]}")
     
     log.debug(f"{f} -> {new_path}")
     shutil.copy(f, new_path)
@@ -85,7 +86,7 @@ def main():
   clean_dir("randomized")
   clean_dir("redacted")
   
-  files = add_randomization(files, override_name=flags.override_name, out_dir="randomized")
+  files = add_randomization(files, override_name=flags.override_name, out_dir="randomized", base=flags.base)
   redact_directory("randomized", "redacted")
   
 
