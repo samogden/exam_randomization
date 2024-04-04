@@ -4,7 +4,7 @@ import random
 import flask
 from flask import request
 
-import process_questions, memory_questions
+#import process_questions, memory_questions
 
 
 import logging

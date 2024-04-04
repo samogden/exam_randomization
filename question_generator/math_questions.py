@@ -1,8 +1,8 @@
 #!env python
 from typing import List
 
-from question_generator import Question
-from question_generator import Variable, VariableHex
+from question import Question
+from variable import Variable
 
 import random
 import math

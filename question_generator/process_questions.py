@@ -5,9 +5,8 @@ import abc
 import random
 from typing import List
 
-from question_generator import Question
-from question_generator import Variable
-from question_generator import VariableFloat
+from question_generator.question import Question
+from variable import Variable, VariableFloat
 
 import dataclasses
 
