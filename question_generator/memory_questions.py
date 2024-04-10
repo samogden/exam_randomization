@@ -136,7 +136,6 @@ class BaseAndBounds(MemoryAccessQuestion):
 
 class Paging(MemoryAccessQuestion):
   
-  
   MIN_OFFSET_BITS = 3
   MIN_VPN_BITS = 3
   MIN_PFN_BITS = 3
@@ -182,6 +181,7 @@ class Paging(MemoryAccessQuestion):
       self.pte = self.pfn
       self.physical_address_var = Variable("Physical Address", "INVALID")
     
+    self.pte_var = VariableHex("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
     
     # logging.debug(f"va: {self.virtual_address:{self.num_vpn_bits+self.num_offset_bits}b}")
     # logging.debug(f"    {self.vpn:0{self.num_vpn_bits}b}{self.offset:0{self.num_offset_bits}b}")
@@ -195,7 +195,8 @@ class Paging(MemoryAccessQuestion):
         self.pfn_bits_var,
         self.offset_bits_var,
         self.virtual_address_var,
-        self.pfn_var,
+        # self.pfn_var,
+        self.pte_var,
       ],
       target_vars=[
         self.physical_address_var
