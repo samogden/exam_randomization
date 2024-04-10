@@ -74,6 +74,13 @@ class VirtualAddress_parts(Question):
 
 class MemoryAccessQuestion(Question):
   PROBABILITY_OF_INVALID = .25
+  
+  def get_question_prelude(self) -> List[str]:
+    prelude = super().get_question_prelude()
+    prelude.extend([
+      "If the memory access is invalid, simply write INVALID"
+    ])
+    return prelude
 
 class BaseAndBounds(MemoryAccessQuestion):
   MAX_BITS = 32
@@ -227,7 +234,10 @@ class Paging(MemoryAccessQuestion):
 class Paging_with_table(Paging):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.given_vars.remove(self.pfn_var)
+    try:
+      self.given_vars.remove(self.pfn_var)
+    except ValueError:
+      pass
   
   def get_question_body(self) -> List[str]:
     markdown_lines = super().get_question_body()
