@@ -203,13 +203,13 @@ class SchedulingQuestion(Question, abc.ABC):
         "arrival" : job.arrival,            # input
         "duration" : job.duration,          # input
         "response" : job.response_time,     # output
-        "tat" : job.turnaround_time         # output
+        "TAT" : job.turnaround_time         # output
       }
       for (i, job) in enumerate(jobs)
     }
     self.overall_stats = {
       "response" : sum([job.response_time for job in jobs]) / len(jobs),
-      "tat" : sum([job.turnaround_time for job in jobs]) / len(jobs)
+      "TAT" : sum([job.turnaround_time for job in jobs]) / len(jobs)
     }
     
     given_variables = []
@@ -223,7 +223,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
-      self.target = random.choice(["response", "tat"])
+      self.target = random.choice(["response", "TAT"])
       target_variables = [
         VariableFloat(f"Average {self.target.title()} Time", self.overall_stats[self.target]),
       ]
@@ -231,7 +231,7 @@ class SchedulingQuestion(Question, abc.ABC):
       for job_id in sorted(self.job_stats.keys()):
         target_variables.extend([
           VariableFloat(f"Job{job_id} Response Time", self.job_stats["response"], epsilon=self.ANSWER_EPSILON),
-          VariableFloat(f"Job{job_id} Turn Around Time (TAT)", self.job_stats["tat"], epsilon=self.ANSWER_EPSILON)
+          VariableFloat(f"Job{job_id} Turn Around Time (TAT)", self.job_stats["TAT"], epsilon=self.ANSWER_EPSILON)
         ])
       target_variables.extend([
         VariableFloat(f"Average Response Time", sum([job.response_time for job in jobs]) / len(jobs)),
@@ -275,7 +275,7 @@ class SchedulingQuestion(Question, abc.ABC):
       ])
     else:
       explanation_lines.extend([
-        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['tat']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['tat']:0.{self.ROUNDING_DIGITS}f}"
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
         for job_id in sorted(self.job_stats.keys())
       ])
     
