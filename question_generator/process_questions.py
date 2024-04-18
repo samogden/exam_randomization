@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import abc
+import enum
 import random
 from typing import List
 
-from question_generator.question import Question
+from question import Question
+
 from variable import Variable, VariableFloat
 
 import dataclasses
@@ -15,17 +17,28 @@ logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
 class SchedulingQuestion(Question, abc.ABC):
+  class Kind(enum.Enum):
+    FIFO = enum.auto()
+    ShortestDuration = enum.auto()
+    ShortestTimeRemaining = enum.auto()
+    RoundRobin = enum.auto()
+  
   MAX_JOBS = 5
   MAX_ARRIVAL_TIME = 20
   MAX_JOB_DURATION = 20
   
-  @abc.abstractmethod
-  def get_scheduler_name(self):
-    pass
+  ANSWER_EPSILON = 1.0
+  
+  SCHEDULER_NAME = None
+  SELECTOR = None
+  PREEMPTABLE = False
+  TIME_QUANTUM = None
+  
+  ROUNDING_DIGITS = 2
   
   @dataclasses.dataclass
   class Job():
-    arrival_time: float
+    arrival: float
     duration: float
     elapsed_time: float = 0
     response_time: float = None
@@ -50,11 +63,11 @@ class SchedulingQuestion(Question, abc.ABC):
       self.last_run = curr_time
     
     def mark_start(self, curr_time) -> None:
-      logging.debug(f"starting {self.arrival_time} -> {self.duration} at {curr_time}")
-      self.response_time = curr_time - self.arrival_time
+      logging.debug(f"starting {self.arrival} -> {self.duration} at {curr_time}")
+      self.response_time = curr_time - self.arrival
     def mark_end(self, curr_time) -> None:
-      logging.debug(f"ending {self.arrival_time} -> {self.duration} at {curr_time}")
-      self.turnaround_time = curr_time - self.arrival_time
+      logging.debug(f"ending {self.arrival} -> {self.duration} at {curr_time}")
+      self.turnaround_time = curr_time - self.arrival
     
     def time_remaining(self, curr_time) -> float:
       time_remaining = self.duration
@@ -71,7 +84,7 @@ class SchedulingQuestion(Question, abc.ABC):
     curr_time = 0
     selected_job : SchedulingQuestion.Job | None = None
     while len(jobs_to_run) > 0:
-      # logging.debug(f"curr_time: {curr_time :0.3f}")
+      # logging.debug(f"curr_time: {curr_time :0.{self.ROUNDING_DIGITS}f}")
       # logging.debug("\n\n")
       # logging.debug(f"jobs_to_run: {jobs_to_run}")
       
@@ -79,13 +92,13 @@ class SchedulingQuestion(Question, abc.ABC):
       
       # Get the jobs currently in the system
       available_jobs = list(filter(
-        (lambda j: j.arrival_time <= curr_time),
+        (lambda j: j.arrival <= curr_time),
         jobs_to_run
       ))
       
       # Get the jobs that will enter the system in the future
       future_jobs : List[SchedulingQuestion.Job] = list(filter(
-        (lambda j: j.arrival_time > curr_time),
+        (lambda j: j.arrival > curr_time),
         jobs_to_run
       ))
       
@@ -111,9 +124,9 @@ class SchedulingQuestion(Question, abc.ABC):
         if len(future_jobs) != 0:
           next_arrival : SchedulingQuestion.Job = min(
             future_jobs,
-            key=(lambda j: j.arrival_time)
+            key=(lambda j: j.arrival)
           )
-          possible_time_slices.append( ( next_arrival.arrival_time - curr_time) )
+          possible_time_slices.append( (next_arrival.arrival - curr_time))
       
       if time_quantum is not None:
         possible_time_slices.append(time_quantum)
@@ -142,11 +155,35 @@ class SchedulingQuestion(Question, abc.ABC):
         break
     logging.debug(f"Completed in {curr_time}")
   
-  def __init__(self, num_jobs=MAX_JOBS, max_arrival_time=MAX_ARRIVAL_TIME, max_duration=MAX_JOB_DURATION, selector=(lambda j, curr_time: j.arrival_time), preemptable=False, time_quantum=None, **kwargs):
-    self.selector = selector
-    self.preemptable = preemptable
-    self.time_quantum = time_quantum
+  
+  def __init__(self, num_jobs=MAX_JOBS, max_arrival_time=MAX_ARRIVAL_TIME, max_duration=MAX_JOB_DURATION, single_target=True, **kwargs):
+    if "kind" in kwargs:
+      kind = kwargs["kind"]
+    else:
+      kind = random.choice(list(SchedulingQuestion.Kind))
     
+    if kind == SchedulingQuestion.Kind.FIFO:
+      # This is the default case
+      self.SCHEDULER_NAME = "FIFO"
+      self.SELECTOR = (lambda j, curr_time: j.arrival)
+    elif kind == SchedulingQuestion.Kind.ShortestDuration:
+      self.SCHEDULER_NAME = "Shortest Job First"
+      self.SELECTOR = (lambda j, curr_time: j.duration)
+    elif kind == SchedulingQuestion.Kind.ShortestTimeRemaining:
+      self.SCHEDULER_NAME = "Shortest Remaining Time to Completion"
+      self.SELECTOR = (lambda j, curr_time: j.time_remaining(curr_time))
+      self.PREEMPTABLE = True
+    elif kind == SchedulingQuestion.Kind.RoundRobin:
+      self.SCHEDULER_NAME = "Round Robin"
+      self.SELECTOR = (lambda j, curr_time: j.last_run)
+      self.PREEMPTABLE = True
+      self.TIME_QUANTUM = 1e-04
+    else:
+      # then we default to FIFO
+      pass
+    logging.debug(f"Running a {kind} simulation")
+    
+    # todo we could make this deterministic by either passing in a seed value or generating (and returning) one.  We'd have to re-run the simulation, but whatever
     if "jobs" in kwargs:
       logging.debug("Using given jobs")
       jobs = kwargs["jobs"]
@@ -158,57 +195,106 @@ class SchedulingQuestion(Question, abc.ABC):
       ]
     
     logging.info("Starting simulation")
-    self.simulation(jobs, self.selector, self.preemptable, self.time_quantum)
+    self.simulation(jobs, self.SELECTOR, self.PREEMPTABLE, self.TIME_QUANTUM)
     logging.info("Ending simulation")
+    
+    self.job_stats = {
+      i : {
+        "arrival" : job.arrival,            # input
+        "duration" : job.duration,          # input
+        "response" : job.response_time,     # output
+        "tat" : job.turnaround_time         # output
+      }
+      for (i, job) in enumerate(jobs)
+    }
+    self.overall_stats = {
+      "response" : sum([job.response_time for job in jobs]) / len(jobs),
+      "tat" : sum([job.turnaround_time for job in jobs]) / len(jobs)
+    }
     
     given_variables = []
     target_variables = []
-    for (i, job) in enumerate(jobs):
-      logging.info(f"{job.response_time}, {job.turnaround_time}")
-      given_variables.append(Variable(f"Job{i}_arrival, Job{i}_duration", (job.arrival_time, job.duration)))
-      target_variables.extend([
-        VariableFloat(f"Job{i}_RespT", job.response_time, 1.0),
-        VariableFloat(f"Job{i}_TAT", job.turnaround_time, 1.0)
+    for job_id in sorted(self.job_stats.keys()):
+      given_variables.extend([
+        Variable(f"Job{job_id} arrival", self.job_stats[job_id]["arrival"]),
+        Variable(f"Job{job_id} duration", self.job_stats[job_id]["duration"])
       ])
-    target_variables.extend([
-      VariableFloat("Average Response Time", sum([job.response_time for job in jobs]) / len(jobs)),
-      VariableFloat("Average Turnaround Time", sum([job.turnaround_time for job in jobs]) / len(jobs))
-    ])
+    
+    
+    if single_target:
+      # Then we pick one of the overalls, since this is a canvas quiz
+      self.target = random.choice(["response", "tat"])
+      target_variables = [
+        VariableFloat(f"Average {self.target.title()} Time", self.overall_stats[self.target]),
+      ]
+    else:
+      for job_id in sorted(self.job_stats.keys()):
+        target_variables.extend([
+          VariableFloat(f"Job{job_id} Response Time", self.job_stats["response"], epsilon=self.ANSWER_EPSILON),
+          VariableFloat(f"Job{job_id} Turn Around Time (TAT)", self.job_stats["tat"], epsilon=self.ANSWER_EPSILON)
+        ])
+      target_variables.extend([
+        VariableFloat(f"Average Response Time", sum([job.response_time for job in jobs]) / len(jobs)),
+        VariableFloat("Average Turnaround Time", sum([job.turnaround_time for job in jobs]) / len(jobs))
+      ])
+      
     super().__init__(
       given_vars=given_variables,
       target_vars=target_variables
     )
   
   def get_question_prelude(self):
-    return [f"Given the below information, compute the required values if using {self.get_scheduler_name()} scheduling."]
+    return [f"Given the below information, compute the required values if using {self.SCHEDULER_NAME} scheduling."]
 
-class SchedulerQuestion_FIFO(SchedulingQuestion):
-  def get_scheduler_name(self):
-    return "FIFO"
-
-class SchedulerQuestion_ShortestDuration(SchedulingQuestion):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs, selector=(lambda j, curr_time: j.duration))
-  def get_scheduler_name(self):
-    return "Shortest Job First"
-
-class SchedulerQuestion_ShortestTimeRemaining(SchedulingQuestion):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs, selector=(lambda j, curr_time: j.time_remaining(curr_time)), preemptable=True)
-  def get_scheduler_name(self):
-    return "Shortest Remaining Time to Completion"
-
-
-class SchedulerQuestion_Roundrobin(SchedulingQuestion):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs, selector=(lambda j, curr_time: j.last_run), time_quantum=1e-04)
-  
-  def get_scheduler_name(self):
-    return "Round Robin"
+  def get_explanation(self) -> List[str]:
+    # todo: It is _very_ possible to make a diagram of this...
+    
+    # todo: We should vary the phrasing depending on if it's response or TAT
+    explanation_lines = [
+      f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
+    ]
+    # Give the general formula
+    if self.target == "response":
+      calculation_base = "start"
+    else:
+      calculation_base = "completion"
+    explanation_lines.extend([
+      "We do this by subtracting arrival time from the start time, which is",
+      f"Job_{self.target} = Job_{calculation_base} - Job_arrival\n",
+    ])
+    
+    # Individual job explanation
+    explanation_lines.extend([
+      f"For each of our {len(self.job_stats.keys())} jobs, this calculation would be:"
+    ])
+    # todo: make this more flexible
+    if self.target == "response":
+      explanation_lines.extend([
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['response']:0.{self.ROUNDING_DIGITS}f}"
+        for job_id in sorted(self.job_stats.keys())
+      ])
+    else:
+      explanation_lines.extend([
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['tat']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['tat']:0.{self.ROUNDING_DIGITS}f}"
+        for job_id in sorted(self.job_stats.keys())
+      ])
+    
+    explanation_lines.extend(["\n"])
+    summation_line = ' + '.join([
+      f"{self.job_stats[job_id][self.target]:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
+    ])
+    
+    explanation_lines.extend([
+      f"We then calculate the average of these to find the average {self.target} time",
+      f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value}"
+    ])
+    
+    return explanation_lines
+    
 
 
 def main():
-  q = SchedulerQuestion_Roundrobin(
+  q = SchedulingQuestion(
     jobs = [
       SchedulingQuestion.Job(6.0, 5.0),
       SchedulingQuestion.Job(5.0, 9.0),
@@ -221,5 +307,9 @@ def main():
     print(var)
   # print(q.target_vars)
 
-if __name__ == "__main__":
-  main()
+
+  
+  
+  
+  if __name__ == "__main__":
+    main()
