@@ -4,8 +4,7 @@ import sys
 import textwrap
 import time
 import random
-from typing import List
-
+from typing import List, Dict
 
 from variable import Variable
 
@@ -111,3 +110,23 @@ class Question:
       markdown_text += "\n\n"
     markdown_text += "END_GROUP"
     return markdown_text
+
+  @staticmethod
+  def get_table_lines(
+      table_data: Dict[str,List[str]],
+      headers: List[str],
+      sorted_keys: List[str] = None
+  ) -> List[str]:
+    
+    table_lines = '| ' + '| '.join([" "] + headers) + "|\n"
+    table_lines += "|:-" + "|-:" * (len(headers)) + "|\n"
+    
+    # table_lines += "|:---- | :----|\n"
+    for key in sorted(table_data.keys()):
+      table_lines += '| ' + ' | '.join([f"**Job{key}**"] + [str(d) for d in table_data[key]]) + ' |\n'
+    # # table_lines += "...  | ...\n"
+    # for vpn in sorted(page_table.keys()):
+    #   pte = page_table[vpn]
+    #   table_lines += f"|`0b{vpn:0{self.num_vpn_bits}b}` | `0b{pte:0{(self.num_pfn_bits+1)}b}`|\n"
+    
+    return [table_lines]
