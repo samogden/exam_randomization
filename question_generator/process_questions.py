@@ -29,6 +29,7 @@ class SchedulingQuestion(Question, abc.ABC):
   
   ANSWER_EPSILON = 1.0
   
+  SCHEDULER_KIND = None
   SCHEDULER_NAME = None
   SELECTOR = None
   PREEMPTABLE = False
@@ -158,22 +159,22 @@ class SchedulingQuestion(Question, abc.ABC):
   
   def __init__(self, num_jobs=MAX_JOBS, max_arrival_time=MAX_ARRIVAL_TIME, max_duration=MAX_JOB_DURATION, single_target=True, **kwargs):
     if "kind" in kwargs:
-      kind = kwargs["kind"]
+      self.SCHEDULER_KIND = kwargs["kind"]
     else:
-      kind = random.choice(list(SchedulingQuestion.Kind))
+      self.SCHEDULER_KIND = random.choice(list(SchedulingQuestion.Kind))
     
-    if kind == SchedulingQuestion.Kind.FIFO:
+    if self.SCHEDULER_KIND == SchedulingQuestion.Kind.FIFO:
       # This is the default case
       self.SCHEDULER_NAME = "FIFO"
       self.SELECTOR = (lambda j, curr_time: j.arrival)
-    elif kind == SchedulingQuestion.Kind.ShortestDuration:
+    elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestDuration:
       self.SCHEDULER_NAME = "Shortest Job First"
       self.SELECTOR = (lambda j, curr_time: j.duration)
-    elif kind == SchedulingQuestion.Kind.ShortestTimeRemaining:
+    elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestTimeRemaining:
       self.SCHEDULER_NAME = "Shortest Remaining Time to Completion"
       self.SELECTOR = (lambda j, curr_time: j.time_remaining(curr_time))
       self.PREEMPTABLE = True
-    elif kind == SchedulingQuestion.Kind.RoundRobin:
+    elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.RoundRobin:
       self.SCHEDULER_NAME = "Round Robin"
       self.SELECTOR = (lambda j, curr_time: j.last_run)
       self.PREEMPTABLE = True
@@ -181,7 +182,7 @@ class SchedulingQuestion(Question, abc.ABC):
     else:
       # then we default to FIFO
       pass
-    logging.debug(f"Running a {kind} simulation")
+    logging.debug(f"Running a {self.SCHEDULER_KIND} simulation")
     
     # todo we could make this deterministic by either passing in a seed value or generating (and returning) one.  We'd have to re-run the simulation, but whatever
     if "jobs" in kwargs:
@@ -223,7 +224,10 @@ class SchedulingQuestion(Question, abc.ABC):
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
-      self.target = random.choice(["Response", "TAT"])
+      if self.SCHEDULER_KIND is SchedulingQuestion.Kind.RoundRobin:
+        self.target = "Response"
+      else:
+        self.target = random.choice(["Response", "TAT"])
       target_variables = [
         VariableFloat(f"Average {self.target} Time", self.overall_stats[self.target]),
       ]
