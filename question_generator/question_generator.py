@@ -24,17 +24,18 @@ logging.getLogger().setLevel(logging.DEBUG)
 def get_flags():
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("--num_variations", default=100)
+  parser.add_argument("--num_variations", default=2)
   parser.add_argument("--points_per_question", default=2)
   
   return parser.parse_args()
   
 
 
-def generate_quiz(name:str, modules:List[str], num_variations_per_class=1, group_variations=True):
+def generate_quiz(name:str, modules:List[str], num_variations_per_class=1, group_variations=True, allowed_classes=None):
   
   def get_classes(module):
-    return [obj for name, obj in inspect.getmembers(module) if inspect.isclass(obj) and obj.__module__ == module.__name__]
+    logging.debug([name for name, obj in inspect.getmembers(module) if inspect.isclass(obj) and obj.__module__ == module.__name__])
+    return [obj for name, obj in inspect.getmembers(module) if inspect.isclass(obj) and obj.__module__ == module.__name__ and (allowed_classes is not None and name in allowed_classes)]
   
     
   markdown_text = textwrap.dedent(
@@ -48,6 +49,7 @@ def generate_quiz(name:str, modules:List[str], num_variations_per_class=1, group
     m = importlib.import_module(module)
     for c in get_classes(m):
       if "MemoryAccessQuestion" in c.__name__: continue # todo: fix this hack
+      
       logging.debug(c)
       markdown_text += c.generate_group_markdown(num_variations=num_variations_per_class, points_per_question=2)
       markdown_text += "\n\n"
@@ -66,12 +68,18 @@ def main():
   
   flags = get_flags()
   modules = [
-    "math_questions",
+    # "math_questions",
     "memory_questions",
-    # "process_questions"
+    "process_questions"
   ]
   
-  markdown_file = generate_quiz("Mixed Quiz", modules, num_variations_per_class=flags.num_variations)
+  markdown_file = generate_quiz("Mixed Quiz", modules, num_variations_per_class=flags.num_variations,
+    allowed_classes=[
+      "BaseAndBounds",
+      "Paging_with_table",
+      "SchedulingQuestion"
+    ]
+  )
   subprocess.Popen(f"text2qti {markdown_file}", shell=True)
   
   return
