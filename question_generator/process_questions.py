@@ -39,6 +39,7 @@ class SchedulingQuestion(Question, abc.ABC):
   
   @dataclasses.dataclass
   class Job():
+    job_id: int
     arrival: float
     duration: float
     elapsed_time: float = 0
@@ -55,7 +56,6 @@ class SchedulingQuestion(Question, abc.ABC):
         self.mark_start(curr_time)
       self.unpause_time = curr_time
       
-    
     def stop(self, curr_time) -> None:
       self.elapsed_time += (curr_time - self.unpause_time)
       if self.is_complete(curr_time):
@@ -166,17 +166,17 @@ class SchedulingQuestion(Question, abc.ABC):
     if self.SCHEDULER_KIND == SchedulingQuestion.Kind.FIFO:
       # This is the default case
       self.SCHEDULER_NAME = "FIFO"
-      self.SELECTOR = (lambda j, curr_time: j.arrival)
+      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.arrival))
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestDuration:
       self.SCHEDULER_NAME = "Shortest Job First"
-      self.SELECTOR = (lambda j, curr_time: j.duration)
+      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.duration))
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestTimeRemaining:
       self.SCHEDULER_NAME = "Shortest Remaining Time to Completion"
-      self.SELECTOR = (lambda j, curr_time: j.time_remaining(curr_time))
+      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.time_remaining(curr_time)))
       self.PREEMPTABLE = True
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.RoundRobin:
       self.SCHEDULER_NAME = "Round Robin"
-      self.SELECTOR = (lambda j, curr_time: j.last_run)
+      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.last_run))
       self.PREEMPTABLE = True
       self.TIME_QUANTUM = 1e-04
     else:
@@ -191,8 +191,8 @@ class SchedulingQuestion(Question, abc.ABC):
     else:
       logging.debug("Generating new jobs")
       jobs = [
-        SchedulingQuestion.Job(random.randint(0, max_arrival_time), random.randint(1, max_duration))
-        for _ in range(num_jobs)
+        SchedulingQuestion.Job(job_id, random.randint(0, max_arrival_time), random.randint(1, max_duration))
+        for job_id in range(num_jobs)
       ]
     
     logging.info("Starting simulation")
@@ -248,7 +248,20 @@ class SchedulingQuestion(Question, abc.ABC):
     )
   
   def get_question_prelude(self):
-    return [f"Given the below information, compute the required values if using {self.SCHEDULER_NAME} scheduling."]
+    return [f"Given the below information, compute the required values if using **{self.SCHEDULER_NAME}** scheduling.  Break any ties using the job number."]
+
+  def get_question_body(self) -> List[str]:
+    # todo: Make this give the values in a table so it is a bit more clear.  It also can let me bold it
+    return self.get_table_lines(
+      headers=["Arrival", "Duration"],
+      table_data={
+        job_id : [self.job_stats[job_id]["arrival"], self.job_stats[job_id]["duration"]]
+        for job_id in sorted(self.job_stats.keys())
+      }
+    )
+    
+    return super().get_question_body()
+    
 
   def get_explanation(self) -> List[str]:
     # todo: It is _very_ possible to make a diagram of this...
