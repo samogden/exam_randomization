@@ -202,13 +202,13 @@ class SchedulingQuestion(Question, abc.ABC):
       i : {
         "arrival" : job.arrival,            # input
         "duration" : job.duration,          # input
-        "response" : job.response_time,     # output
+        "Response" : job.response_time,     # output
         "TAT" : job.turnaround_time         # output
       }
       for (i, job) in enumerate(jobs)
     }
     self.overall_stats = {
-      "response" : sum([job.response_time for job in jobs]) / len(jobs),
+      "Response" : sum([job.response_time for job in jobs]) / len(jobs),
       "TAT" : sum([job.turnaround_time for job in jobs]) / len(jobs)
     }
     
@@ -223,14 +223,14 @@ class SchedulingQuestion(Question, abc.ABC):
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
-      self.target = random.choice(["response", "TAT"])
+      self.target = random.choice(["Response", "TAT"])
       target_variables = [
-        VariableFloat(f"Average {self.target.title()} Time", self.overall_stats[self.target]),
+        VariableFloat(f"Average {self.target} Time", self.overall_stats[self.target]),
       ]
     else:
       for job_id in sorted(self.job_stats.keys()):
         target_variables.extend([
-          VariableFloat(f"Job{job_id} Response Time", self.job_stats["response"], epsilon=self.ANSWER_EPSILON),
+          VariableFloat(f"Job{job_id} Response Time", self.job_stats["Response"], epsilon=self.ANSWER_EPSILON),
           VariableFloat(f"Job{job_id} Turn Around Time (TAT)", self.job_stats["TAT"], epsilon=self.ANSWER_EPSILON)
         ])
       target_variables.extend([
@@ -254,7 +254,7 @@ class SchedulingQuestion(Question, abc.ABC):
       f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
     ]
     # Give the general formula
-    if self.target == "response":
+    if self.target == "Response":
       calculation_base = "start"
     else:
       calculation_base = "completion"
@@ -268,9 +268,9 @@ class SchedulingQuestion(Question, abc.ABC):
       f"For each of our {len(self.job_stats.keys())} jobs, this calculation would be:"
     ])
     # todo: make this more flexible
-    if self.target == "response":
+    if self.target == "Response":
       explanation_lines.extend([
-        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['response']:0.{self.ROUNDING_DIGITS}f}"
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
         for job_id in sorted(self.job_stats.keys())
       ])
     else:
