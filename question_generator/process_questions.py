@@ -166,17 +166,17 @@ class SchedulingQuestion(Question, abc.ABC):
     if self.SCHEDULER_KIND == SchedulingQuestion.Kind.FIFO:
       # This is the default case
       self.SCHEDULER_NAME = "FIFO"
-      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.arrival))
+      self.SELECTOR = (lambda j, curr_time: (j.arrival, j.job_id))
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestDuration:
       self.SCHEDULER_NAME = "Shortest Job First"
-      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.duration))
+      self.SELECTOR = (lambda j, curr_time: (j.duration, j.job_id))
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestTimeRemaining:
       self.SCHEDULER_NAME = "Shortest Remaining Time to Completion"
-      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.time_remaining(curr_time)))
+      self.SELECTOR = (lambda j, curr_time: (j.time_remaining(curr_time), j.job_id))
       self.PREEMPTABLE = True
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.RoundRobin:
       self.SCHEDULER_NAME = "Round Robin"
-      self.SELECTOR = (lambda j, curr_time: (j.job_id, j.last_run))
+      self.SELECTOR = (lambda j, curr_time: (j.last_run, j.job_id))
       self.PREEMPTABLE = True
       self.TIME_QUANTUM = 1e-04
     else:
@@ -224,8 +224,8 @@ class SchedulingQuestion(Question, abc.ABC):
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
-      if self.SCHEDULER_KIND is SchedulingQuestion.Kind.RoundRobin:
-        self.target = "Response"
+      if self.SCHEDULER_KIND == SchedulingQuestion.Kind.RoundRobin:
+        self.target = "TAT"
       else:
         self.target = random.choice(["Response", "TAT"])
       target_variables = [
