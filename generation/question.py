@@ -99,7 +99,12 @@ class Question():
   
   
   def fill_in(self, env):
-    template = env.from_string(self.text)
+    text = re.sub(
+      r'\[[\w_][\w_]+\]',
+      "\\\\answerblank{3}",
+      self.text
+    )
+    template = env.from_string(text)
     return template.render()
   
   def get_question(self, env):
