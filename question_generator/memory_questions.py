@@ -101,10 +101,10 @@ class BaseAndBounds(MemoryAccessQuestion):
     self.base_var = Variable("Base", f"0x{self.base :X}")
     self.virtual_address_var = Variable("Virtual Address", f"0x{self.virtual_address :X}")
     
-    if self.virtual_address > self.bounds:
-      self.physical_address_var = Variable("Physical Address", "INVALID")
-    else:
+    if self.virtual_address < self.bounds:
       self.physical_address_var = VariableHex("Physical Address", self.base + self.virtual_address)
+    else:
+      self.physical_address_var = Variable("Physical Address", "INVALID")
     
     
     super().__init__(
