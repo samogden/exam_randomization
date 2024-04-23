@@ -53,15 +53,20 @@ class QuestionSet():
       else:
         answer_func = (lambda *args : None)
       
-      questions.append(
-        Question(
-          question["value"],
-          question["text"],
-          subject=question["subject"],
-          env=self.env,
-          answer_func=answer_func
+      if "repeat" in question:
+        repeat = question["repeat"]
+      else:
+        repeat = 1
+      for _ in range(repeat):
+        questions.append(
+          Question(
+            question["value"],
+            question["text"],
+            subject=question["subject"],
+            env=self.env,
+            answer_func=answer_func,
+          )
         )
-      )
     return questions
   
   @classmethod
