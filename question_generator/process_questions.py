@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import abc
+import collections
 import enum
 import random
-from typing import List
+from typing import List, Tuple
 
 from question import Question
 
@@ -80,10 +81,19 @@ class SchedulingQuestion(Question, abc.ABC):
     def is_complete(self, curr_time) -> bool:
       # logging.debug(f"is complete: {self.duration} <= {self.elapsed_time} : {self.duration <= self.elapsed_time}")
       return self.duration <= self.elapsed_time + self.SCHEDULER_EPSILON # self.time_remaining(curr_time) <= 0
+    
+    def has_started(self) -> bool:
+      return self.response_time is None
   
   def simulation(self, jobs_to_run: List[SchedulingQuestion.Job], selector, preemptable, time_quantum=None):
     curr_time = 0
     selected_job : SchedulingQuestion.Job | None = None
+    
+    self.timeline = collections.defaultdict(list)
+    self.timeline[curr_time].append("Simulation Start")
+    for job in jobs_to_run:
+      self.timeline[job.arrival].append(f"Job{job.job_id} arrived")
+    
     while len(jobs_to_run) > 0:
       # logging.debug(f"curr_time: {curr_time :0.{self.ROUNDING_DIGITS}f}")
       # logging.debug("\n\n")
@@ -103,9 +113,6 @@ class SchedulingQuestion(Question, abc.ABC):
         jobs_to_run
       ))
       
-      # logging.debug(f"available jobs: {available_jobs}")
-      # logging.debug(f"future jobs: {future_jobs}")
-      
       # Check whether there are jobs in the system already
       if len(available_jobs) > 0:
         # Use the selector to identify what job we are going to run
@@ -113,6 +120,8 @@ class SchedulingQuestion(Question, abc.ABC):
           available_jobs,
           key=(lambda j: selector(j, curr_time))
         )
+        if selected_job.has_started():
+          self.timeline[curr_time].append(f"Starting Job{selected_job.job_id} (resp = {curr_time - selected_job.arrival:0.{self.ROUNDING_DIGITS}f}s)")
         # We start the job that we selected
         selected_job.run(curr_time)
         
@@ -140,11 +149,18 @@ class SchedulingQuestion(Question, abc.ABC):
       except ValueError:
         logging.error("No jobs available to schedule")
         break
+      if self.SCHEDULER_KIND != SchedulingQuestion.Kind.RoundRobin:
+        if selected_job is not None:
+          self.timeline[curr_time].append(f"Running Job{selected_job.job_id} for {next_time_slice:0.{self.ROUNDING_DIGITS}f}s")
+        else:
+          self.timeline[curr_time].append(f"(No job running)")
       curr_time += next_time_slice
       
       # We stop the job we selected, and potentially mark it as complete
       if selected_job is not None:
         selected_job.stop(curr_time)
+        if selected_job.is_complete(curr_time):
+          self.timeline[curr_time].append(f"Completed Job{selected_job.job_id} (TAT = {selected_job.turnaround_time:0.{self.ROUNDING_DIGITS}f}s)")
       selected_job = None
       
       # Filter out completed jobs
@@ -255,9 +271,10 @@ class SchedulingQuestion(Question, abc.ABC):
     return self.get_table_lines(
       headers=["Arrival", "Duration"],
       table_data={
-        job_id : [self.job_stats[job_id]["arrival"], self.job_stats[job_id]["duration"]]
+        f"Job{job_id}" : [self.job_stats[job_id]["arrival"], self.job_stats[job_id]["duration"]]
         for job_id in sorted(self.job_stats.keys())
-      }
+      },
+      add_header_space=True
     )
     
     return super().get_question_body()
@@ -305,6 +322,17 @@ class SchedulingQuestion(Question, abc.ABC):
       f"We then calculate the average of these to find the average {self.target} time",
       f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value}"
     ])
+    
+    
+    explanation_lines.extend(
+      self.get_table_lines(
+        headers=["Time", "Events"],
+        table_data={
+          f"{t:02.{self.ROUNDING_DIGITS}f}s" : [', '.join(self.timeline[t])]
+          for t in self.timeline.keys()
+        }
+      )
+    )
     
     return explanation_lines
     
