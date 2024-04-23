@@ -115,15 +115,22 @@ class Question:
   def get_table_lines(
       table_data: Dict[str,List[str]],
       headers: List[str],
-      sorted_keys: List[str] = None
+      sorted_keys: List[str] = None,
+      add_header_space: bool = False
   ) -> List[str]:
     
-    table_lines = '| ' + '| '.join([" "] + headers) + "|\n"
-    table_lines += "|:-" + "|-:" * (len(headers)) + "|\n"
+    if add_header_space:
+      table_lines = '| ' + '| '.join([" "] + headers) + "|\n"
+      table_lines += "|:-" + "|-:" * (len(headers)) + "|\n"
+    else:
+      table_lines = '| ' + '| '.join(headers) + "|\n"
+      table_lines += "|:-" * (len(headers)) + "|\n"
     
     # table_lines += "|:---- | :----|\n"
-    for key in sorted(table_data.keys()):
-      table_lines += '| ' + ' | '.join([f"**Job{key}**"] + [str(d) for d in table_data[key]]) + ' |\n'
+    if sorted_keys is None:
+      sorted_keys = sorted(table_data.keys())
+    for key in sorted_keys:
+      table_lines += '| ' + ' | '.join([f"**{key}**"] + [str(d) for d in table_data[key]]) + ' |\n'
     # # table_lines += "...  | ...\n"
     # for vpn in sorted(page_table.keys()):
     #   pte = page_table[vpn]
