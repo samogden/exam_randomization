@@ -320,7 +320,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     explanation_lines.extend([
       f"We then calculate the average of these to find the average {self.target} time",
-      f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value}"
+      f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value:0.{self.ROUNDING_DIGITS}f}"
     ])
     
     
