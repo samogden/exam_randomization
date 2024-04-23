@@ -328,9 +328,11 @@ class SchedulingQuestion(Question, abc.ABC):
       self.get_table_lines(
         headers=["Time", "Events"],
         table_data={
-          f"{t:02.{self.ROUNDING_DIGITS}f}s" : [', '.join(self.timeline[t])]
-          for t in self.timeline.keys()
-        }
+          f"{t:02.{self.ROUNDING_DIGITS}f}s" : [', '.join(self.timeline[t]) + " ------"
+                                                                              ""]
+          for t in sorted(self.timeline.keys())
+        },
+        sorted_keys=[f"{t:02.{self.ROUNDING_DIGITS}f}s" for t in sorted(self.timeline.keys())]
       )
     )
     
