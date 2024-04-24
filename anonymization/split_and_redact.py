@@ -59,11 +59,10 @@ def redact_directory(input_directory, output_directory):
   for f in [os.path.join(input_directory, f) for f in os.listdir(input_directory)]:
     if not f.endswith(".pdf"): continue
     doc = fitz.open(f)
-    for page in doc:
-      # For every page, draw a rectangle on coordinates (1,1)(100,100)
-      page.draw_rect([370,100,500,150],  color = (0, 0, 0), width = 50)
-      break
-    # Save pdf
+    page = doc[0]
+    page.draw_rect([370,100,500,150],  color = (0, 0, 0), width = 50)
+    
+  # Save pdf
     doc.save(f"{os.path.join(output_directory,pathlib.Path(f).name)}")
     doc.close()
 
