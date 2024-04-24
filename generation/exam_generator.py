@@ -19,7 +19,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--num_exams", default=1, type=int)
-  parser.add_argument("--questions_file", default="templates/questions.yaml")
+  parser.add_argument("--questions_file", nargs='+')
   parser.add_argument("--debug", action="store_true")
   return parser.parse_args()
 
@@ -43,7 +43,7 @@ def generate_exam(questions_file) -> Tuple[str, List[question]]:
   
   def make_questions(*args, **kwargs):
     ## In this function we'll make the questions for the exam
-    questions = [q.generate_latex() for q in question_set]
+    questions = [q.generate_latex(is_first=(i==0)) for i, q in enumerate(question_set)]
     
     return '\n\n'.join(questions)
   

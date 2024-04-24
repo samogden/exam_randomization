@@ -32,11 +32,19 @@ class QuestionSet():
       self.env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
     self.questions = self.load_questions(questions_file)
   
-  def load_questions(self, questions_file: str) -> List[Question]:
+  def load_questions(self, questions_file: str|List[str]) -> List[Question]:
+    
+    if not isinstance(questions_file,str): # todo: hackity-hack-hack
+      questions = []
+      for f in questions_file:
+        questions.extend(self.load_questions(f))
+      return questions
+    
     if questions_file.endswith(".json"):
       questions_list = self.load_from_json(questions_file)
     elif questions_file.endswith(".yaml") or questions_file.endswith(".yml"):
-      questions_list = self.load_from_yaml(questions_file)
+      if isinstance(questions_file, str):
+        questions_list = self.load_from_yaml(questions_file)
     else:
       logging.error("Question file in unsupported format.  Please provide either JSON or YAML")
       return []
@@ -53,6 +61,11 @@ class QuestionSet():
       else:
         answer_func = (lambda *args : None)
       
+      if "clear_page" in question:
+        clear_page = question["clear_page"]
+      else:
+        clear_page = False
+      
       if "repeat" in question:
         repeat = question["repeat"]
       else:
@@ -65,6 +78,7 @@ class QuestionSet():
             subject=question["subject"],
             env=self.env,
             answer_func=answer_func,
+            clear_page=clear_page,
           )
         )
     return questions
@@ -94,29 +108,45 @@ class QuestionSet():
 
 class Question():
   
-  def __init__(self, value, question_text, env=None, *args, **kwargs):
+  def __init__(self, value, question_text, env=None, clear_page=False, *args, **kwargs):
     self.value = value
     self.text = question_text
     self.subject = None if "subject" not in kwargs else kwargs["subject"]
     self.env = env
+    self.clear_page = clear_page
+    
     self.args = args
     self.kwargs = kwargs
   
   
   def fill_in(self, env):
-    text = re.sub(
-      r'\[[\w_][\w_]+\]',
-      "\\\\answerblank{3}",
-      self.text
-    )
+    text = self.text.replace("[answer]", "\\answerblank{3}")
+    # text = re.sub(
+    #   r'\[answer\]',
+    #   "\\\\answerblank{3}",
+    #   self.text
+    # )
+    logging.debug(f"text: {text}")
     template = env.from_string(text)
     return template.render()
   
   def get_question(self, env):
     return f"\\question{{{self.value}}}{{\n{self.fill_in(env).replace('[', '{[').replace(']', ']}')}\n}}"
   
-  def generate_latex(self):
-    return f"\\question{{{self.value}}}{{\n{self.fill_in(self.env).replace('[', '{[').replace(']', ']}')}\n}}"
+  def generate_latex(self, is_first=False):
+    return_str = f"\\question{{{self.value}}}{{\n{self.fill_in(self.env).replace('[', '{[').replace(']', ']}')}\n}}"
+    if self.clear_page:
+      if is_first:
+        return_str = return_str + "\\newpage"
+      else:
+        return_str = "\\newpage" + return_str + "\\newpage"
+      
+      # if not is_first:
+      #   return_str += "\\newpage" + return_str + "\\newpage"
+      # else :
+      # return_str = return_str + "\\newpage"
+    
+    return return_str
   
 
 if __name__ == "__main__":
