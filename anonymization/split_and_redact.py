@@ -1,5 +1,6 @@
 #!env python
 import argparse
+import collections
 import logging
 import math
 import os
@@ -18,11 +19,13 @@ log.setLevel(logging.DEBUG)
 def parse_flags():
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("--input_dir", required=True)
+  parser.add_argument("--input_dir", default=None)
   parser.add_argument("--leave_name", dest="override_name", action="store_false")
   parser.add_argument("--base", default=0, type=int)
   
   parser.add_argument("--testing", action="store_true")
+  
+  parser.add_argument("--remerge", action="store_true")
   
   return parser.parse_args()
 
@@ -79,33 +82,60 @@ def split_by_page(input_directory, output_directory):
       page_doc.save(f"{os.path.join(page_dir, pathlib.Path(f).name)}")
       page_doc.close()
     doc.close()
+
+def merge_pages(input_directory, output_directory):
+  exam_pdfs = collections.defaultdict(lambda : fitz.open())
+  for page_number in [p for p in sorted(os.listdir(input_directory))]:
+    page_number_directory = os.path.join(input_directory, page_number)
+    if not os.path.isdir(page_number_directory): continue
+    
+    print(f"{page_number_directory}")
+    for student_pdf in sorted(os.listdir(page_number_directory)):
+      student_pdf_path = os.path.join(page_number_directory, student_pdf)
+      print(student_pdf_path)
+      exam_pdfs[student_pdf].insert_pdf(fitz.open(student_pdf_path))
       
+  for student_pdf in exam_pdfs.keys():
+    exam_pdfs[student_pdf].save(os.path.join(output_directory, student_pdf))
+    
 
 def main():
   flags = parse_flags()
   
-  files = get_file_list(os.path.expanduser(flags.input_dir))
-  for f in files:
-    if ".DS_Store" in f:
-      os.remove(f)
-      files.remove(f)
-  
-  if flags.testing:
-    return
-  
   randomized_dir = "01-randomized"
   redacted_dir = "02-redacted"
   by_page_dir = "03-by_page"
+  remerge_dir = "04-remerged"
+  
   def clean_dir(directory):
     shutil.rmtree(directory, ignore_errors=True)
     os.mkdir(directory)
-  clean_dir(randomized_dir)
-  clean_dir(redacted_dir)
-  clean_dir(by_page_dir)
-  
-  files = add_randomization(files, override_name=flags.override_name, out_dir=randomized_dir, base=flags.base)
-  redact_directory(randomized_dir, redacted_dir)
-  split_by_page(redacted_dir, by_page_dir)
+    
+  if not flags.remerge:
+    if flags.input_dir is None:
+      logging.error("Please specify input directory")
+      return
+    files = get_file_list(os.path.expanduser(flags.input_dir))
+    for f in files:
+      if ".DS_Store" in f:
+        os.remove(f)
+        files.remove(f)
+    
+    if flags.testing:
+      return
+    
+    clean_dir(randomized_dir)
+    clean_dir(redacted_dir)
+    clean_dir(by_page_dir)
+    
+    files = add_randomization(files, override_name=flags.override_name, out_dir=randomized_dir, base=flags.base)
+    redact_directory(randomized_dir, redacted_dir)
+    split_by_page(redacted_dir, by_page_dir)
+  else:
+    # then we are merging our pdfs back together
+    
+    clean_dir(remerge_dir)
+    merge_pages(by_page_dir, remerge_dir)
   
 
 if __name__ == "__main__":
