@@ -1,8 +1,11 @@
 #!env python
+import collections
 import logging
 import os
 import shutil
 import tempfile
+from typing import Tuple, List
+
 import jinja2
 import pypdf
 import question
@@ -21,7 +24,7 @@ def parse_args():
   return parser.parse_args()
 
 
-def generate_exam(questions_file):
+def generate_exam(questions_file) -> Tuple[str, List[question]]:
   env = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
     block_start_string='<BLOCK>',
@@ -34,8 +37,9 @@ def generate_exam(questions_file):
   question_set = question.QuestionSet(questions_file).questions
   question_set = sorted(
     question_set,
-    key=lambda q: (-q.value, ["memory", "io"].index(q.subject))
+    key=lambda q: (-q.value, ["processes", "concurrency", "memory"].index(q.subject))
   )
+  # return question_set
   
   def make_questions(*args, **kwargs):
     ## In this function we'll make the questions for the exam
@@ -47,7 +51,7 @@ def generate_exam(questions_file):
   template = env.get_template('exam_base.j2')
   
   rendered_output = template.render()
-  return rendered_output
+  return rendered_output, question_set
 
 
 def main():
@@ -57,7 +61,7 @@ def main():
   os.mkdir("out")
   
   for _ in range(args.num_exams):
-    exam_text = generate_exam(questions_file=args.questions_file)
+    exam_text, question_set = generate_exam(questions_file=args.questions_file)
     if args.debug:
       tmp_tex = open("exam.tex", 'w')
     else:
@@ -75,8 +79,30 @@ def main():
       shutil.copy(f"{tmp_tex.name}", "debug.tex")
       tmp_tex.close()
       return
-    subprocess.Popen(f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}", shell=True)
+    proc = subprocess.Popen(
+      f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}",
+      shell=True,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE
+    )
+    proc.wait(timeout=30)
     tmp_tex.close()
+    
+    questions_by_subject = {
+      s : list(filter((lambda q: q.subject == s), question_set))
+      for s in  set([q.subject for q in question_set])
+    }
+    for s in questions_by_subject.keys():
+      logging.info(f"subject: {s} {sum(map((lambda q: q.value), questions_by_subject[s]))}")
+      counts_by_value = {
+        # todo: there's a better way to do this, but I doubt I need to ever scale it up
+        val : len(list(filter((lambda q: q.value == val), questions_by_subject[s])))
+        for val in set([q.value for q in questions_by_subject[s]])
+      }
+      for val in sorted(counts_by_value.keys(), reverse=True):
+        logging.info(f"  {counts_by_value[val]}x {val}points")
+    logging.info(f"total: {sum(map((lambda q: q.value), question_set))}")
+    
   
   writer = pypdf.PdfWriter()
   for pdf_file in [os.path.join("out", f) for f in os.listdir("out") if f.endswith(".pdf")]:
@@ -84,6 +110,7 @@ def main():
   
   writer.write("exam.pdf")
   #shutil.rmtree("out")
+  
 
 
 if __name__ == "__main__":
