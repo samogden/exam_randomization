@@ -67,6 +67,20 @@ def redact_directory(input_directory, output_directory):
     doc.save(f"{os.path.join(output_directory,pathlib.Path(f).name)}")
     doc.close()
 
+def split_by_page(input_directory, output_directory):
+  for f in [os.path.join(input_directory, f) for f in os.listdir(input_directory)]:
+    if not f.endswith(".pdf"): continue
+    doc = fitz.open(f)
+    for i in range(doc.page_count):
+      page_dir = os.path.join(output_directory, f"{i:0{math.ceil(math.log10(doc.page_count))}}")
+      if not os.path.exists(page_dir):
+        os.mkdir(page_dir)
+      page_doc = fitz.open()
+      page_doc.insert_pdf(doc, from_page=i, to_page=i)
+      page_doc.save(f"{os.path.join(page_dir, pathlib.Path(f).name)}")
+      page_doc.close()
+    doc.close()
+      
 
 def main():
   flags = parse_flags()
@@ -80,14 +94,19 @@ def main():
   if flags.testing:
     return
   
+  randomized_dir = "01-randomized"
+  redacted_dir = "02-redacted"
+  by_page_dir = "03-by_page"
   def clean_dir(directory):
     shutil.rmtree(directory, ignore_errors=True)
     os.mkdir(directory)
-  clean_dir("randomized")
-  clean_dir("redacted")
+  clean_dir(randomized_dir)
+  clean_dir(redacted_dir)
+  clean_dir(by_page_dir)
   
-  files = add_randomization(files, override_name=flags.override_name, out_dir="randomized", base=flags.base)
-  redact_directory("randomized", "redacted")
+  files = add_randomization(files, override_name=flags.override_name, out_dir=randomized_dir, base=flags.base)
+  redact_directory(randomized_dir, redacted_dir)
+  split_by_page(redacted_dir, by_page_dir)
   
 
 if __name__ == "__main__":
