@@ -364,18 +364,19 @@ class SchedulingQuestion(Question, abc.ABC):
       linewidth=1,
     )
     
-    for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
-      for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
-        ax.barh(
-          y = [y_loc],
-          left = [start],
-          width = [stop - start],
-          color = 'white',
-          edgecolor='black',
-          linewidth = 1,
-          # color = random.choice(list(matplotlib.colors.BASE_COLORS.keys())),
-          hatch = '' if (i % 2 == 1) else 'OO'
-        )
+    if self.SCHEDULER_KIND != self.Kind.RoundRobin:
+      for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
+        for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
+          ax.barh(
+            y = [y_loc],
+            left = [start],
+            width = [stop - start],
+            color = 'white',
+            edgecolor='black',
+            linewidth = 1,
+            # color = random.choice(list(matplotlib.colors.BASE_COLORS.keys())),
+            hatch = '' if (i % 2 == 1) else 'OO'
+          )
     
     
     
