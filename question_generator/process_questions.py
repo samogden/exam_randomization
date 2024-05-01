@@ -353,6 +353,11 @@ class SchedulingQuestion(Question, abc.ABC):
     
     fig, ax = plt.subplots(1, 1)
     
+    
+    for x_loc in set([t for job_id in self.job_stats.keys() for t in self.job_stats[job_id]["state_changes"] ]):
+      ax.axvline(x_loc, zorder=0)
+      plt.text(x_loc + 0,len(self.job_stats.keys())-0.3,f'{x_loc:0.{self.ROUNDING_DIGITS}f}s',rotation=90)
+    
     # Plot the overall TAT
     ax.barh(
       y = [i for i in range(len(self.job_stats))][::-1],
@@ -361,7 +366,7 @@ class SchedulingQuestion(Question, abc.ABC):
       tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
       color='white',
       edgecolor='black',
-      linewidth=1,
+      linewidth=2,
     )
     
     if self.SCHEDULER_KIND != self.Kind.RoundRobin:
@@ -371,26 +376,12 @@ class SchedulingQuestion(Question, abc.ABC):
             y = [y_loc],
             left = [start],
             width = [stop - start],
-            color = 'white',
+            # color = 'white',
             edgecolor='black',
-            linewidth = 1,
+            linewidth = 2,
             # color = random.choice(list(matplotlib.colors.BASE_COLORS.keys())),
-            hatch = '' if (i % 2 == 1) else 'OO'
+            color = 'white' if (i % 2 == 1) else 'grey'
           )
-    
-    
-    
-    # # Denote the response time
-    # ax.barh(
-    #   y = [i for i in range(len(self.job_stats))][::-1],
-    #   left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
-    #   width = [self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())],
-    #   tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
-    #   color='white',
-    #   edgecolor='black',
-    #   linewidth=2,
-    #   hatch="/"
-    # )
     
     ax.set_xlim(xmin=0)
     
@@ -411,8 +402,8 @@ class SchedulingQuestion(Question, abc.ABC):
 def main():
   q = SchedulingQuestion(
     # kind=SchedulingQuestion.Kind.ShortestTimeRemaining,
-    num_jobs=5,
-    max_arrival_time=5
+    # num_jobs=3,
+    # max_arrival_time=5
     # jobs = [
     #   SchedulingQuestion.Job(6.0, 5.0),
     #   SchedulingQuestion.Job(5.0, 9.0),
