@@ -4,8 +4,11 @@ from __future__ import annotations
 import abc
 import collections
 import enum
+import math
 import random
 from typing import List, Tuple
+
+import matplotlib.colors
 
 from question import Question
 
@@ -51,24 +54,28 @@ class SchedulingQuestion(Question, abc.ABC):
     turnaround_time: float = None
     unpause_time: float | None = None
     last_run: float = 0               # When were we last scheduled
-    start_time : float = None         # When were we first run
-    end_time : float = None           # When were we completed
-    times_run : List[Tuple[float, float]] = dataclasses.field(default_factory=lambda: [])
+    
+    state_change_times : List[float] = dataclasses.field(default_factory=lambda : [])
     
     SCHEDULER_EPSILON = 1e-09
     
-    def run(self, curr_time) -> None:
+    def run(self, curr_time, is_rr=False) -> None:
       if self.response_time is None:
         # Then this is the first time running
         self.mark_start(curr_time)
       self.unpause_time = curr_time
+      if not is_rr:
+        self.state_change_times.append(curr_time)
       
-    def stop(self, curr_time) -> None:
+      
+    def stop(self, curr_time, is_rr=False) -> None:
       self.elapsed_time += (curr_time - self.unpause_time)
       if self.is_complete(curr_time):
         self.mark_end(curr_time)
       self.unpause_time = None
       self.last_run = curr_time
+      if not is_rr:
+        self.state_change_times.append(curr_time)
     
     def mark_start(self, curr_time) -> None:
       log.debug(f"starting {self.arrival} -> {self.duration} at {curr_time}")
@@ -131,7 +138,7 @@ class SchedulingQuestion(Question, abc.ABC):
         if selected_job.has_started():
           self.timeline[curr_time].append(f"Starting Job{selected_job.job_id} (resp = {curr_time - selected_job.arrival:0.{self.ROUNDING_DIGITS}f}s)")
         # We start the job that we selected
-        selected_job.run(curr_time)
+        selected_job.run(curr_time, (self.SCHEDULER_KIND == self.Kind.RoundRobin))
         
         # We could run to the end of the job
         possible_time_slices.append(selected_job.time_remaining(curr_time))
@@ -166,7 +173,7 @@ class SchedulingQuestion(Question, abc.ABC):
       
       # We stop the job we selected, and potentially mark it as complete
       if selected_job is not None:
-        selected_job.stop(curr_time)
+        selected_job.stop(curr_time, (self.SCHEDULER_KIND == self.Kind.RoundRobin))
         if selected_job.is_complete(curr_time):
           self.timeline[curr_time].append(f"Completed Job{selected_job.job_id} (TAT = {selected_job.turnaround_time:0.{self.ROUNDING_DIGITS}f}s)")
       selected_job = None
@@ -228,7 +235,8 @@ class SchedulingQuestion(Question, abc.ABC):
         "arrival" : job.arrival,            # input
         "duration" : job.duration,          # input
         "Response" : job.response_time,     # output
-        "TAT" : job.turnaround_time         # output
+        "TAT" : job.turnaround_time,         # output
+        "state_changes" : [job.arrival] + job.state_change_times + [job.arrival + job.turnaround_time],
       }
       for (i, job) in enumerate(jobs)
     }
@@ -356,22 +364,40 @@ class SchedulingQuestion(Question, abc.ABC):
       linewidth=1,
     )
     
-    # Denote the response time
-    ax.barh(
-      y = [i for i in range(len(self.job_stats))][::-1],
-      left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
-      width = [self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())],
-      tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
-      color='white',
-      edgecolor='black',
-      linewidth=2,
-      hatch="/"
-    )
+    for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
+      for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
+        ax.barh(
+          y = [y_loc],
+          left = [start],
+          width = [stop - start],
+          color = 'white',
+          edgecolor='black',
+          linewidth = 1,
+          # color = random.choice(list(matplotlib.colors.BASE_COLORS.keys())),
+          hatch = '' if (i % 2 == 1) else 'OO'
+        )
+    
+    
+    
+    # # Denote the response time
+    # ax.barh(
+    #   y = [i for i in range(len(self.job_stats))][::-1],
+    #   left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
+    #   width = [self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())],
+    #   tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
+    #   color='white',
+    #   edgecolor='black',
+    #   linewidth=2,
+    #   hatch="/"
+    # )
+    
+    ax.set_xlim(xmin=0)
     
     log.debug(f'end_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())]}')
     
     log.debug(f'start_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())]}')
     
+    log.debug(f'state changes: {[self.job_stats[job_id]["state_changes"] for job_id in sorted(self.job_stats.keys())]}')
     
     
     plt.show()
@@ -383,8 +409,9 @@ class SchedulingQuestion(Question, abc.ABC):
 
 def main():
   q = SchedulingQuestion(
-    # kind=SchedulingQuestion.Kind.FIFO,
-    # num_jobs=2
+    # kind=SchedulingQuestion.Kind.ShortestTimeRemaining,
+    num_jobs=5,
+    max_arrival_time=5
     # jobs = [
     #   SchedulingQuestion.Job(6.0, 5.0),
     #   SchedulingQuestion.Job(5.0, 9.0),
