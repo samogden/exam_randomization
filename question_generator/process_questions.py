@@ -5,7 +5,9 @@ import abc
 import collections
 import enum
 import math
+import os
 import random
+import uuid
 from typing import List, Tuple
 
 import matplotlib.colors
@@ -295,7 +297,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     
 
-  def get_explanation(self) -> List[str]:
+  def get_explanation(self, image_dir="imgs") -> List[str]:
     # todo: It is _very_ possible to make a diagram of this...
     
     # todo: We should vary the phrasing depending on if it's response or TAT
@@ -391,9 +393,14 @@ class SchedulingQuestion(Question, abc.ABC):
     
     log.debug(f'state changes: {[self.job_stats[job_id]["state_changes"] for job_id in sorted(self.job_stats.keys())]}')
     
+    if not os.path.exists(image_dir): os.mkdir(image_dir)
+    image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
+    plt.savefig(image_path)
     
-    plt.show()
     
+    explanation_lines.extend(
+      [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
+    )
     
     return explanation_lines
     
