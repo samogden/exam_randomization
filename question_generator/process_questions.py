@@ -295,15 +295,70 @@ class SchedulingQuestion(Question, abc.ABC):
       add_header_space=True
     )
     
+  
+  def make_image(self, image_dir="imgs"):
     
-
+    fig, ax = plt.subplots(1, 1)
+    
+    for x_loc in set([t for job_id in self.job_stats.keys() for t in self.job_stats[job_id]["state_changes"] ]):
+      ax.axvline(x_loc, zorder=0)
+      plt.text(x_loc + 0,len(self.job_stats.keys())-0.3,f'{x_loc:0.{self.ROUNDING_DIGITS}f}s',rotation=90)
+    
+    # Plot the overall TAT
+    ax.barh(
+      y = [i for i in range(len(self.job_stats))][::-1],
+      left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
+      width = [self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())],
+      tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
+      color='white',
+      edgecolor='black',
+      linewidth=2,
+    )
+    
+    if self.SCHEDULER_KIND != self.Kind.RoundRobin:
+      for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
+        for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
+          ax.barh(
+            y = [y_loc],
+            left = [start],
+            width = [stop - start],
+            # color = 'white',
+            edgecolor='black',
+            linewidth = 2,
+            color = 'white' if (i % 2 == 1) else 'grey'
+          )
+    
+    ax.set_xlim(xmin=0)
+    
+    log.debug(f'end_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())]}')
+    
+    log.debug(f'start_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())]}')
+    
+    log.debug(f'state changes: {[self.job_stats[job_id]["state_changes"] for job_id in sorted(self.job_stats.keys())]}')
+    
+    if not os.path.exists(image_dir): os.mkdir(image_dir)
+    image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
+    plt.savefig(image_path)
+    return image_path
+  
+  
   def get_explanation(self, image_dir="imgs") -> List[str]:
     # todo: It is _very_ possible to make a diagram of this...
     
     # todo: We should vary the phrasing depending on if it's response or TAT
-    explanation_lines = [
+    explanation_lines = []
+    
+    image_path = self.make_image(image_dir)
+    
+    explanation_lines.extend(
+      [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
+    )
+    
+    
+    explanation_lines.extend([
       f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
-    ]
+    ])
+    
     # Give the general formula
     if self.target == "Response":
       calculation_base = "start"
@@ -340,7 +395,6 @@ class SchedulingQuestion(Question, abc.ABC):
       f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value:0.{self.ROUNDING_DIGITS}f}"
     ])
     
-    
     explanation_lines.extend(
       self.get_table_lines(
         headers=["Time", "Events"],
@@ -351,55 +405,6 @@ class SchedulingQuestion(Question, abc.ABC):
         },
         sorted_keys=[f"{t:02.{self.ROUNDING_DIGITS}f}s" for t in sorted(self.timeline.keys())]
       )
-    )
-    
-    fig, ax = plt.subplots(1, 1)
-    
-    
-    for x_loc in set([t for job_id in self.job_stats.keys() for t in self.job_stats[job_id]["state_changes"] ]):
-      ax.axvline(x_loc, zorder=0)
-      plt.text(x_loc + 0,len(self.job_stats.keys())-0.3,f'{x_loc:0.{self.ROUNDING_DIGITS}f}s',rotation=90)
-    
-    # Plot the overall TAT
-    ax.barh(
-      y = [i for i in range(len(self.job_stats))][::-1],
-      left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
-      width = [self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())],
-      tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
-      color='white',
-      edgecolor='black',
-      linewidth=2,
-    )
-    
-    if self.SCHEDULER_KIND != self.Kind.RoundRobin:
-      for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
-        for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
-          ax.barh(
-            y = [y_loc],
-            left = [start],
-            width = [stop - start],
-            # color = 'white',
-            edgecolor='black',
-            linewidth = 2,
-            # color = random.choice(list(matplotlib.colors.BASE_COLORS.keys())),
-            color = 'white' if (i % 2 == 1) else 'grey'
-          )
-    
-    ax.set_xlim(xmin=0)
-    
-    log.debug(f'end_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())]}')
-    
-    log.debug(f'start_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())]}')
-    
-    log.debug(f'state changes: {[self.job_stats[job_id]["state_changes"] for job_id in sorted(self.job_stats.keys())]}')
-    
-    if not os.path.exists(image_dir): os.mkdir(image_dir)
-    image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
-    plt.savefig(image_path)
-    
-    
-    explanation_lines.extend(
-      [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
     )
     
     return explanation_lines
