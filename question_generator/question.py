@@ -85,26 +85,26 @@ class Question:
     return markdown_text
   
   @classmethod
-  def generate_question_set(cls, num_variations, max_tries=None):
+  def generate_question_set(cls, num_variations, max_tries=None, module_kwargs={}):
     if max_tries is None: max_tries=100*num_variations
     questions = set()
     num_tries = 0
     while (len(questions) < num_variations) and num_tries < max_tries:
       num_tries += 1
-      q_text = cls().to_markdown()
+      q_text = cls(**module_kwargs).to_markdown()
       if q_text in questions:
         continue
       questions.add(q_text)
     return questions
   
   @classmethod
-  def generate_group_markdown(cls, num_variations, max_tries=None, points_per_question=4, num_to_pick=1):
+  def generate_group_markdown(cls, num_variations, max_tries=None, points_per_question=4, num_to_pick=1, module_kwargs={}):
     
     markdown_text = "GROUP\n"
     markdown_text += f"pick: {num_to_pick}\n"
     markdown_text += f"points per question: {points_per_question}\n"
     markdown_text += "\n"
-    questions = cls.generate_question_set(num_variations, max_tries)
+    questions = cls.generate_question_set(num_variations, max_tries, module_kwargs=module_kwargs)
     for q_text in questions:
       markdown_text += f"{1}." + q_text
       markdown_text += "\n\n"
