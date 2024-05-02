@@ -28,6 +28,7 @@ log.setLevel(logging.DEBUG)
 class SchedulingQuestion(Question, abc.ABC):
   class Kind(enum.Enum):
     FIFO = enum.auto()
+    LIFO = enum.auto()
     ShortestDuration = enum.auto()
     ShortestTimeRemaining = enum.auto()
     RoundRobin = enum.auto()
@@ -206,6 +207,10 @@ class SchedulingQuestion(Question, abc.ABC):
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestTimeRemaining:
       self.SCHEDULER_NAME = "Shortest Remaining Time to Completion"
       self.SELECTOR = (lambda j, curr_time: (j.time_remaining(curr_time), j.job_id))
+      self.PREEMPTABLE = True
+    elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.LIFO:
+      self.SCHEDULER_NAME = "LIFO"
+      self.SELECTOR = (lambda j, curr_time: (-j.arrival, j.job_id))
       self.PREEMPTABLE = True
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.RoundRobin:
       self.SCHEDULER_NAME = "Round Robin"
