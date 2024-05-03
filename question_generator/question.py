@@ -110,9 +110,9 @@ class Question:
       markdown_text += "\n\n"
     markdown_text += "END_GROUP"
     return markdown_text
-
-  @staticmethod
-  def get_table_lines(
+  
+  @classmethod
+  def get_table_lines_markdown(cls,
       table_data: Dict[str,List[str]],
       headers: List[str],
       sorted_keys: List[str] = None,
@@ -131,9 +131,48 @@ class Question:
       sorted_keys = sorted(table_data.keys())
     for key in sorted_keys:
       table_lines += '| ' + ' | '.join([f"**{key}**"] + [str(d) for d in table_data[key]]) + ' |\n'
-    # # table_lines += "...  | ...\n"
-    # for vpn in sorted(page_table.keys()):
-    #   pte = page_table[vpn]
-    #   table_lines += f"|`0b{vpn:0{self.num_vpn_bits}b}` | `0b{pte:0{(self.num_pfn_bits+1)}b}`|\n"
     
     return [table_lines]
+  
+  @classmethod
+  def get_table_lines_html(cls,
+      table_data: Dict[str,List[str]],
+      headers: List[str],
+      sorted_keys: List[str] = None,
+      add_header_space: bool = False
+  ) -> List[str]:
+    
+    table_lines = ["<table  style=\"border: 1px solid black;\">"]
+    table_lines.append("<tr>")
+    if add_header_space:
+      table_lines.append("<th></th>")
+    table_lines.extend([
+      f"<th style=\"padding: 5px;\">{h}</th>"
+      for h in headers
+    ])
+    table_lines.append("</tr>")
+    
+    if sorted_keys is None:
+      sorted_keys = sorted(table_data.keys())
+    
+    for key in sorted_keys:
+      table_lines.append("<tr>")
+      table_lines.append(
+        f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
+      )
+      table_lines.extend([
+        f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
+        for cell_text in table_data[key]
+      ])
+      table_lines.append("</tr>")
+    
+    table_lines.append("</table>")
+      
+    return ['\n'.join(table_lines)]
+  
+  @classmethod
+  def get_table_lines(cls, *args, output_markdown=False, **kwargs):
+    if output_markdown:
+      return cls.get_table_lines_markdown(*args, **kwargs)
+    else:
+      return cls.get_table_lines_html(*args, **kwargs)
