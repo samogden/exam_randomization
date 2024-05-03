@@ -369,7 +369,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     
     ax.set_xlim(xmin=0)
-    plt.show()
+    # plt.show()
     
     if not os.path.exists(image_dir): os.mkdir(image_dir)
     image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
