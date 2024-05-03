@@ -26,7 +26,7 @@ from process_questions import SchedulingQuestion
 def get_flags():
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("--num_variations", default=10)
+  parser.add_argument("--num_variations", default=200)
   parser.add_argument("--points_per_question", default=1)
   
   return parser.parse_args()
@@ -72,21 +72,6 @@ def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_clas
           module_kwargs=module_kwargs
         )
         markdown_text += "\n\n"
-      #
-      #
-      # if "kwargs" in question_classes[name]:
-      #   module_kwargs = question_classes[name]["kwargs"]
-      # else:
-      #   module_kwargs = {}
-      #
-      # logging.debug(c)
-      # markdown_text += c.generate_group_markdown(
-      #   num_variations=num_variations_per_class,
-      #   points_per_question=2,
-      #   num_to_pick=num_to_pick,
-      #   module_kwargs=module_kwargs
-      # )
-      # markdown_text += "\n\n"
   
   markdown_file_name = '-'.join(quiz_name.split(' ')) + "-" + generation_time + ".md"
   with open(markdown_file_name, 'w') as fid:
@@ -112,10 +97,6 @@ def main():
       "SchedulingQuestion" : {
         "variations" : [
           { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
-          # { "kwargs" : { "kind" : SchedulingQuestion.Kind.RoundRobin} },
-          # { "kwargs" : { "kind" : SchedulingQuestion.Kind.ShortestDuration} },
-          # { "kwargs" : { "kind" : SchedulingQuestion.Kind.ShortestTimeRemaining} },
-          # { "kwargs" : { "kind" : SchedulingQuestion.Kind.FIFO} },
         ]
       },
     }
