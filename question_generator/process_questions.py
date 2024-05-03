@@ -309,17 +309,6 @@ class SchedulingQuestion(Question, abc.ABC):
       ax.axvline(x_loc, zorder=0)
       plt.text(x_loc + 0,len(self.job_stats.keys())-0.3,f'{x_loc:0.{self.ROUNDING_DIGITS}f}s',rotation=90)
     
-    # Plot the overall TAT
-    ax.barh(
-      y = [i for i in range(len(self.job_stats))][::-1],
-      left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
-      width = [self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())],
-      tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
-      color='white',
-      edgecolor='black',
-      linewidth=2,
-    )
-    
     if self.SCHEDULER_KIND != self.Kind.RoundRobin:
       for y_loc, job_id in enumerate(sorted(self.job_stats.keys(), reverse=True)):
         for i, (start, stop) in enumerate(zip(self.job_stats[job_id]["state_changes"], self.job_stats[job_id]["state_changes"][1:])):
@@ -330,16 +319,57 @@ class SchedulingQuestion(Question, abc.ABC):
             # color = 'white',
             edgecolor='black',
             linewidth = 2,
-            color = 'white' if (i % 2 == 1) else 'grey'
+            color = 'white' if (i % 2 == 1) else 'black'
           )
+    else:
+      pass
+      job_deltas = collections.defaultdict(int)
+      for job_id in self.job_stats.keys():
+        job_deltas[self.job_stats[job_id]["state_changes"][0]] += 1
+        job_deltas[self.job_stats[job_id]["state_changes"][1]] -= 1
+      log.debug(f"job_deltas: {job_deltas}")
+    
+      regimes_ranges = zip(sorted(job_deltas.keys()), sorted(job_deltas.keys())[1:])
+      
+      for (low, high) in regimes_ranges:
+        log.debug(f"(low, high): {(low, high)}")
+        jobs_in_range = [
+          i for i, job_id in enumerate(list(self.job_stats.keys())[::-1])
+          if
+            (self.job_stats[job_id]["state_changes"][0] <= low)
+            and
+            (self.job_stats[job_id]["state_changes"][1] >= high)
+        ]
+        
+        log.debug(f"jobs_in_range: {jobs_in_range}")
+        if len(jobs_in_range) == 0: continue
+        # continue
+        ax.barh(
+          y = jobs_in_range,
+          left = [low for _ in jobs_in_range],
+          width = [high - low for _ in jobs_in_range],
+          color=f"{ 1 - ((len(jobs_in_range) - 1) / (len(self.job_stats.keys())))}",
+          # edgecolor='blue',
+          # linewidth=2,
+        )
+        # The core idea is that we want to track how many jobs are running in parallel and color the bars based on that
+    
+    
+    # Plot the overall TAT
+    ax.barh(
+      y = [i for i in range(len(self.job_stats))][::-1],
+      left = [self.job_stats[job_id]["arrival"] for job_id in sorted(self.job_stats.keys())],
+      width = [self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())],
+      tick_label = [f"Job{job_id}" for job_id in sorted(self.job_stats.keys())],
+      color=(0,0,0,0),
+      edgecolor='black',
+      linewidth=2,
+      # hatch='/'
+    )
+    
     
     ax.set_xlim(xmin=0)
-    
-    log.debug(f'end_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["TAT"] for job_id in sorted(self.job_stats.keys())]}')
-    
-    log.debug(f'start_times : {[self.job_stats[job_id]["arrival"] + self.job_stats[job_id]["Response"] for job_id in sorted(self.job_stats.keys())]}')
-    
-    log.debug(f'state changes: {[self.job_stats[job_id]["state_changes"] for job_id in sorted(self.job_stats.keys())]}')
+    plt.show()
     
     if not os.path.exists(image_dir): os.mkdir(image_dir)
     image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
@@ -348,17 +378,9 @@ class SchedulingQuestion(Question, abc.ABC):
   
   
   def get_explanation(self, image_dir="imgs") -> List[str]:
-    # todo: It is _very_ possible to make a diagram of this...
     
     # todo: We should vary the phrasing depending on if it's response or TAT
     explanation_lines = []
-    
-    image_path = self.make_image(image_dir)
-    
-    explanation_lines.extend(
-      [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
-    )
-    
     
     explanation_lines.extend([
       f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
@@ -412,13 +434,20 @@ class SchedulingQuestion(Question, abc.ABC):
       )
     )
     
+    
+    image_path = self.make_image(image_dir)
+    
+    explanation_lines.extend(
+      [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
+    )
+    
     return explanation_lines
     
 
 
 def main():
   q = SchedulingQuestion(
-    # kind=SchedulingQuestion.Kind.ShortestTimeRemaining,
+    kind=SchedulingQuestion.Kind.LIFO,
     # num_jobs=3,
     # max_arrival_time=5
     # jobs = [
