@@ -85,20 +85,23 @@ def main():
   
   flags = get_flags()
   modules = [
-    # "math_questions",
+    "math_questions",
     "memory_questions",
     "process_questions"
   ]
   
   markdown_file = generate_quiz("Mixed Quiz", modules, num_variations_per_class=flags.num_variations,
     question_classes = {
-      # "BaseAndBounds" : 1,
-      # "Paging_with_table" : 1,
-      "SchedulingQuestion" : {
-        "variations" : [
-          { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
-        ]
-      },
+      "BitsAndBytes" : {},
+      "HexAndBinary" : {},
+      "BaseAndBounds" : {},
+      "Paging" : {},
+      "Paging_with_table" : {},
+      # "SchedulingQuestion" : {
+      #   "variations" : [
+      #     { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
+      #   ]
+      # },
     }
   )
   subprocess.Popen(f"text2qti {markdown_file}", shell=True)

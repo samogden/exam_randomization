@@ -46,7 +46,7 @@ class BitsAndBytes(Question):
     
     return explanation_lines
 
-class HexAndBinaryQuestions(Question):
+class HexAndBinary(Question):
   MIN_HEXITS = 1
   MAX_HEXITS = 8
   
