@@ -67,3 +67,12 @@ class VariableHex(Variable):
       f"* {self.true_value:0{self.num_bits}b}",
       f"* 0b{self.true_value:0{self.num_bits}b}"
     ]
+
+class Variable_BNFRule(Variable):
+  
+  def __str__(self):
+    return f"{self.name} ::= {self.true_value}"
+  
+  def get_markdown_answers(self) -> List[str]:
+    # todo: generate variations
+    return [f"* {self.true_value}\n"]
