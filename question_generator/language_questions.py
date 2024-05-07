@@ -144,9 +144,9 @@ class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
     self.alpha = ''.join(random.choices(string.ascii_lowercase, k=alpha_length))
     self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
-    self.A = variable.Variable_BNFRule("<A>", f"<A>{self.alpha} | {self.beta}")
-    self.A_prime = variable.Variable_BNFRule("<A'>", f"{self.beta}<R>")
-    self.R = variable.Variable_BNFRule("<R>", f"{self.alpha}<R> | \"\"")
+    self.A = variable.Variable_BNFRule("<A>", [f"<A>{self.alpha}", f"{self.beta}"])
+    self.A_prime = variable.Variable_BNFRule("<A'>", [f"{self.beta}<R>"])
+    self.R = variable.Variable_BNFRule("<R>", [f"{self.alpha}<R>", "\"\""])
     
     super().__init__(
       given_vars=[
@@ -174,28 +174,24 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
     self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
     # todo: make it so there are variables, and B and C are concrete rules (potentially)
-    A = ' | '.join(
-      sorted([
+    A_productions = sorted([
         f"{self.alpha}<B>",
         f"{self.alpha}<C>",
         f"{self.beta}<D>",
       ],
-        key=(lambda _: random.random())
-      )
+      key=(lambda _: random.random())
     )
-    A_prime = ' | '.join(
-      sorted([
-        f"{self.alpha}<R>",
-        f"{self.beta}<D>",
-      ],
-        key=(lambda _: random.random())
-      )
+    A_prime_productions = sorted([
+      f"{self.alpha}<R>",
+      f"{self.beta}<D>",
+    ],
+      key=(lambda _: random.random())
     )
-    R = '<B> | <C>'
+    R_productions = ["<B>", "<C>"]
     
-    self.A = variable.Variable_BNFRule("<A>", f"{A}")
-    self.A_prime = variable.Variable_BNFRule("<A'>", f"{A_prime}")
-    self.R = variable.Variable_BNFRule("<R>", f"{R}")
+    self.A = variable.Variable_BNFRule("<A>", A_productions)
+    self.A_prime = variable.Variable_BNFRule("<A'>", A_prime_productions)
+    self.R = variable.Variable_BNFRule("<R>", R_productions)
     
     super().__init__(
       given_vars=[
@@ -223,32 +219,28 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
     self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     self.gamma = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
-    A = ' | '.join(
-      sorted([
-        f"{self.alpha}<B>",
-        "<R>"
-      ],
-        key=(lambda _: random.random())
-      )
+    A_productions = sorted([
+      f"{self.alpha}<B>",
+      "<R>"
+    ],
+      key=(lambda _: random.random())
     )
-    R = ' | '.join(
-      sorted([
-        f"{self.beta}<C>",
-        f"{self.gamma}<D>",
-      ],
-        key=(lambda _: random.random())
-      )
+    R_productions = sorted([
+      f"{self.beta}<C>",
+      f"{self.gamma}<D>",
+    ],
+      key=(lambda _: random.random())
     )
     
-    A_prime = ' | '.join([
+    A_prime_productions = [
       f"{self.alpha}<B>",
       f"{self.beta}<C>",
       f"{self.gamma}<D>",
-    ])
+    ]
     
-    self.A = variable.Variable_BNFRule("<A>", f"{A}")
-    self.A_prime = variable.Variable_BNFRule("<A'>", f"{A_prime}")
-    self.R = variable.Variable_BNFRule("<R>", f"{R}")
+    self.A = variable.Variable_BNFRule("<A>", A_productions)
+    self.A_prime = variable.Variable_BNFRule("<A'>", A_prime_productions)
+    self.R = variable.Variable_BNFRule("<R>", R_productions)
     
     super().__init__(
       given_vars=[

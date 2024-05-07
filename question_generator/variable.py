@@ -1,6 +1,10 @@
 #!env python
 from typing import List
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARNING)
 
 class Variable:
   def __init__(self, name, true_value):
@@ -39,7 +43,7 @@ class VariableFloat(Variable):
     try:
       self.given_value = float(given_value)
     except ValueError:
-      logging.error("Cannot interpret input as float")
+      log.error("Cannot interpret input as float")
       self.given_value = float("nan")
   def compare(self):
     self.result = (self.true_value - self.epsilon <= self.given_value) and (self.given_value <= self.true_value + self.epsilon)
@@ -69,6 +73,11 @@ class VariableHex(Variable):
     ]
 
 class Variable_BNFRule(Variable):
+  
+  def __init__(self, name, productions : List[str]):
+    self.productions = productions
+    super().__init__(name, ' | '.join(self.productions))
+  
   
   def __str__(self):
     return f"{self.name} ::= {self.true_value}"
