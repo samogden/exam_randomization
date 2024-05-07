@@ -1,4 +1,5 @@
 #!env python
+import itertools
 from typing import List
 
 import logging
@@ -84,4 +85,7 @@ class Variable_BNFRule(Variable):
   
   def get_markdown_answers(self) -> List[str]:
     # todo: generate variations
-    return [f"* {self.true_value}\n"]
+    variations = []
+    variations.extend([' | '.join(p) for p in itertools.permutations(self.productions)])
+    variations.extend(['|'.join(p) for p in itertools.permutations(self.productions)])
+    return [f"* {answer}" for answer in variations]
