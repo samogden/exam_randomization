@@ -130,7 +130,14 @@ class BNFQuestion_rewriting(question.Question):
   
   # Questions will take the form of:
   # Given this rule, what auxiliary rule can we add?
-  pass
+
+  def get_question_prelude(self) -> List[str]:
+    return [
+      "Given the below information on a BNF, please correct the grammar.",
+      "Note that the input grammar is defined as non-terminals which are upper-case letters within angle brackets (e.g. \"<A>\" is a non-terminal), "
+      "while terminals are lowercase letters.",
+    ]
+
 
 class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
   def __init__(self, alpha_length=5, beta_length=5):
@@ -150,6 +157,16 @@ class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
         self.R
       ]
     )
+  
+  def get_question_body(self) -> List[str]:
+    question_lines = [
+      "Given the input BNF grammar:\n"
+      f"\t{self.A}\n",
+      "What would replace `???` in the below grammar that has been corrected to fix left recursion?\n",
+      f"\t{self.A_prime}\n",
+      f"\t{self.R.name} : `???`\n"
+    ]
+    return question_lines
 
 class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
   def __init__(self, alpha_length=5, beta_length=5):
@@ -189,6 +206,15 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
         self.A_prime
       ]
     )
+  
+  def get_question_body(self) -> List[str]:
+    question_lines = [
+      "Given the input BNF grammar:\n"
+      f"\t{self.A}\n",
+      "What would replace `???` in the below grammar that has been updated by applying left factoring?\n",
+      f"\t{self.A_prime.name} : `???`\n"
+    ]
+    return question_lines
 
 
 class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
@@ -233,6 +259,16 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
         self.A_prime
       ]
     )
+  
+  def get_question_body(self) -> List[str]:
+    question_lines = [
+      "Given the input BNF grammar:\n"
+      f"\t{self.A}\n",
+      "What would replace `???` in the below grammar that has been updated by applying non-terminal expansion?\n",
+      f"\t{self.A_prime.name} : `???`\n"
+      f"\t{self.R}\n",
+    ]
+    return question_lines
 
 
 class BNFQuestion_generation(question.Question):
