@@ -33,7 +33,7 @@ class Question:
     return ["Given the below information, please answer the questions."]
   
   def get_question_body(self) -> List[str]:
-    return [f"{var.name} : {var.true_value}\n" for var in self.given_vars]
+    return [f"{var}\n" for var in self.given_vars]
   
   def print_question(self) -> None:
     print(''.join(self.get_question_prelude()))
