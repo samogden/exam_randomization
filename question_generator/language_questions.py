@@ -118,9 +118,9 @@ class BNFQuestion(question.Question):
             example_str = example_str.replace(rule, random.choice(self.rules[rule]))
       example_solutions.add(example_str)
     log.info(f"example_solutions: {example_solutions}")
-   
 
-class BNFQuestion_rewriting_left_recursion(question.Question):
+
+class BNFQuestion_rewriting(question.Question):
   # The goal is that this will be a simple example of one of the different kinds of rewriting we are doing.
   # The grammars will be super simple and mainly just use different forms of input
   # The kinds are:
@@ -130,13 +130,15 @@ class BNFQuestion_rewriting_left_recursion(question.Question):
   
   # Questions will take the form of:
   # Given this rule, what auxiliary rule can we add?
-  
+  pass
+
+class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
   def __init__(self, alpha_length=5, beta_length=5):
     self.alpha = ''.join(random.choices(string.ascii_lowercase, k=alpha_length))
     self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
     self.A = variable.Variable_BNFRule("<A>", f"<A>{self.alpha} | {self.beta}")
-    self.A_prime = variable.Variable_BNFRule("<A>''", f"{self.beta}<R>")
+    self.A_prime = variable.Variable_BNFRule("<A'>", f"{self.beta}<R>")
     self.R = variable.Variable_BNFRule("<R>", f"{self.alpha}<R> | \"\"")
     
     super().__init__(
@@ -149,6 +151,90 @@ class BNFQuestion_rewriting_left_recursion(question.Question):
       ]
     )
 
+class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
+  def __init__(self, alpha_length=5, beta_length=5):
+    self.alpha = ''.join(random.choices(string.ascii_lowercase, k=alpha_length))
+    self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
+    
+    # todo: make it so there are variables, and B and C are concrete rules (potentially)
+    A = ' | '.join(
+      sorted([
+        f"{self.alpha}<B>",
+        f"{self.alpha}<C>",
+        f"{self.beta}<D>",
+      ],
+        key=(lambda _: random.random())
+      )
+    )
+    A_prime = ' | '.join(
+      sorted([
+        f"{self.alpha}<R>",
+        f"{self.beta}<D>",
+      ],
+        key=(lambda _: random.random())
+      )
+    )
+    R = '<B> | <C>'
+    
+    self.A = variable.Variable_BNFRule("<A>", f"{A}")
+    self.A_prime = variable.Variable_BNFRule("<A'>", f"{A_prime}")
+    self.R = variable.Variable_BNFRule("<R>", f"{R}")
+    
+    super().__init__(
+      given_vars=[
+        self.A,
+        # self.R
+      ],
+      target_vars=[
+        self.A_prime
+      ]
+    )
+
+
+class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
+  def __init__(self, alpha_length=5, beta_length=5, gamma_length=5):
+    self.alpha = ''.join(random.choices(string.ascii_lowercase, k=alpha_length))
+    self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
+    self.gamma = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
+    
+    A = ' | '.join(
+      sorted([
+        f"{self.alpha}<B>",
+        "<R>"
+      ],
+        key=(lambda _: random.random())
+      )
+    )
+    R = ' | '.join(
+      sorted([
+        f"{self.beta}<C>",
+        f"{self.gamma}<D>",
+      ],
+        key=(lambda _: random.random())
+      )
+    )
+    
+    A_prime = ' | '.join([
+      f"{self.alpha}<B>",
+      f"{self.beta}<C>",
+      f"{self.gamma}<D>",
+    ])
+    
+    self.A = variable.Variable_BNFRule("<A>", f"{A}")
+    self.A_prime = variable.Variable_BNFRule("<A'>", f"{A_prime}")
+    self.R = variable.Variable_BNFRule("<R>", f"{R}")
+    
+    super().__init__(
+      given_vars=[
+        self.A,
+        self.R
+      ],
+      target_vars=[
+        self.A_prime
+      ]
+    )
+
+
 class BNFQuestion_generation(question.Question):
   # The goal of this will be to generate a number of examples and then mess them up somebody
   # the crux is how to mess them up in a way that is reasonably safe, which means wont produce a valid string
@@ -159,7 +245,7 @@ class BNFQuestion_generation(question.Question):
 
 def main():
   
-  q = BNFQuestion_rewriting_left_recursion()
+  q = BNFQuestion_rewriting_nonterminal_expansion()
   q.ask_question()
   
   
