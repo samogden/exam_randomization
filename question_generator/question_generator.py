@@ -42,6 +42,7 @@ def generate_quiz(quiz_name:str, modules:List[str], num_variations_per_class=1, 
   markdown_text = textwrap.dedent(
     f"""
       Quiz title: {quiz_name}-{generation_time}
+      shuffle answers: true
       
       """
   )
