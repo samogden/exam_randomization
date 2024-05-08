@@ -274,6 +274,8 @@ class BNFQuestion_generation(question.Question):
         self.versions = [starting_string]
       
       def __str__(self):
+        if self.versions[-1] == "":
+          return "\"\""
         return self.versions[-1]
       
       def replace(self, target, replacement):
@@ -319,16 +321,45 @@ class BNFQuestion_generation(question.Question):
   
   # Questions will take the form of:
   # Given these rules, what are some valid strings?
-  pass
-
+  def __init__(
+    self,
+      productions=None,
+    starting_nonterminal="<A>"
+  ):
+    if productions is None:
+      productions = {
+        "<A>": ["(<A>)", ""]
+      }
+      
+    self.bnf = BNFQuestion_generation.BNF(productions, starting_nonterminal)
+    
+    self.bnf_vars = [
+      variable.Variable_BNFRule(key, production)
+      for key, production in productions.items()
+    ]
+    
+    self.output_var = variable.Variable_BNFstr("", "")
+    for s in self.bnf.get_n_unique_strings(5):
+      self.output_var.add_choice(
+        str(s),
+        True
+      )
+      self.output_var.add_choice(
+        s.versions[-2],
+        False
+      )
+    super().__init__(
+      given_vars=self.bnf_vars,
+      target_vars=[self.output_var]
+    )
+    
+    
 def main():
   
-  bnf = BNFQuestion_generation.BNF(
-    productions={
-      "<A>" : ["(<A>)", ""]
-    },
-    starting_nonterminal="<A>"
-  )
+  print(BNFQuestion_generation().generate_group_markdown(1))
+  
+  return
+  
   uniq_strings = bnf.get_n_unique_strings(6)
   for s in uniq_strings:
     print(s)

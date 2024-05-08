@@ -1,5 +1,6 @@
 #!env python
 import itertools
+import random
 from typing import List
 
 import logging
@@ -89,3 +90,26 @@ class Variable_BNFRule(Variable):
     variations.extend([' | '.join(p) for p in itertools.permutations(self.productions)])
     variations.extend(['|'.join(p) for p in itertools.permutations(self.productions)])
     return [f"* {answer}" for answer in variations]
+
+class Variable_BNFstr(Variable):
+  # todo: this should probably be more separate
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.correct_choices = []
+    self.incorrect_choices = []
+  def add_choice(self, choice : str, is_correct : bool):
+    if is_correct:
+      self.correct_choices.append(choice)
+    else:
+      self.incorrect_choices.append(choice)
+    
+  def get_markdown_answers(self) -> List[str]:
+    lines = []
+    lines.extend([
+      f"[*] {answer}" for answer in self.correct_choices
+    ])
+    lines.extend([
+      f"[ ] {answer}" for answer in self.incorrect_choices
+    ])
+    
+    return sorted(lines, key=(lambda _: random.random()))
