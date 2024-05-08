@@ -1,8 +1,10 @@
 #env python
 from __future__ import annotations
+
+import dataclasses
 import random
 import string
-from typing import Dict, List, Iterable, Tuple
+from typing import Dict, List, Iterable, Tuple, LiteralString
 
 import question
 import variable
@@ -266,22 +268,44 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
 class BNFQuestion_generation(question.Question):
   
   class BNF:
+    
+    class GeneratedString:
+      def __init__(self, starting_string : str):
+        self.versions = [starting_string]
+      
+      def __str__(self):
+        return self.versions[-1]
+      
+      def replace(self, target, replacement):
+        self.versions.append(self.versions[-1].replace(target, replacement))
+        return self.versions[-1]
+      
+      def __contains__(self, item):
+        return item in self.versions[-1]
+      
+      def count(self, item):
+        return self.versions[-1].count(item)
+      
+      # These two for set compatibility
+      def __hash__(self):
+        return self.versions[-1].__hash__()
+      def __eq__(self, other):
+        return self.versions[-1].__eq__(other.versions[-1])
+      
     def __init__(self, productions : Dict[str,List[str]], starting_nonterminal: str):
       self.productions = productions
       self.starting_nonterminal = starting_nonterminal
     
-    def is_complete(self, str_to_test):
+    def is_complete(self, str_to_test : GeneratedString):
       return not any([nonterminal in str_to_test for nonterminal in self.productions.keys()])
     
     def get_string(self):
-      curr_str = self.starting_nonterminal
-      while (not self.is_complete(curr_str)):
-        # do replacements
-        pass
+      generated_str = BNFQuestion_generation.BNF.GeneratedString(self.starting_nonterminal)
+      while (not self.is_complete(generated_str)):
         for rule in self.productions.keys():
-          for _ in range(curr_str.count(rule)):
-            curr_str = curr_str.replace(rule, random.choice(self.productions[rule]))
-      return curr_str
+          for _ in range(generated_str.count(rule)):
+            generated_str.replace(rule, random.choice(self.productions[rule]))
+      return generated_str
     
     def get_n_unique_strings(self, n: int):
       unique_strings = set()
@@ -305,7 +329,14 @@ def main():
     },
     starting_nonterminal="<A>"
   )
-  print(bnf.get_n_unique_strings(6))
+  uniq_strings = bnf.get_n_unique_strings(6)
+  for s in uniq_strings:
+    print(s)
+  for s in uniq_strings:
+    print(s.versions[-2])
+  # print(uniq_strings)
+  # for s in uniq_strings:
+  #   print(s.versions[-1])
   
   # q = BNFQuestion_rewriting_nonterminal_expansion()
   #
