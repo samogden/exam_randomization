@@ -5,7 +5,7 @@ import random
 import subprocess
 import sys
 import time
-from typing import List
+from typing import List, Dict
 
 import textwrap
 
@@ -21,17 +21,19 @@ import logging
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
+from process_questions import SchedulingQuestion
+
 def get_flags():
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("--num_variations", default=2)
-  parser.add_argument("--points_per_question", default=2)
+  parser.add_argument("--num_variations", default=200)
+  parser.add_argument("--points_per_question", default=1)
   
   return parser.parse_args()
   
 
 
-def generate_quiz(quiz_name:str, modules:List[str], num_variations_per_class=1, group_variations=True, question_classes=None, **kwargs):
+def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_class=1, group_variations=True, question_classes=None, **kwargs):
   
   
   def get_classes(module):
@@ -47,17 +49,30 @@ def generate_quiz(quiz_name:str, modules:List[str], num_variations_per_class=1, 
       """
   )
   
-  for module in modules:
-    m = importlib.import_module(module)
-    for (c, name) in get_classes(m):
+  for module_name in module_names:
+    module = importlib.import_module(module_name)
+    for (c, name) in get_classes(module):
       
-      logging.debug(c)
-      markdown_text += c.generate_group_markdown(
-        num_variations=num_variations_per_class,
-        points_per_question=2,
-        num_to_pick=question_classes[name]
-      )
-      markdown_text += "\n\n"
+      if "num_to_pick" in question_classes[name]:
+        num_to_pick = question_classes[name]
+      else:
+        num_to_pick = 1
+      
+      if "variations" in question_classes[name]:
+        variations = question_classes[name]["variations"]
+      else:
+        variations = [{"kwargs" : {}}]
+        
+      for variation in variations:
+        module_kwargs = variation["kwargs"]
+        logging.debug(f"{c} : {module_kwargs}")
+        markdown_text += c.generate_group_markdown(
+          num_variations=num_variations_per_class,
+          points_per_question=2,
+          num_to_pick=num_to_pick,
+          module_kwargs=module_kwargs
+        )
+        markdown_text += "\n\n"
   
   markdown_file_name = '-'.join(quiz_name.split(' ')) + "-" + generation_time + ".md"
   with open(markdown_file_name, 'w') as fid:
@@ -71,16 +86,23 @@ def main():
   
   flags = get_flags()
   modules = [
-    # "math_questions",
+    "math_questions",
     "memory_questions",
     "process_questions"
   ]
   
   markdown_file = generate_quiz("Mixed Quiz", modules, num_variations_per_class=flags.num_variations,
     question_classes = {
-      "BaseAndBounds" : 1,
-      "Paging_with_table" : 1,
-      "SchedulingQuestion" : 2,
+      "BitsAndBytes" : {},
+      "HexAndBinary" : {},
+      "BaseAndBounds" : {},
+      "Paging" : {},
+      "Paging_with_table" : {},
+      # "SchedulingQuestion" : {
+      #   "variations" : [
+      #     { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
+      #   ]
+      # },
     }
   )
   subprocess.Popen(f"text2qti {markdown_file}", shell=True)
