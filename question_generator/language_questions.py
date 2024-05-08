@@ -360,44 +360,6 @@ def main():
   
   return
   
-  uniq_strings = bnf.get_n_unique_strings(6)
-  for s in uniq_strings:
-    print(s)
-  for s in uniq_strings:
-    print(s.versions[-2])
-  # print(uniq_strings)
-  # for s in uniq_strings:
-  #   print(s.versions[-1])
-  
-  # q = BNFQuestion_rewriting_nonterminal_expansion()
-  #
-  # # print('\n'.join(q.get_question_prelude()))
-  # # print('\n'.join(q.get_question_body()))
-  #
-  # print(
-  #   BNFQuestion_rewriting_nonterminal_expansion().generate_group_markdown(1)
-  # )
-  
-  
-  #q.ask_question()
-  
-  
-  
-  # bnf_str = """
-  # e1 ::= (e1) | ""
-  # """
-  #
-  # bnf = BNF.create_bnf(bnf_str)
-  
-  # q = BNFQuestion(
-  #   # rules = {
-  #   #   "A" : ["aAa", ""]
-  #   # },
-  #   # starting_rule = "A"
-  # )
-  
-  
-  
   
 if __name__ == "__main__":
   main()
