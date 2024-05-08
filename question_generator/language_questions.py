@@ -14,10 +14,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class BNF:
+class BNF_from_text:
   def __init__(self):
     super().__init__()
-    self.productions : List[BNF.Production] = []
+    self.productions : List[BNF_from_text.Production] = []
   
   def add_production(self, p : Production):
     if p not in self.productions:
@@ -29,7 +29,7 @@ class BNF:
     log.debug(f"bnf_rule_lines: {bnf_rule_lines}")
     
     bnf_pairs = [
-      BNF.NonTerminal(
+      BNF_from_text.NonTerminal(
         l.split('::=')[0].strip(),
         [p.strip() for p in l.split('::=')[1].strip().split('|')]
       )
@@ -44,9 +44,9 @@ class BNF:
       self.productions_unparsed = productions
       self.productions = None # We will need to parse out the tokens that belong to other non-terminals
     
-    def parse_productions(self, list_of_nonterminals : List[BNF.NonTerminal]):
+    def parse_productions(self, list_of_nonterminals : List[BNF_from_text.NonTerminal]):
       
-      def insert_nonterminal(current_production : str, nonterminal : BNF.NonTerminal) -> List[str]: # todo: check to make sure it isn't the _first_ thing
+      def insert_nonterminal(current_production : str, nonterminal : BNF_from_text.NonTerminal) -> List[str]: # todo: check to make sure it isn't the _first_ thing
         if nonterminal.token not in current_production:
           return [current_production]
         output_production = []
@@ -64,7 +64,7 @@ class BNF:
         for nonterminal in list_of_nonterminals:
           # The goal is that every time the non-terminal comes up we break into two strings and put the non-terminal between them
           for subproduction in production:
-            if isinstance(subproduction,  BNF.NonTerminal): continue
+            if isinstance(subproduction,  BNF_from_text.NonTerminal): continue
             if nonterminal.token in production:
               pass
               # Then we want to split on it and add each piece back to the productions
@@ -79,33 +79,33 @@ class BNF:
   
 
 class BNFQuestion(question.Question):
-  
+
   NUM_EXAMPLE_SOLUTIONS = 6
   MAX_RULES_TO_GENERATE = 5
   MAX_RULE_LENGTH = 5
   MAX_SUBSTITUTIONS_PER_RULE = 3
-  
-  
+
+
   def __init__(
       self,
       rules : Dict[str,List[str]] = None,
       starting_rule : str = None
   ):
-    
+
     if rules is None:
       # Then we should generate some rules
       num_rules_to_generate = random.randint(1, self.MAX_RULES_TO_GENERATE)
-      
+
       rules = {
         c : [ ''.join(random.choices(string.ascii_lowercase + string.ascii_uppercase[:num_rules_to_generate], k=random.randint(1, self.MAX_RULE_LENGTH))) for _ in range(self.MAX_SUBSTITUTIONS_PER_RULE)]
         for c in string.ascii_uppercase[:num_rules_to_generate]
       }
       starting_rule = "A"
-    
-    
+
+
     self.rules = rules
     self.starting_rule = starting_rule
-    
+
     example_solutions = set()
     log.info(f"Generating solutions")
     while len(example_solutions) < self.NUM_EXAMPLE_SOLUTIONS:
@@ -264,6 +264,32 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
 
 
 class BNFQuestion_generation(question.Question):
+  
+  class BNF:
+    def __init__(self, productions : Dict[str,List[str]], starting_nonterminal: str):
+      self.productions = productions
+      self.starting_nonterminal = starting_nonterminal
+    
+    def is_complete(self, str_to_test):
+      return not any([nonterminal in str_to_test for nonterminal in self.productions.keys()])
+    
+    def get_string(self):
+      curr_str = self.starting_nonterminal
+      while (not self.is_complete(curr_str)):
+        # do replacements
+        pass
+        for rule in self.productions.keys():
+          for _ in range(curr_str.count(rule)):
+            curr_str = curr_str.replace(rule, random.choice(self.productions[rule]))
+      return curr_str
+    
+    def get_n_unique_strings(self, n: int):
+      unique_strings = set()
+      while (len(unique_strings) < n):
+        unique_strings.add(self.get_string())
+      return unique_strings
+    
+  
   # The goal of this will be to generate a number of examples and then mess them up somebody
   # the crux is how to mess them up in a way that is reasonably safe, which means wont produce a valid string
   
@@ -273,8 +299,26 @@ class BNFQuestion_generation(question.Question):
 
 def main():
   
-  q = BNFQuestion_rewriting_nonterminal_expansion()
-  q.ask_question()
+  bnf = BNFQuestion_generation.BNF(
+    productions={
+      "<A>" : ["(<A>)", ""]
+    },
+    starting_nonterminal="<A>"
+  )
+  print(bnf.get_n_unique_strings(6))
+  
+  # q = BNFQuestion_rewriting_nonterminal_expansion()
+  #
+  # # print('\n'.join(q.get_question_prelude()))
+  # # print('\n'.join(q.get_question_body()))
+  #
+  # print(
+  #   BNFQuestion_rewriting_nonterminal_expansion().generate_group_markdown(1)
+  # )
+  
+  
+  #q.ask_question()
+  
   
   
   # bnf_str = """
