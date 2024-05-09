@@ -136,8 +136,7 @@ class BNFQuestion_rewriting(question.Question):
   def get_question_prelude(self) -> List[str]:
     return [
       "Given the below information on a BNF, please correct the grammar.",
-      "Note that the input grammar is defined as non-terminals which are upper-case letters within angle brackets (e.g. \"<A>\" is a non-terminal), "
-      "while terminals are lowercase letters.",
+      "Note that the input grammar is defined as non-terminals which are upper-case  (e.g. `A` is a non-terminal), while terminals are lowercase letters.",
     ]
 
 
@@ -146,9 +145,9 @@ class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
     self.alpha = ''.join(random.choices(string.ascii_lowercase, k=alpha_length))
     self.beta = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
-    self.A = variable.Variable_BNFRule("<A>", [f"<A>{self.alpha}", f"{self.beta}"])
-    self.A_prime = variable.Variable_BNFRule("<A'>", [f"{self.beta}<R>"])
-    self.R = variable.Variable_BNFRule("<R>", [f"{self.alpha}<R>", "\"\""])
+    self.A = variable.Variable_BNFRule("`A`", [f"`A`{self.alpha}", f"{self.beta}"])
+    self.A_prime = variable.Variable_BNFRule("`A'`", [f"{self.beta}`R`"])
+    self.R = variable.Variable_BNFRule("`R`", [f"{self.alpha}`R`", "\"\""])
     
     super().__init__(
       given_vars=[
@@ -162,13 +161,34 @@ class BNFQuestion_rewriting_left_recursion(BNFQuestion_rewriting):
   
   def get_question_body(self) -> List[str]:
     question_lines = [
-      "Given the input BNF grammar:\n"
-      f"\t{self.A}\n",
-      "What would replace `???` in the below grammar that has been corrected to fix left recursion?\n",
-      f"\t{self.A_prime}\n",
-      f"\t{self.R.name} : `???`\n"
+      "Given the input BNF grammar:\n\n"
+      f"{self.A}\n",
+      "What would replace `???` in the below grammar that has been corrected to fix left recursion?\n\n",
+      f"{self.A_prime}\n",
+      # f"{self.R.name} : `???`\n"
     ]
     return question_lines
+  
+  def get_explanation(self) -> List[str]:
+    explanation_lines = []
+    
+    explanation_lines.extend([
+      "Left recursion is a problem when we have rules of the form:\n",
+      "`A` ::= `A` &alpha; | &beta;\"\n",
+      "This stems from the recursive parser differentiating the recursive production from other productions.",
+      "To remedy this, we rewrite by adding in a second rule:\n\n",
+      
+      "`A'` ::= &beta; `R`\n",
+      "`R` ::= &alpha; `R` | \"\"\n",
+      
+      "This effectively moves the non-recursive production up in precedence and forces some tokens to be removed.\n",
+      
+      f"In this specific problem problem, &alpha; = \"{self.alpha}\", and &beta; = \"{self.beta}\", so we rewrite our rules as:\n\n",
+      f"{self.A_prime}",
+      f"{self.R}"
+    ])
+    
+    return explanation_lines
 
 class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
   def __init__(self, alpha_length=5, beta_length=5):
@@ -177,23 +197,23 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
     
     # todo: make it so there are variables, and B and C are concrete rules (potentially)
     A_productions = sorted([
-        f"{self.alpha}<B>",
-        f"{self.alpha}<C>",
-        f"{self.beta}<D>",
+        f"{self.alpha}`B`",
+        f"{self.alpha}`C`",
+        f"{self.beta}`D`",
       ],
       key=(lambda _: random.random())
     )
     A_prime_productions = sorted([
-      f"{self.alpha}<R>",
-      f"{self.beta}<D>",
+      f"{self.alpha}`R`",
+      f"{self.beta}`D`",
     ],
       key=(lambda _: random.random())
     )
-    R_productions = ["<B>", "<C>"]
+    R_productions = ["`B`", "`C`"]
     
-    self.A = variable.Variable_BNFRule("<A>", A_productions)
-    self.A_prime = variable.Variable_BNFRule("<A'>", A_prime_productions)
-    self.R = variable.Variable_BNFRule("<R>", R_productions)
+    self.A = variable.Variable_BNFRule("`A`", A_productions)
+    self.A_prime = variable.Variable_BNFRule("`A'`", A_prime_productions)
+    self.R = variable.Variable_BNFRule("`R`", R_productions)
     
     super().__init__(
       given_vars=[
@@ -207,10 +227,10 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
   
   def get_question_body(self) -> List[str]:
     question_lines = [
-      "Given the input BNF grammar:\n"
+      "Given the input BNF grammar below, how do we rewrite it by applying left factoring?\n",
       f"\t{self.A}\n",
-      "What would replace `???` in the below grammar that has been updated by applying left factoring?\n",
-      f"\t{self.A_prime.name} : `???`\n"
+      # "What would replace `???` in the below grammar that has been updated by applying left factoring?\n",
+      # f"\t{self.A_prime.name} : `???`\n"
     ]
     return question_lines
 
@@ -222,27 +242,27 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
     self.gamma = ''.join(random.choices(string.ascii_lowercase, k=beta_length))
     
     A_productions = sorted([
-      f"{self.alpha}<B>",
-      "<R>"
+      f"{self.alpha}`B`",
+      "`R`"
     ],
       key=(lambda _: random.random())
     )
     R_productions = sorted([
-      f"{self.beta}<C>",
-      f"{self.gamma}<D>",
+      f"{self.beta}`C`",
+      f"{self.gamma}`D`",
     ],
       key=(lambda _: random.random())
     )
     
     A_prime_productions = [
-      f"{self.alpha}<B>",
-      f"{self.beta}<C>",
-      f"{self.gamma}<D>",
+      f"{self.alpha}`B`",
+      f"{self.beta}`C`",
+      f"{self.gamma}`D`",
     ]
     
-    self.A = variable.Variable_BNFRule("<A>", A_productions)
-    self.A_prime = variable.Variable_BNFRule("<A'>", A_prime_productions)
-    self.R = variable.Variable_BNFRule("<R>", R_productions)
+    self.A = variable.Variable_BNFRule("`A`", A_productions)
+    self.A_prime = variable.Variable_BNFRule("`A'`", A_prime_productions)
+    self.R = variable.Variable_BNFRule("`R`", R_productions)
     
     super().__init__(
       given_vars=[
@@ -324,11 +344,11 @@ class BNFQuestion_generation(question.Question):
   def __init__(
     self,
       productions=None,
-    starting_nonterminal="<A>"
+    starting_nonterminal="`A`"
   ):
     if productions is None:
       productions = {
-        "<A>": ["(<A>)", ""]
+        "`A`": ["(`A`)", ""]
       }
       
     self.bnf = BNFQuestion_generation.BNF(productions, starting_nonterminal)
