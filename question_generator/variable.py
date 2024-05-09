@@ -89,6 +89,13 @@ class Variable_BNFRule(Variable):
     variations = []
     variations.extend([' | '.join(p) for p in itertools.permutations(self.productions)])
     variations.extend(['|'.join(p) for p in itertools.permutations(self.productions)])
+    variations.extend([' |'.join(p) for p in itertools.permutations(self.productions)])
+    variations.extend(['| '.join(p) for p in itertools.permutations(self.productions)])
+    
+    variations.extend([' | '.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
+    variations.extend(['|'.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
+    variations.extend([' |'.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
+    variations.extend(['| '.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
     return [f"* {answer}" for answer in variations]
 
 class Variable_BNFstr(Variable):
