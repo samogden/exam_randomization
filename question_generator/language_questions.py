@@ -218,7 +218,7 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
     super().__init__(
       given_vars=[
         self.A,
-        # self.R
+        self.R
       ],
       target_vars=[
         self.A_prime
@@ -228,11 +228,39 @@ class BNFQuestion_rewriting_left_factoring(BNFQuestion_rewriting):
   def get_question_body(self) -> List[str]:
     question_lines = [
       "Given the input BNF grammar below, how do we rewrite it by applying left factoring?\n",
-      f"\t{self.A}\n",
+      f"{self.A}\n",
+      
+      "Assume that we are also adding the following auxiliary rule (assuming to two referenced productions are also defined elsewhere):\n",
+      f"{self.R}"
+      
       # "What would replace `???` in the below grammar that has been updated by applying left factoring?\n",
       # f"\t{self.A_prime.name} : `???`\n"
     ]
     return question_lines
+  
+  def get_explanation(self) -> List[str]:
+    explanation_lines = []
+    
+    explanation_lines.extend([
+      "Left factoring is a problem when we have rules of the form:\n",
+      
+      "`A` ::= &alpha; `B` | &alpha; `C` | &beta; D\n",
+      
+      "This stems from not being able to differentiate between the two first productions because they share the same terminal characters, making differentiating them impossible.",
+      "To remedy this, we rewrite by adding in a second rule:\n\n",
+      
+      "`A'` ::= &alpha; `R` | &beta; `D`\n",
+      "`R` ::= `B` | `D`\n",
+      
+      "This means we can identify which rule to use in `A` and then let our new rule, `R`, differentiate which production to use in some other way (maybe through non-terminal expansion and factoring).\n"
+      
+      
+      f"In this specific problem problem, &alpha; = \"{self.alpha}\", and &beta; = \"{self.beta}\", so we rewrite our rules as:\n\n",
+      f"{self.A_prime}",
+      f"{self.R}"
+    ])
+    
+    return explanation_lines
 
 
 class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
