@@ -304,14 +304,35 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
   
   def get_question_body(self) -> List[str]:
     question_lines = [
-      "Given the input BNF grammar:\n"
-      f"\t{self.A}\n",
-      "What would replace `???` in the below grammar that has been updated by applying non-terminal expansion?\n",
-      f"\t{self.A_prime.name} : `???`\n"
-      f"\t{self.R}\n",
+      "Given the input BNF grammar how do we rewrite it by applying non-terminal expansion?\n"
+      f"{self.A}\n",
+      f"{self.R}\n",
+      
+      # "Assume we are adding the following auxillery rule.\n",
+      # f"\t{self.A_prime.name} : `???`\n"
     ]
     return question_lines
-
+  
+  def get_explanation(self) -> List[str]:
+    explanation_lines = []
+    
+    explanation_lines.extend([
+      "When we have rules of the below form we need to expand a non-terminal.\n",
+      
+      "`A` ::= &alpha; `B` | `R`\n",
+      "`R` ::= &beta; `C` | &gamma; `D`"
+      
+      "This is because we want to have a definitive way to differentiate each production, which we do with terminals -- in this case `E` by itself won't remove any terminals so we want to expand it so we have terminals to match on.",
+      "We do this by changing it to the single rule:\n\n",
+      
+      "`A` ::= &alpha; `B` | &beta; `C` | &gamma; `D`\n\n"
+      
+      f"In this specific problem problem, &alpha; = \"{self.alpha}\", and &beta; = \"{self.beta}\", and &gamma; = \"{self.gamma}\", so we rewrite our rules as:\n\n",
+      
+      f"{self.A_prime}",
+    ])
+    
+    return explanation_lines
 
 class BNFQuestion_generation(question.Question):
   
