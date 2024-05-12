@@ -33,7 +33,7 @@ def get_flags():
   
 
 
-def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_class=1, group_variations=True, question_classes=None, **kwargs):
+def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_class=1, group_variations=True, question_classes=None, points_per_question=1, **kwargs):
   
   
   def get_classes(module):
@@ -68,7 +68,7 @@ def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_clas
         logging.debug(f"{c} : {module_kwargs}")
         markdown_text += c.generate_group_markdown(
           num_variations=num_variations_per_class,
-          points_per_question=2,
+          points_per_question=1,
           num_to_pick=num_to_pick,
           module_kwargs=module_kwargs
         )
@@ -88,22 +88,29 @@ def main():
   modules = [
     "math_questions",
     "memory_questions",
-    "process_questions"
+    "process_questions",
+    "language_questions"
   ]
   
   markdown_file = generate_quiz("Mixed Quiz", modules, num_variations_per_class=flags.num_variations,
     question_classes = {
-      "BitsAndBytes" : {},
-      "HexAndBinary" : {},
-      "BaseAndBounds" : {},
-      "Paging" : {},
-      "Paging_with_table" : {},
+      # "BitsAndBytes" : {},
+      # "HexAndBinary" : {},
+      # "BaseAndBounds" : {},
+      # "Paging" : {},
+      # "Paging_with_table" : {},
+      
       # "SchedulingQuestion" : {
       #   "variations" : [
       #     { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
       #   ]
       # },
-    }
+      
+      "BNFQuestion_rewriting_left_recursion" : {},
+      "BNFQuestion_rewriting_left_factoring" : {},
+      "BNFQuestion_rewriting_nonterminal_expansion" : {},
+    },
+    points_per_question=flags.points_per_question
   )
   subprocess.Popen(f"text2qti {markdown_file}", shell=True)
   
