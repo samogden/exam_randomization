@@ -403,27 +403,71 @@ class BNFQuestion_generation(question.Question):
     self,
     num_strings_per_class = 7
   ):
-    
-    self.good_bnf = BNFQuestion_generation.BNF(
-      productions = {
-        "`A`" : ["{`B`}"],
-        "`B`" : ["\"`C`\" : `E`"],
-        "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
-        "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
-        "`E`" : ["`A`", "`C`"]
-      },
-      starting_nonterminal = "`A`"
-    )
-    self.bad_bnf = BNFQuestion_generation.BNF(
-      productions = {
-        "`A`" : ["{`B`}"],
-        "`B`" : ["`C` : `E`"],
-        "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
-        "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
-        "`E`" : ["`A`", "`C`"]
-      },
-      starting_nonterminal = "`A`"
-    )
+    switch = random.randint(0,2)
+    if switch == 0:
+      self.good_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["{`B`}"],
+          "`B`" : ["\"`C`\" : `E`"],
+          "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+          "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+          "`E`" : ["`A`", "`C`"]
+        },
+        starting_nonterminal = "`A`"
+      )
+      self.bad_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["{`B`}"],
+          "`B`" : ["`C` : `E`"],
+          "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+          "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+          "`E`" : ["`A`", "`C`"]
+        },
+        starting_nonterminal = "`A`"
+      )
+    elif switch == 1:
+      self.good_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["[`B`]"],
+          "`B`" : ["`B`, `B`", "`C`", "`A`"],
+          "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+          "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+          
+        },
+        starting_nonterminal = "`A`"
+      )
+      self.bad_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["[`B`]"],
+          "`B`" : ["`B` `B`", "`C`", "`A`"],
+          "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+          "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+          
+        },
+        starting_nonterminal = "`A`"
+      )
+    else:
+      self.good_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["`B` + `B`", "`B` * `B`"],
+          "`B`" : ["`C`", "`A`"],
+          "`C`" : ["`D`", "(`A`)"],
+          "`D`" : [f"{num}`E`" for num in range(9)],
+          "`E`" : [f"{num}`E`" for num in range(9)] + [""],
+        },
+        starting_nonterminal = "`A`"
+      )
+      self.bad_bnf = BNFQuestion_generation.BNF(
+        productions = {
+          "`A`" : ["`B` - `B`", "`B` / `B`"],
+          "`B`" : ["`C`", "`A`"],
+          "`C`" : ["`D`", "(`A`)"],
+          "`D`" : [f"{num}`E`" for num in range(9)],
+          "`E`" : [f"{num}`E`" for num in range(9)] + [""],
+        },
+        starting_nonterminal = "`A`"
+      )
+      
       
     self.bnf_vars = [
       variable.Variable_BNFRule(key, production)
