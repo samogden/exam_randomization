@@ -21,10 +21,11 @@ def parse_args():
   parser.add_argument("--num_exams", default=1, type=int)
   parser.add_argument("--questions_file", nargs='+')
   parser.add_argument("--debug", action="store_true")
+  parser.add_argument("--exam_name", default="CST334 Exam 3")
   return parser.parse_args()
 
 
-def generate_exam(questions_file) -> Tuple[str, List[question]]:
+def generate_exam(questions_file, exam_name) -> Tuple[str, List[question]]:
   env = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
     block_start_string='<BLOCK>',
@@ -37,7 +38,7 @@ def generate_exam(questions_file) -> Tuple[str, List[question]]:
   question_set = question.QuestionSet(questions_file).questions
   question_set = sorted(
     question_set,
-    key=lambda q: (-q.value, ["processes", "concurrency", "memory"].index(q.subject))
+    key=lambda q: (-q.value, ["languages", "memory", "processes"].index(q.subject))
   )
   # return question_set
   
@@ -48,6 +49,7 @@ def generate_exam(questions_file) -> Tuple[str, List[question]]:
     return '\n\n'.join(questions)
   
   env.globals["generate_exam"] = make_questions
+  env.globals["get_exam_name"] = (lambda : f"{exam_name}")
   template = env.get_template('exam_base.j2')
   
   rendered_output = template.render()
@@ -61,7 +63,7 @@ def main():
   os.mkdir("out")
   
   for _ in range(args.num_exams):
-    exam_text, question_set = generate_exam(questions_file=args.questions_file)
+    exam_text, question_set = generate_exam(questions_file=args.questions_file, exam_name=args.exam_name)
     if args.debug:
       tmp_tex = open("exam.tex", 'w')
     else:
