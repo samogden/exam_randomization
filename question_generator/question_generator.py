@@ -1,6 +1,7 @@
 #!env python
 import argparse
 import datetime
+import os.path
 import random
 import subprocess
 import sys
@@ -75,10 +76,11 @@ def generate_quiz(quiz_name:str, module_names:List[str], num_variations_per_clas
         markdown_text += "\n\n"
   
   markdown_file_name = '-'.join(quiz_name.split(' ')) + "-" + generation_time + ".md"
-  with open(markdown_file_name, 'w') as fid:
+  if not os.path.exists("output"): os.mkdir("output")
+  with open(os.path.join("output", markdown_file_name), 'w') as fid:
     fid.write(markdown_text)
   
-  return markdown_file_name
+  return os.path.join("output", markdown_file_name)
   
 
 def main():
