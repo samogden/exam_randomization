@@ -103,7 +103,10 @@ class QuestionSet():
   def load_from_yaml(cls, questions_file) -> List[Dict]:
     with open(questions_file) as fid:
       loaded_questions = list(yaml.load_all(fid, Loader=yaml.SafeLoader))
-    return loaded_questions
+    if isinstance(loaded_questions, list):
+      return loaded_questions
+    else:
+      return [loaded_questions]
     
 
 class Question():
