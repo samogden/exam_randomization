@@ -105,10 +105,16 @@ def main():
       #     { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
       #   ]
       # },
+      #
+      # "BNFQuestion_rewriting_left_recursion" : {},
+      # "BNFQuestion_rewriting_left_factoring" : {},
+      # "BNFQuestion_rewriting_nonterminal_expansion" : {},
       
-      "BNFQuestion_rewriting_left_recursion" : {},
-      "BNFQuestion_rewriting_left_factoring" : {},
-      "BNFQuestion_rewriting_nonterminal_expansion" : {},
+      "BNFQuestion_generation" : {
+        "variations" : [
+          { "kwargs" : { "switch" : num} } for num in range(3)
+        ]
+      },
     },
     points_per_question=flags.points_per_question
   )

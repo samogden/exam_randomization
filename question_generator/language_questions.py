@@ -401,9 +401,11 @@ class BNFQuestion_generation(question.Question):
   # Given these rules, what are some valid strings?
   def __init__(
     self,
-    num_strings_per_class = 7
+    num_strings_per_class = 7,
+    switch : int = None
   ):
-    switch = random.randint(0,2)
+    if switch is None:
+      switch = random.randint(0,2)
     if switch == 0:
       self.good_bnf = BNFQuestion_generation.BNF(
         productions = {
@@ -497,6 +499,11 @@ class BNFQuestion_generation(question.Question):
       given_vars=self.bnf_vars,
       target_vars=[self.output_var]
     )
+  
+  def get_question_prelude(self) -> List[str]:
+    return [
+      f"Select all of the strings that are part of the language defined by the below grammar. (random number for chaos: {random.random})"
+    ]
     
     
 def main():
