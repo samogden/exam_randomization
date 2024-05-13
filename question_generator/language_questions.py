@@ -409,8 +409,8 @@ class BNFQuestion_generation(question.Question):
     if switch == 0:
       self.good_bnf = BNFQuestion_generation.BNF(
         productions = {
-          "`A`" : ["{`B`}"],
-          "`B`" : ["\"`C`\" : `E`"],
+          "`A`" : ["{\"`C`\" : `E`}"],
+          # "`B`" : ["\"`C`\" : `E`"],
           "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
           "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
           "`E`" : ["`A`", "`C`"]
@@ -419,8 +419,8 @@ class BNFQuestion_generation(question.Question):
       )
       self.bad_bnf = BNFQuestion_generation.BNF(
         productions = {
-          "`A`" : ["{`B`}"],
-          "`B`" : ["`C` : `E`"],
+          "`A`" : ["{`C` : `E`}"],
+          # "`B`" : ["`C` : `E`"],
           "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
           "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
           "`E`" : ["`A`", "`C`"]
@@ -430,7 +430,7 @@ class BNFQuestion_generation(question.Question):
     elif switch == 1:
       self.good_bnf = BNFQuestion_generation.BNF(
         productions = {
-          "`A`" : ["[`B`]"],
+          "`A`" : ["[`B`, `B`]"],
           "`B`" : ["`B`, `B`", "`C`", "`A`"],
           "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
           "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
@@ -440,7 +440,7 @@ class BNFQuestion_generation(question.Question):
       )
       self.bad_bnf = BNFQuestion_generation.BNF(
         productions = {
-          "`A`" : ["[`B`]"],
+          "`A`" : ["[`B` `B]"],
           "`B`" : ["`B` `B`", "`C`", "`A`"],
           "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
           "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
@@ -502,7 +502,7 @@ class BNFQuestion_generation(question.Question):
   
   def get_question_prelude(self) -> List[str]:
     return [
-      f"Select all of the strings that are part of the language defined by the below grammar. (random number for chaos: {random.random})"
+      f"Select all of the strings that are part of the language defined by the below grammar. (random number for chaos: {random.random()})"
     ]
     
     
