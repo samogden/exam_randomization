@@ -337,7 +337,6 @@ class BNFQuestion_rewriting_nonterminal_expansion(BNFQuestion_rewriting):
 class BNFQuestion_generation(question.Question):
   
   class BNF:
-    
     class GeneratedString:
       def __init__(self, starting_string : str):
         self.versions = [starting_string]
@@ -347,8 +346,8 @@ class BNFQuestion_generation(question.Question):
           return "\"\""
         return self.versions[-1]
       
-      def replace(self, target, replacement):
-        self.versions.append(self.versions[-1].replace(target, replacement))
+      def replace(self, target, replacement, *args, **kwargs):
+        self.versions.append(self.versions[-1].replace(target, replacement, *args, **kwargs))
         return self.versions[-1]
       
       def __contains__(self, item):
@@ -363,25 +362,35 @@ class BNFQuestion_generation(question.Question):
       def __eq__(self, other):
         return self.versions[-1].__eq__(other.versions[-1])
       
+      def __len__(self):
+        return len(self.versions[-1])
+  
     def __init__(self, productions : Dict[str,List[str]], starting_nonterminal: str):
       self.productions = productions
       self.starting_nonterminal = starting_nonterminal
     
-    def is_complete(self, str_to_test : GeneratedString):
+    def is_complete(self, str_to_test : BNFQuestion_generation.BNF.GeneratedString):
       return not any([nonterminal in str_to_test for nonterminal in self.productions.keys()])
     
-    def get_string(self):
+    def get_string(self, max_depth = 40):
       generated_str = BNFQuestion_generation.BNF.GeneratedString(self.starting_nonterminal)
       while (not self.is_complete(generated_str)):
         for rule in self.productions.keys():
           for _ in range(generated_str.count(rule)):
-            generated_str.replace(rule, random.choice(self.productions[rule]))
+            generated_str.replace(rule, random.choice(self.productions[rule]), 1)
+            if len(generated_str.versions) > max_depth:
+              return None
       return generated_str
     
-    def get_n_unique_strings(self, n: int):
+    def get_n_unique_strings(self, n: int, leave_incomplete: bool = False):
       unique_strings = set()
       while (len(unique_strings) < n):
-        unique_strings.add(self.get_string())
+        s = self.get_string()
+        if s is None: continue
+        if leave_incomplete:
+          unique_strings.add(s.versions[-2])
+        else:
+          unique_strings.add(s)
       return unique_strings
     
   
@@ -392,29 +401,52 @@ class BNFQuestion_generation(question.Question):
   # Given these rules, what are some valid strings?
   def __init__(
     self,
-      productions=None,
-    starting_nonterminal="`A`"
+    num_strings_per_class = 7
   ):
-    if productions is None:
-      productions = {
-        "`A`": ["(`A`)", ""]
-      }
-      
-    self.bnf = BNFQuestion_generation.BNF(productions, starting_nonterminal)
     
+    self.good_bnf = BNFQuestion_generation.BNF(
+      productions = {
+        "`A`" : ["{`B`}"],
+        "`B`" : ["\"`C`\" : `E`"],
+        "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+        "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+        "`E`" : ["`A`", "`C`"]
+      },
+      starting_nonterminal = "`A`"
+    )
+    self.bad_bnf = BNFQuestion_generation.BNF(
+      productions = {
+        "`A`" : ["{`B`}"],
+        "`B`" : ["`C` : `E`"],
+        "`C`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]],
+        "`D`" : [f"{letter}`D`" for letter in string.ascii_lowercase[:5]] + [""],
+        "`E`" : ["`A`", "`C`"]
+      },
+      starting_nonterminal = "`A`"
+    )
+      
     self.bnf_vars = [
       variable.Variable_BNFRule(key, production)
-      for key, production in productions.items()
+      for key, production in self.good_bnf.productions.items()
     ]
     
     self.output_var = variable.Variable_BNFstr("", "")
-    for s in self.bnf.get_n_unique_strings(5):
+    
+    for s in self.good_bnf.get_n_unique_strings(num_strings_per_class):
       self.output_var.add_choice(
         str(s),
         True
       )
+    
+    for s in self.bad_bnf.get_n_unique_strings(num_strings_per_class):
       self.output_var.add_choice(
-        s.versions[-2],
+        str(s),
+        False
+      )
+    
+    for s in self.bad_bnf.get_n_unique_strings(num_strings_per_class, leave_incomplete=True):
+      self.output_var.add_choice(
+        str(s),
         False
       )
     super().__init__(
