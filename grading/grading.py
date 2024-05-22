@@ -210,39 +210,32 @@ class GradingGUI:
       return
     next_submission = random.choice(possible_next_submissions)
     log.debug(f"Moving on to submission {next_submission}")
+    
     self.curr_question = next_submission.questions[self.curr_question_number]
-    self.photo = PIL.ImageTk.PhotoImage(self.curr_question.image)
-    self.label.config(image=self.photo)
-    # self.label.pack()
+    self.update_question_frame(self.curr_question)
+    
   
   def create_widgets(self):
-    # Display Student Submission
-    self.photo = PIL.ImageTk.PhotoImage(self.curr_question.image)
-    self.label = ttk.Label(self.root, image=self.photo, compound="top")
-    self.label.pack(pady=10)
     
-    # Text area for GPT feedback
-    self.text_area = tk_scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=60, height=20)
-    self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-    
-    # Create a button
-    self.generate_gpt_button = ttk.Button(self.root, text="Query GPT", command=self.query_gpt)
-    self.generate_gpt_button.pack(pady=10)
+    self.update_question_frame(self.curr_question)
+    self.question_frame.grid(row=0, column=0)
     
     # Create an entry widget
     self.score_entry = ttk.Entry(self.root)
-    self.score_entry.pack(pady=10)
+    # self.score_entry.pack(pady=10)
+    self.score_entry.grid(row=1, column=0)
     
     self.submit_button = ttk.Button(self.root, text="Submit", command=self.submit_score)
-    self.submit_button.pack(pady=10)
+    # self.submit_button.pack(pady=10)
+    self.submit_button.grid(row=2, column=0)
   
-  def query_gpt(self):
+  def query_gpt(self, question, text_area):
     def replace_text_area(new_text):
-      self.text_area.delete('1.0', tk.END)
-      self.text_area.insert(tk.END, new_text)
+      text_area.delete('1.0', tk.END)
+      text_area.insert(tk.END, new_text)
     
     def query():
-      gpt_response = get_chat_gpt_response(self.curr_question)
+      gpt_response = get_chat_gpt_response(question)
       replace_text_area(gpt_response)
     
     replace_text_area("Querying OpenAI....")
@@ -256,7 +249,25 @@ class GradingGUI:
   def on_button_click(self):
     self.query_gpt()
     return
+  
+  def update_question_frame(self, question : Submission.Question) -> None:
+    new_frame = ttk.Frame(self.root)
     
+    self.photo = PIL.ImageTk.PhotoImage(question.image)
+    self.label = ttk.Label(new_frame, image=self.photo, compound="top")
+    self.label.grid(row=0, column=0)
+    
+    # Text area for GPT feedback
+    text_area = tk_scrolledtext.ScrolledText(new_frame, wrap=tk.WORD, width=60, height=20)
+    text_area.grid(row=0, column=2)
+    
+    # Create a button
+    generate_gpt_button = ttk.Button(new_frame, text="Query GPT", command=(lambda :self.query_gpt(question, text_area)))
+    generate_gpt_button.grid(row=1, columnspan=True)
+    
+    if hasattr(self, "question_frame"): self.question_frame.destroy()
+    self.question_frame = new_frame
+    self.question_frame.grid(row=0, column=0)
 
 def main():
   flags = parse_flags()
