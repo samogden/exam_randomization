@@ -6,14 +6,17 @@ import itertools
 import logging
 import os
 import random
+import threading
 from typing import List
 import io
 import dotenv
 
 import PIL.Image
 import PIL.ImageTk as ImageTK
+
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter import scrolledtext as tk_scrolledtext
 
 import pymupdf as fitz
 import requests
@@ -64,7 +67,7 @@ class Submission():
       self.grade = None
       self.feedback = None
       self.gpt_response = None
-
+    
     def get_b64(self, format="PNG"):
       # Create a BytesIO buffer to hold the image data
       buffered = io.BytesIO()
@@ -82,7 +85,7 @@ class Submission():
       img_base64_str = img_base64.decode('utf-8')
       
       return img_base64_str
-    
+  
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
   
   def __init__(self, input_pdf: str, question_locations: List[QuestionLocation], question_margin=10):
@@ -91,7 +94,7 @@ class Submission():
     self.pdf_doc = fitz.open(self.input_pdf)
     self.page_scores = {i: None for i in range(self.pdf_doc.page_count)}
     
-    self.questions : List[Submission.Question] = []
+    self.questions: List[Submission.Question] = []
     for (page_number, page) in enumerate(self.pdf_doc):
       page_width = page.rect.width
       page_height = page.rect.height
@@ -120,11 +123,8 @@ class Submission():
     return self.pdf_doc[page_number]
 
 
-
-def get_chat_gpt_response(base64_png) -> str:
+def get_chat_gpt_response(question : Submission.Question) -> str:
   log.debug("Sending request to OpenAI...")
-  
-  return "here's a string!"
   
   headers = {
     "Content-Type": "application/json",
@@ -140,16 +140,17 @@ def get_chat_gpt_response(base64_png) -> str:
           {
             "type": "text",
             "text":
-              "Please review this submission for me.  Please give me response in the form of a JSON dictionary with the following keys:\n"
-              "possible points : the number of points possible from the problem\n"
-              "awarded points : how many points do you award to the student's submission\n"
-              "student text : what did the student write as their answer to the question\n"
-              "explanation : why are you assigning the grade you are\n"
+              "Please review this submission for me."
+            "Please give me a response in the form of a JSON dictionary with the following keys:\n"
+            "possible points : the number of points possible from the problem\n"
+            "awarded points : how many points do you award to the student's submission\n"
+            "student text : what did the student write as their answer to the question\n"
+            "explanation : why are you assigning the grade you are\n"
           },
           {
             "type": "image_url",
             "image_url": {
-              "url": f"data:image/png;base64,{base64_png}"
+              "url": f"data:image/png;base64,{question.get_b64()}"
             }
           }
         ]
@@ -179,38 +180,50 @@ def get_question_locations(base_exam: str) -> List[Submission.QuestionLocation]:
   return question_locations
 
 
-
-class MyApp:
+class GradingGUI:
   def __init__(self, root, submissions: List[Submission]):
     self.root = root
     self.root.title("Grading")
     
     self.submissions = submissions
     
+    self.curr_question: Submission.Question = self.submissions[0].questions[0]
+    
     self.create_widgets()
   
   def create_widgets(self):
-    
-    first_question = self.submissions[0].questions[0]
-    self.photo = PIL.ImageTk.PhotoImage(first_question.image)
-  
     # Create a label with text and image
+    self.photo = PIL.ImageTk.PhotoImage(self.curr_question.image)
     self.label = ttk.Label(self.root, text="Hello, Tkinter!", image=self.photo, compound="top")
     self.label.pack(pady=10)
-  
+    
+    self.text_area = tk_scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=60, height=20)
+    self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+    
     # Create an entry widget
     self.entry = ttk.Entry(self.root)
     self.entry.pack(pady=10)
     
     # Create a button
-    self.button = ttk.Button(self.root, text="Click Me", command=self.on_button_click)
+    self.button = ttk.Button(self.root, text="Query GPT", command=self.query_gpt)
     self.button.pack(pady=10)
   
+  def query_gpt(self):
+    def replace_text_area(new_text):
+      self.text_area.delete('1.0', tk.END)
+      self.text_area.insert(tk.END, new_text)
+    
+    def query():
+      gpt_response = get_chat_gpt_response(self.curr_question)
+      replace_text_area(gpt_response)
+    
+    replace_text_area("Querying OpenAI....")
+    threading.Thread(target=query).start()
+  
   def on_button_click(self):
-    # Handle the button click event
-    entered_text = self.entry.get()
-    self.label.config(text=f"Hello, {entered_text}!")
-
+    self.query_gpt()
+    return
+    
 
 def main():
   flags = parse_flags()
@@ -224,8 +237,7 @@ def main():
     if ".DS_Store" in f:
       os.remove(f)
       files.remove(f)
-    
-    
+  
   question_locations = get_question_locations(flags.base_exam)
   submissions = [
     Submission(f, question_locations)
@@ -233,46 +245,8 @@ def main():
   ]
   
   root = tk.Tk()
-  app = MyApp(root, submissions)
+  app = GradingGUI(root, submissions)
   root.mainloop()
-  
-  return
-  
-  root = tk.Tk()
-  root.geometry('1000x1000')
-  
-  
-  GradingGUI(root, submissions) #.pack() #.pack(side="top", fill="both", expand=True)
-  
-  root.mainloop()
-  root.destroy()
-  
-  return
-  
-  if flags.debug:
-    question_locations = get_question_locations(flags.base_exam)
-    submissions = [
-      Submission(f, question_locations)
-      for f in sorted(files, key=lambda _: random.random())[:2]
-    ]
-    for question_number in range(0, len(submissions[0].questions)):  # todo: is there a more elegant way?
-      grade_question(submissions, question_number)
-      # log.info(f"Now grading Q{question_number} / {len(submissions[0].questions)}")
-      # for submission in submissions:
-      #   q = submission.questions[question_number]
-      #   # q.present_question()
-    
-    # show_gui(submission.pdf_doc[0])
-    
-    # show_gui(page)
-    return
-  
-  # for page_number in sorted(range(submissions[0].pdf_doc.page_count), key=(lambda _: random.random())):
-  #   do_grading_pass(submissions, page_number, flags.query_ai, flags)
-  #   break
-  #
-  # for submission in submissions:
-  #   log.info(f"{submission} : {sum(filter(lambda v: v is not None, submission.page_scores.values()))}")
 
 
 if __name__ == "__main__":
