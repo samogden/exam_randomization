@@ -56,10 +56,23 @@ class Submission():
       self.question_number = question_number
       self.page_number = page_number
       self.location = location
+      # todo: add in a reference snippet
     
   class Question():
-    def __init__(self, *args, **kwargs):
-      pass
+    def __init__(self, number, img_bytes):
+      self.number = number
+      self.img_bytes = img_bytes
+    
+    def present_question(self):
+      root = tkinter.Tk()
+      root.title(f"Question {self.number}")
+      img = PIL.Image.open(io.BytesIO(self.img_bytes))
+      
+      photo = PIL.ImageTk.PhotoImage(img)
+      image_label = tkinter.Label(root, image=photo)
+      image_label.image = photo
+      image_label.grid(row=0, column=0, padx=10, pady=10)
+      root.mainloop()
   
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
   
@@ -69,6 +82,7 @@ class Submission():
     self.pdf_doc = fitz.open(self.input_pdf)
     self.page_scores = {i: None for i in range(self.pdf_doc.page_count)}
     
+    self.questions = []
     for (page_number, page) in enumerate(self.pdf_doc):
       page_width = page.rect.width
       page_height = page.rect.height
@@ -77,15 +91,19 @@ class Submission():
       questions_on_page = list(filter((lambda ql: ql.page_number == page_number), question_locations))
       
       for (q_start, q_end) in zip(questions_on_page, questions_on_page[1:] + [None]):
-      
-      # for question_location in questions_on_page:
         log.debug(f"isolating {q_start.question_number}")
         if q_end is None:
           question_rect = fitz.Rect(0, q_start.location-question_margin, page_width, page_height)
         else:
           question_rect = fitz.Rect(0, q_start.location, page_width-question_margin, q_end.location+question_margin)
         question_pixmap = page.get_pixmap(matrix=fitz.Matrix(1,1), clip=question_rect)
-        question_pixmap.save(f"q{q_start.question_number}.png")
+        self.questions.append(
+          Submission.Question(q_start.question_number, question_pixmap.pil_tobytes(format="PNG"))
+        )
+        log.debug(f"stored q{self.questions[-1].number}")
+      self.questions = sorted(self.questions, key=(lambda q: q.number))
+      log.debug(f"num question: {len(self.questions)}")
+        
   
   def grading_complete(self):
     return not any([v is None for v in self.page_scores.values()])
@@ -170,8 +188,6 @@ def get_chat_gpt_response(base64_png):
   log.debug(response.json()["choices"][0]["message"]["content"])
 
 
-
-
 def get_question_locations(base_exam: str) -> List[Submission.QuestionLocation]:
   question_locations = []
   
@@ -202,16 +218,21 @@ def main():
   
   if flags.debug:
     question_locations = get_question_locations(flags.base_exam)
-    submission = Submission(random.choice(files), question_locations)
-    show_gui(submission.pdf_doc[0])
+    submissions = [
+      Submission(f, question_locations)
+      for f in sorted(files, key=lambda _: random.random())[:1]
+    ]
+    for question_number in range(0, len(submissions[0].questions)): # todo: is there a more elegant way?
+      log.info(f"Now grading Q{question_number} / {len(submissions[0].questions)}")
+      for submission in submissions:
+        q = submission.questions[question_number]
+        q.present_question()
+    
+    # show_gui(submission.pdf_doc[0])
     
     # show_gui(page)
     return
   
-  submissions = [
-    Submission(f)
-    for f in sorted(files, key=lambda _: random.random())[:1]
-  ]
   
   
   for page_number in sorted(range(submissions[0].pdf_doc.page_count), key=(lambda _: random.random())):
