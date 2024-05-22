@@ -43,6 +43,7 @@ def get_file_list(dir_to_deduplicate) -> List[str]:
     )
   )
 
+
 class Submission():
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
 
@@ -50,8 +51,10 @@ class Submission():
     self.id = next(self._id_counter)  # get the next unique id
     self.input_pdf = input_pdf
     self.pdf_doc = fitz.open(self.input_pdf)
-    self.page_scores = { i : 0 for i in range(self.pdf_doc.page_count)}
-      
+    self.page_scores = { i : None for i in range(self.pdf_doc.page_count)}
+  
+  def grading_complete(self):
+    return not any([v is None for v in self.page_scores.values()])
     
   def __str__(self):
     return f"Submission_{self.id}({self.pdf_doc.page_count})"
@@ -67,8 +70,6 @@ def do_grading_pass(submissions: List[Submission], page_number):
     log.debug(f"Looking at {submission}")
     page = submission.get_page(page_number)
     
-    # Next few lines from ChatGPT
-    # page.get_
     page = submission.get_page(page_number)
     
     pix = page.get_pixmap()
@@ -81,6 +82,15 @@ def do_grading_pass(submissions: List[Submission], page_number):
     img.show()
     
     get_chat_gpt_response(img_base64)
+    got_score = False
+    while not got_score:
+      try:
+        page_score = int(input("Page score: "))
+        got_score = True
+      except ValueError:
+        pass
+      
+    submission.page_scores[page_number] = page_score
 
 def get_chat_gpt_response(base64_png):
   headers = {
@@ -96,7 +106,7 @@ def get_chat_gpt_response(base64_png):
         "content": [
           {
             "type": "text",
-            "text": "Please grade this page from an exam for me.  Please give response as a JSON string with keys \"awarded points\", \"possible points\" and \"explanation\"."
+            "text": "Please grade this page from an exam for me.  Please give response as a JSON dictionary with keys \"awarded points\", \"possible points\" and \"explanation\"."
           },
           {
             "type": "image_url",
@@ -133,8 +143,11 @@ def main():
     for f in sorted(files,key=lambda _: random.random())[:1]
   ]
   
-  print(submissions)
-  do_grading_pass(submissions, 1)
+  for page_number in sorted(range(submissions[0].pdf_doc.page_count), key=(lambda _: random.random())):
+    do_grading_pass(submissions, page_number)
+  
+  for submission in submissions:
+    log.info(f"{submission} : {sum(submission.page_scores.values())}")
   
 if __name__ == "__main__":
   main()
