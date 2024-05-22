@@ -3,6 +3,7 @@
 import argparse
 import base64
 import itertools
+import json
 import logging
 import os
 import random
@@ -86,6 +87,9 @@ class Submission():
       
       return img_base64_str
   
+    def __str__(self):
+      return f"{self.number}({self.grade})"
+  
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
   
   def __init__(self, input_pdf: str, question_locations: List[QuestionLocation], question_margin=10):
@@ -123,7 +127,7 @@ class Submission():
     return self.pdf_doc[page_number]
 
 
-def get_chat_gpt_response(question : Submission.Question) -> str:
+def get_chat_gpt_response(question : Submission.Question, max_tokens=1000) -> str:
   log.debug("Sending request to OpenAI...")
   
   headers = {
@@ -133,6 +137,7 @@ def get_chat_gpt_response(question : Submission.Question) -> str:
   
   payload = {
     "model": "gpt-4o",
+    "response_format" : {"type" : "json_object"},
     "messages": [
       {
         "role": "user",
@@ -156,13 +161,13 @@ def get_chat_gpt_response(question : Submission.Question) -> str:
         ]
       }
     ],
-    "max_tokens": 300
+    "max_tokens": max_tokens
   }
   
   response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
   response_str = response.json()["choices"][0]["message"]["content"]
   log.debug(f"restore_str: {response_str}")
-  return response_str
+  return json.loads(response_str)
 
 
 def get_question_locations(base_exam: str) -> List[Submission.QuestionLocation]:
@@ -185,28 +190,51 @@ class GradingGUI:
     self.root = root
     self.root.title("Grading")
     
-    self.submissions = submissions
+    self.submissions : List[Submission] = submissions
     
-    self.curr_question: Submission.Question = self.submissions[0].questions[0]
+    self.curr_question_number = 0
+    
+    self.curr_question: Submission.Question = self.submissions[0].questions[self.curr_question_number]
     
     self.create_widgets()
   
-  def create_widgets(self):
-    # Create a label with text and image
+  def next_submission(self):
+    # We basically keep the same question number and then pick a random submission that hasn't had that question answered yet
+    log.debug(f"self.submissions: {[str(s.questions[self.curr_question_number]) for s in self.submissions]}")
+    possible_next_submissions = list(filter(
+      lambda s : s.questions[self.curr_question_number].grade is None,
+      self.submissions
+    ))
+    if len(possible_next_submissions) == 0:
+      log.info("All done!")
+      return
+    next_submission = random.choice(possible_next_submissions)
+    log.debug(f"Moving on to submission {next_submission}")
+    self.curr_question = next_submission.questions[self.curr_question_number]
     self.photo = PIL.ImageTk.PhotoImage(self.curr_question.image)
-    self.label = ttk.Label(self.root, text="Hello, Tkinter!", image=self.photo, compound="top")
+    self.label.config(image=self.photo)
+    # self.label.pack()
+  
+  def create_widgets(self):
+    # Display Student Submission
+    self.photo = PIL.ImageTk.PhotoImage(self.curr_question.image)
+    self.label = ttk.Label(self.root, image=self.photo, compound="top")
     self.label.pack(pady=10)
     
+    # Text area for GPT feedback
     self.text_area = tk_scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=60, height=20)
     self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
     
-    # Create an entry widget
-    self.entry = ttk.Entry(self.root)
-    self.entry.pack(pady=10)
-    
     # Create a button
-    self.button = ttk.Button(self.root, text="Query GPT", command=self.query_gpt)
-    self.button.pack(pady=10)
+    self.generate_gpt_button = ttk.Button(self.root, text="Query GPT", command=self.query_gpt)
+    self.generate_gpt_button.pack(pady=10)
+    
+    # Create an entry widget
+    self.score_entry = ttk.Entry(self.root)
+    self.score_entry.pack(pady=10)
+    
+    self.submit_button = ttk.Button(self.root, text="Submit", command=self.submit_score)
+    self.submit_button.pack(pady=10)
   
   def query_gpt(self):
     def replace_text_area(new_text):
@@ -219,6 +247,11 @@ class GradingGUI:
     
     replace_text_area("Querying OpenAI....")
     threading.Thread(target=query).start()
+  
+  def submit_score(self):
+    score = self.score_entry.get()
+    self.curr_question.grade = int(score)
+    self.next_submission()
   
   def on_button_click(self):
     self.query_gpt()
