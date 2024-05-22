@@ -38,7 +38,7 @@ def generate_exam(questions_file, exam_name) -> Tuple[str, List[question]]:
   question_set = question.QuestionSet(questions_file).questions
   question_set = sorted(
     question_set,
-    key=lambda q: (-q.value, ["languages", "memory", "processes"].index(q.subject))
+    key=lambda q: (-q.value, ["languages", "memory", "processes", "grabbag"].index(q.subject))
   )
   # return question_set
   
