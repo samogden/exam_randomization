@@ -1,42 +1,22 @@
 #!env python
+from __future__ import annotations
 
-import argparse
 import base64
+import io
 import itertools
 import json
 import logging
 import os
 import random
-import threading
 from typing import List
-import io
-import dotenv
 
 import PIL.Image
-import PIL.ImageTk as ImageTK
-
-import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter import scrolledtext as tk_scrolledtext
-
 import pymupdf as fitz
 import requests
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
-
-def parse_flags():
-  parser = argparse.ArgumentParser()
-  
-  parser.add_argument("--input_dir", default="~/Documents/CSUMB/grading/CST334/2024Spring/Exam3/00-base")
-  parser.add_argument("--query_ai", action="store_true")
-  parser.add_argument("--base_exam", default="../exam_generation/exam.pdf")
-  
-  parser.add_argument("--debug", action="store_true")
-  
-  return parser.parse_args()
 
 
 def get_file_list(dir_to_deduplicate) -> List[str]:
@@ -89,7 +69,50 @@ class Submission():
   
     def __str__(self):
       return f"{self.number}({self.grade})"
-  
+
+    def get_chat_gpt_response(self, question : Submission.Question, max_tokens=1000) -> str:
+      log.debug("Sending request to OpenAI...")
+      
+      headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"
+      }
+      
+      payload = {
+        "model": "gpt-4o",
+        "response_format" : {"type" : "json_object"},
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text":
+                  "Please review this submission for me."
+                  "Please give me a response in the form of a JSON dictionary with the following keys:\n"
+                  "possible points : the number of points possible from the problem\n"
+                  "awarded points : how many points do you award to the student's submission\n"
+                  "student text : what did the student write as their answer to the question\n"
+                  "explanation : why are you assigning the grade you are\n"
+              },
+              {
+                "type": "image_url",
+                "image_url": {
+                  "url": f"data:image/png;base64,{question.get_b64()}"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": max_tokens
+      }
+      
+      response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+      response_str = response.json()["choices"][0]["message"]["content"]
+      log.debug(f"restore_str: {response_str}")
+      return json.loads(response_str)
+      
+      
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
   
   def __init__(self, input_pdf: str, question_locations: List[QuestionLocation], question_margin=10):
@@ -126,168 +149,39 @@ class Submission():
   def get_page(self, page_number) -> fitz.Page:
     return self.pdf_doc[page_number]
 
-
-def get_chat_gpt_response(question : Submission.Question, max_tokens=1000) -> str:
-  log.debug("Sending request to OpenAI...")
+  @classmethod
+  def read_directory(cls, path_to_directory, base_exam, shuffle=True) -> List[Submission]:
+    files = get_file_list(os.path.expanduser(path_to_directory))
+    for f in files:
+      if ".DS_Store" in f:
+        os.remove(f)
+        files.remove(f)
+    
+    question_locations = cls.get_question_locations(base_exam)
+    submissions = [
+      Submission(f, question_locations)
+      for f in files
+    ]
+    
+    if shuffle:
+      random.shuffle(submissions)
+    
+    return submissions
+    
   
-  headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"
-  }
-  
-  payload = {
-    "model": "gpt-4o",
-    "response_format" : {"type" : "json_object"},
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {
-            "type": "text",
-            "text":
-              "Please review this submission for me."
-            "Please give me a response in the form of a JSON dictionary with the following keys:\n"
-            "possible points : the number of points possible from the problem\n"
-            "awarded points : how many points do you award to the student's submission\n"
-            "student text : what did the student write as their answer to the question\n"
-            "explanation : why are you assigning the grade you are\n"
-          },
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": f"data:image/png;base64,{question.get_b64()}"
-            }
-          }
-        ]
-      }
-    ],
-    "max_tokens": max_tokens
-  }
-  
-  response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-  response_str = response.json()["choices"][0]["message"]["content"]
-  log.debug(f"restore_str: {response_str}")
-  return json.loads(response_str)
+  @staticmethod
+  def get_question_locations(base_exam: str) -> List[Submission.QuestionLocation]:
+    question_locations = []
+    
+    pdf_doc = fitz.open(base_exam)
+    for page_number, page in enumerate(pdf_doc.pages()):
+      # log.debug(f"Looking on {page_number}")
+      for question_number in range(30):
+        text_instances = page.search_for(f"Question {question_number}:")
+        if len(text_instances) > 0:
+          # log.debug(f"Found question {question_number}")
+          question_locations.append(Submission.QuestionLocation(question_number, page_number, text_instances[0].tl.y))
+    
+    return question_locations
 
 
-def get_question_locations(base_exam: str) -> List[Submission.QuestionLocation]:
-  question_locations = []
-  
-  pdf_doc = fitz.open(base_exam)
-  for page_number, page in enumerate(pdf_doc.pages()):
-    # log.debug(f"Looking on {page_number}")
-    for question_number in range(30):
-      text_instances = page.search_for(f"Question {question_number}:")
-      if len(text_instances) > 0:
-        # log.debug(f"Found question {question_number}")
-        question_locations.append(Submission.QuestionLocation(question_number, page_number, text_instances[0].tl.y))
-  
-  return question_locations
-
-
-class GradingGUI:
-  def __init__(self, root, submissions: List[Submission]):
-    self.root = root
-    self.root.title("Grading")
-    
-    self.submissions : List[Submission] = submissions
-    
-    self.curr_question_number = 0
-    
-    self.curr_question: Submission.Question = self.submissions[0].questions[self.curr_question_number]
-    
-    self.create_widgets()
-  
-  def next_submission(self):
-    # We basically keep the same question number and then pick a random submission that hasn't had that question answered yet
-    log.debug(f"self.submissions: {[str(s.questions[self.curr_question_number]) for s in self.submissions]}")
-    possible_next_submissions = list(filter(
-      lambda s : s.questions[self.curr_question_number].grade is None,
-      self.submissions
-    ))
-    if len(possible_next_submissions) == 0:
-      log.info("All done!")
-      return
-    next_submission = random.choice(possible_next_submissions)
-    log.debug(f"Moving on to submission {next_submission}")
-    
-    self.curr_question = next_submission.questions[self.curr_question_number]
-    self.update_question_frame(self.curr_question)
-    
-  
-  def create_widgets(self):
-    
-    self.update_question_frame(self.curr_question)
-    self.question_frame.grid(row=0, column=0)
-    
-    # Create an entry widget
-    self.score_entry = ttk.Entry(self.root)
-    # self.score_entry.pack(pady=10)
-    self.score_entry.grid(row=1, column=0)
-    
-    self.submit_button = ttk.Button(self.root, text="Submit", command=self.submit_score)
-    # self.submit_button.pack(pady=10)
-    self.submit_button.grid(row=2, column=0)
-  
-  def query_gpt(self, question, text_area):
-    def replace_text_area(new_text):
-      text_area.delete('1.0', tk.END)
-      text_area.insert(tk.END, new_text)
-    
-    def query():
-      gpt_response = get_chat_gpt_response(question)
-      replace_text_area(gpt_response)
-    
-    replace_text_area("Querying OpenAI....")
-    threading.Thread(target=query).start()
-  
-  def submit_score(self):
-    score = self.score_entry.get()
-    self.curr_question.grade = int(score)
-    self.next_submission()
-  
-  def update_question_frame(self, question : Submission.Question) -> None:
-    new_frame = ttk.Frame(self.root)
-    
-    self.photo = PIL.ImageTk.PhotoImage(question.image)
-    self.label = ttk.Label(new_frame, image=self.photo, compound="top")
-    self.label.grid(row=0, column=0)
-    
-    # Text area for GPT feedback
-    text_area = tk_scrolledtext.ScrolledText(new_frame, wrap=tk.WORD, width=60, height=20)
-    text_area.grid(row=0, column=2)
-    
-    # Create a button
-    generate_gpt_button = ttk.Button(new_frame, text="Query GPT", command=(lambda :self.query_gpt(question, text_area)))
-    generate_gpt_button.grid(row=1, columnspan=True)
-    
-    if hasattr(self, "question_frame"): self.question_frame.destroy()
-    self.question_frame = new_frame
-    self.question_frame.grid(row=0, column=0)
-
-def main():
-  flags = parse_flags()
-  dotenv.load_dotenv()
-  
-  if flags.input_dir is None:
-    logging.error("Please specify input directory")
-    return
-  files = get_file_list(os.path.expanduser(flags.input_dir))
-  for f in files:
-    if ".DS_Store" in f:
-      os.remove(f)
-      files.remove(f)
-  
-  question_locations = get_question_locations(flags.base_exam)
-  submissions = [
-    Submission(f, question_locations)
-    for f in sorted(files, key=lambda _: random.random())[:2]
-  ]
-  
-  root = tk.Tk()
-  app = GradingGUI(root, submissions)
-  root.mainloop()
-
-
-if __name__ == "__main__":
-  main()
