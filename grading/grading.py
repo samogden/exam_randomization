@@ -246,10 +246,6 @@ class GradingGUI:
     self.curr_question.grade = int(score)
     self.next_submission()
   
-  def on_button_click(self):
-    self.query_gpt()
-    return
-  
   def update_question_frame(self, question : Submission.Question) -> None:
     new_frame = ttk.Frame(self.root)
     
