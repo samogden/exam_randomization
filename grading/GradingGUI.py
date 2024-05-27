@@ -20,7 +20,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import scrolledtext as tk_scrolledtext
 
-from grading import Submission
+from assignment import Assignment
+from question import Question
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def parse_flags():
 
 
 class GradingGUI:
-  def __init__(self, root, submissions: List[Submission]|None):
+  def __init__(self, root, submissions: List[Assignment]|None):
     self.root = root
     self.root.title("Grading")
     
@@ -49,11 +50,11 @@ class GradingGUI:
       # todo: get submissions
       pass
     else:
-      self.submissions : List[Submission] = submissions
+      self.submissions : List[Assignment] = submissions
     
     self.curr_question_number = 0
     
-    self.curr_question: Submission.Question = self.submissions[0].questions[self.curr_question_number]
+    self.curr_question: Assignment.Question = self.submissions[0].questions[self.curr_question_number]
     
     self.create_widgets()
   
@@ -105,7 +106,7 @@ class GradingGUI:
     self.curr_question.grade = int(score)
     self.next_submission()
   
-  def update_question_frame(self, question : Submission.Question) -> None:
+  def update_question_frame(self, question : Question) -> None:
     new_frame = ttk.Frame(self.root)
     
     self.photo = PIL.ImageTk.PhotoImage(question.image)
@@ -128,7 +129,7 @@ def main():
   flags = parse_flags()
   dotenv.load_dotenv()
   
-  submissions = Submission.read_directory(flags.input_dir, flags.base_exam)
+  submissions = Assignment.read_directory(flags.input_dir, flags.base_exam)
   
   root = tk.Tk()
   app = GradingGUI(root, submissions)
