@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import random
+from pprint import pprint
 from typing import List, Dict
 
 import PIL.Image
@@ -56,7 +57,7 @@ class Question:
       new_window = tk.Toplevel(parent)
       question_frame = selected_response.get_tkinter_frame(new_window)
       question_frame.pack()
-      log.info(selected_response.get_chat_gpt_response())
+      log.info(pprint(selected_response.get_chat_gpt_response()))
     
     # Set up a callback for double-clicking
     question_listbox.bind('<Double-1>', doubleclick_callback)
@@ -118,7 +119,7 @@ class Response(abc.ABC):
               "Please review this submission for me."
               "Please give me a response in the form of a JSON dictionary with the following keys:\n"
               "possible points : the number of points possible from the problem\n"
-              "awarded points : how many points do you award to the student's submission\n"
+              "awarded points : how many points do you award to the student's submission, and only use integer value\n"
               "student text : what did the student write as their answer to the question\n"
               "explanation : why are you assigning the grade you are\n"
           },
@@ -135,6 +136,7 @@ class Response(abc.ABC):
     client = OpenAI()
     response = client.chat.completions.create(
       model="gpt-4o",
+      response_format={ "type": "json_object" },
       messages=messages,
       temperature=1,
       max_tokens=max_tokens,
@@ -143,7 +145,11 @@ class Response(abc.ABC):
       presence_penalty=0
     )
     
-    return json.loads(response.model_dump_json())
+    # log.debug(f"response: {response}")
+    # log.debug(f"response.choices[0].message.content: {response.choices[0].message.content}")
+    # log.debug(f"json.loads(response.choices[0].message.content): {json.loads(response.choices[0].message.content)}")
+    
+    return json.loads(response.choices[0].message.content)
 
 class Response_fromPDF(Response):
   def __init__(self, student_id, img: PIL.Image.Image):
