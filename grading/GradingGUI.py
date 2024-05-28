@@ -20,7 +20,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import scrolledtext as tk_scrolledtext
 
-from assignment import Assignment
+from assignment import Assignment, ScannedExam
 from question import Question
 
 logging.basicConfig()
@@ -128,6 +128,12 @@ class GradingGUI:
 def main():
   flags = parse_flags()
   dotenv.load_dotenv()
+  
+  a = ScannedExam(flags.base_exam, flags.input_dir)
+  print(a)
+  
+  return
+  
   
   submissions = Assignment.read_directory(flags.input_dir, flags.base_exam)
   

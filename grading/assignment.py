@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import collections
 import io
 import itertools
 import json
@@ -14,7 +15,9 @@ import PIL.Image
 import pymupdf as fitz
 import requests
 
-from question import Question
+import question
+
+# from question import Response_fromPDF as Question, Response_fromPDF, Response
 from misc import get_file_list
 
 logging.basicConfig()
@@ -22,7 +25,50 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class Assignment():
+class Assignment:
+  """
+  An assignment is an indvidual assignment that will contain a number of Questions, each of which contain a number of Responses.
+  This will better match the structure of real assignments, and thus be flexible for different sources.
+  """
+  
+  def __init__(self, questions: List[question.Question]):
+    self.questions = questions
+  
+  def __str__(self):
+    return f"Assignment({len(self.questions)}questions, {sum([q.max_points for q in self.questions])}points)"
+    
+  def get_by_student(self):
+    # todo: after grading this function can be used ot get a by-student representation of the questions
+    pass
+
+class ScannedExam(Assignment):
+  def __init__(self, path_to_base_exam, path_to_scanned_exams):
+    files = [os.path.join(f) for f in get_file_list(path_to_scanned_exams) if f.endswith(".pdf")]
+    
+    question_locations = QuestionLocation.get_question_locations(path_to_base_exam)
+    
+    question_responses : collections.defaultdict[int,List[question.Response]] = collections.defaultdict(list)
+    
+    # Break up each pdf into the responses
+    for student_id, f in enumerate(files):
+      log.info(f"Loading student {student_id+1}/{len(files)}")
+      for question_number, response in question.Response_fromPDF.load_from_pdf(student_id, f, question_locations).items():
+        question_responses[question_number].append(response)
+    
+    
+    # Make questions from each response
+    questions = [
+      question.Question(question_number, responses)
+      for (question_number, responses) in question_responses.items()
+    ]
+      
+    super().__init__(questions)
+
+
+class Assignment_old:
+  """
+  This is more similar to a "Submission" in the new restructuring
+  """
   
   _id_counter = itertools.count()  # create an iterator that returns consecutive integers
   
@@ -32,7 +78,7 @@ class Assignment():
     self.pdf_doc = fitz.open(self.input_pdf)
     self.page_scores = {i: None for i in range(self.pdf_doc.page_count)}
     
-    self.questions: List[Question] = []
+    self.questions: List[question.Question] = []
     for (page_number, page) in enumerate(self.pdf_doc):
       page_width = page.rect.width
       page_height = page.rect.height
@@ -48,10 +94,10 @@ class Assignment():
           question_rect = fitz.Rect(0, q_start.location, page_width - question_margin, q_end.location + question_margin)
         question_pixmap = page.get_pixmap(matrix=fitz.Matrix(1, 1), clip=question_rect)
         self.questions.append(
-          Question(q_start.question_number, PIL.Image.open(io.BytesIO(question_pixmap.tobytes())))
+          question.Question(q_start.question_number, PIL.Image.open(io.BytesIO(question_pixmap.tobytes())))
         )
-        log.debug(f"stored q{self.questions[-1].number}")
-      self.questions = sorted(self.questions, key=(lambda q: q.number))
+        log.debug(f"stored q{self.questions[-1].question_number}")
+      self.questions = sorted(self.questions, key=(lambda q: q.question_number))
       log.debug(f"num question: {len(self.questions)}")
   
   def __str__(self):
@@ -88,20 +134,15 @@ class QuestionLocation():
     # todo: add in a reference snippet
   
   @staticmethod
-  def get_question_locations(base_exam: str) -> List[QuestionLocation]:
+  def get_question_locations(path_to_base_exam: str) -> List[QuestionLocation]:
     question_locations = []
     
-    pdf_doc = fitz.open(base_exam)
+    pdf_doc = fitz.open(path_to_base_exam)
     for page_number, page in enumerate(pdf_doc.pages()):
       # log.debug(f"Looking on {page_number}")
       for question_number in range(30):
         text_instances = page.search_for(f"Question {question_number}:")
         if len(text_instances) > 0:
-          # log.debug(f"Found question {question_number}")
           question_locations.append(QuestionLocation(question_number, page_number, text_instances[0].tl.y))
     
     return question_locations
-
-  
-  
-
