@@ -54,7 +54,13 @@ class Assignment:
     for i, q in enumerate(self.questions):
       question_listbox.insert(i, q)
     question_listbox.pack()
+    question_listbox.focus()
     
+    def doubleclick_callback(_):
+      log.info(f"x: {question_listbox.selection_get()}")
+    
+    # Set up a callback for double-clicking
+    question_listbox.bind('<Double-1>', doubleclick_callback)
     
     frame.pack()
     return frame
