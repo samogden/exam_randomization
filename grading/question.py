@@ -72,7 +72,6 @@ class Question:
     log.debug(f"restore_str: {response_str}")
     return json.loads(response_str)
 
-
 class Response:
   """
   Class for containing student responses to a question

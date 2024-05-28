@@ -39,8 +39,6 @@ def parse_flags():
   
   return parser.parse_args()
 
-
-
 class GradingGUI:
   def __init__(self, root, submissions: List[Assignment]|None):
     self.root = root
