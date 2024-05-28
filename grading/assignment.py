@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import random
+import tkinter as tk
 from typing import List
 
 import PIL.Image
@@ -41,9 +42,30 @@ class Assignment:
     # todo: after grading this function can be used ot get a by-student representation of the questions
     pass
 
+  def get_tkinter_frame(self, parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    
+    # Make a scrollbar for the Listbox
+    question_scrollbar = tk.Scrollbar(frame)
+    question_scrollbar.pack(side=tk.RIGHT, fill=tk.BOTH)
+    
+    # Make a Listbox for questions
+    question_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
+    for i, q in enumerate(self.questions):
+      question_listbox.insert(i, q)
+    question_listbox.pack()
+    
+    
+    frame.pack()
+    return frame
+    
+
 class ScannedExam(Assignment):
-  def __init__(self, path_to_base_exam, path_to_scanned_exams):
+  def __init__(self, path_to_base_exam, path_to_scanned_exams, limit=None):
     files = [os.path.join(f) for f in get_file_list(path_to_scanned_exams) if f.endswith(".pdf")]
+    
+    if limit is not None:
+      files = files[:limit]
     
     question_locations = QuestionLocation.get_question_locations(path_to_base_exam)
     

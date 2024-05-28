@@ -127,8 +127,13 @@ def main():
   flags = parse_flags()
   dotenv.load_dotenv()
   
-  a = ScannedExam(flags.base_exam, flags.input_dir)
+  a = ScannedExam(flags.base_exam, flags.input_dir, limit=10)
   print(a)
+  
+  
+  root = tk.Tk()
+  a.get_tkinter_frame(root)
+  root.mainloop()
   
   return
   
