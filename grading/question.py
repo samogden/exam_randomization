@@ -1,6 +1,7 @@
 #!env python
 from __future__ import annotations
 
+import abc
 import base64
 import io
 import itertools
@@ -16,6 +17,8 @@ import requests
 
 import tkinter as tk
 from tkinter import scrolledtext
+
+from openai import OpenAI
 
 
 # from assignment import QuestionLocation
@@ -33,48 +36,6 @@ class Question:
   def __str__(self):
     return f"Question({self.question_number}, {len(self.responses)})"
   
-  def get_chat_gpt_response(self, question : Question, max_tokens=1000) -> str:
-    # todo: this will have to be moved so all of the questions can be checked with the same prompt so we can do few-shot learning
-    log.debug("Sending request to OpenAI...")
-    
-    headers = {
-      "Content-Type": "application/json",
-      "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"
-    }
-    
-    payload = {
-      "model": "gpt-4o",
-      "response_format" : {"type" : "json_object"},
-      "messages": [
-        {
-          "role": "user",
-          "content": [
-            {
-              "type": "text",
-              "text":
-                "Please review this submission for me."
-                "Please give me a response in the form of a JSON dictionary with the following keys:\n"
-                "possible points : the number of points possible from the problem\n"
-                "awarded points : how many points do you award to the student's submission\n"
-                "student text : what did the student write as their answer to the question\n"
-                "explanation : why are you assigning the grade you are\n"
-            },
-            {
-              "type": "image_url",
-              "image_url": {
-                "url": f"data:image/png;base64,{question.get_b64()}"
-              }
-            }
-          ]
-        }
-      ],
-      "max_tokens": max_tokens
-    }
-    
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    response_str = response.json()["choices"][0]["message"]["content"]
-    log.debug(f"restore_str: {response_str}")
-    return json.loads(response_str)
   
   def get_tkinter_frame(self, parent) -> tk.Frame:
     frame = tk.Frame(parent)
@@ -95,6 +56,7 @@ class Question:
       new_window = tk.Toplevel(parent)
       question_frame = selected_response.get_tkinter_frame(new_window)
       question_frame.pack()
+      log.info(selected_response.get_chat_gpt_response())
     
     # Set up a callback for double-clicking
     question_listbox.bind('<Double-1>', doubleclick_callback)
@@ -103,16 +65,85 @@ class Question:
     return frame
 
 
-class Response:
+class Response(abc.ABC):
   """
   Class for containing student responses to a question
   """
   def __init__(self, student_id):
     self.student_id = student_id
+    
+    # Things that we'll get from the user or from elsewhere
     self.score = None
-  
+    self.feedback = None
+    self.score_gpt = None
+    self.feedback_gpt = None
+    
   def __str__(self):
     return f"Response({self.student_id}, {self.score})"
+  
+  @abc.abstractmethod
+  def _get_response_for_gpt(self) -> Dict:
+    pass
+  
+  def get_chat_gpt_response(self, system_prompt=None, examples=None, max_tokens=1000) -> str:
+    log.debug("Sending request to OpenAI...")
+    
+    messages = []
+    # Add system prompt, if applicable
+    if system_prompt is not None:
+      messages.append(
+        {
+          "role": "system",
+          "content": [
+            {
+              "type": "text",
+              "text": f"{system_prompt}"
+            }
+          ]
+        }
+      )
+    
+    # Add in examples for few-shot learning
+    if examples is not None:
+      messages.extend(examples)
+    
+    # Add grading criteria
+    messages.append(
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text":
+              "Please review this submission for me."
+              "Please give me a response in the form of a JSON dictionary with the following keys:\n"
+              "possible points : the number of points possible from the problem\n"
+              "awarded points : how many points do you award to the student's submission\n"
+              "student text : what did the student write as their answer to the question\n"
+              "explanation : why are you assigning the grade you are\n"
+          },
+          self._get_response_for_gpt()
+        ]
+      }
+    )
+    
+    # Add response to grade
+    # messages.append(
+    #   self._get_response_for_gpt()
+    # )
+    
+    client = OpenAI()
+    response = client.chat.completions.create(
+      model="gpt-4o",
+      messages=messages,
+      temperature=1,
+      max_tokens=max_tokens,
+      top_p=1,
+      frequency_penalty=0,
+      presence_penalty=0
+    )
+    
+    return json.loads(response.model_dump_json())
 
 class Response_fromPDF(Response):
   def __init__(self, student_id, img: PIL.Image.Image):
@@ -151,7 +182,7 @@ class Response_fromPDF(Response):
     buffered = io.BytesIO()
     
     # Save the image to the buffer in the specified format
-    self.image.save(buffered, format=format)
+    self.img.save(buffered, format=format)
     
     # Get the byte data from the buffer
     img_byte = buffered.getvalue()
@@ -164,6 +195,13 @@ class Response_fromPDF(Response):
     
     return img_base64_str
   
+  def _get_response_for_gpt(self):
+    return {
+      "type": "image_url",
+      "image_url": {
+        "url": f"data:image/png;base64,{self.get_b64()}"
+      }
+    }
   
   def get_tkinter_frame(self, parent) -> tk.Frame:
     frame = tk.Frame(parent)
