@@ -14,6 +14,10 @@ import PIL.Image
 import pymupdf as fitz
 import requests
 
+import tkinter as tk
+from tkinter import scrolledtext
+
+
 # from assignment import QuestionLocation
 
 logging.basicConfig()
@@ -71,6 +75,33 @@ class Question:
     response_str = response.json()["choices"][0]["message"]["content"]
     log.debug(f"restore_str: {response_str}")
     return json.loads(response_str)
+  
+  def get_tkinter_frame(self, parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    
+    # Make a scrollbar for the Listbox
+    question_scrollbar = tk.Scrollbar(frame)
+    question_scrollbar.pack(side=tk.RIGHT, fill=tk.BOTH)
+    
+    # Make a Listbox for questions
+    question_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
+    for i, r in enumerate(self.responses):
+      question_listbox.insert(i, r)
+    question_listbox.pack()
+    question_listbox.focus()
+    
+    def doubleclick_callback(_):
+      selected_response = self.responses[question_listbox.curselection()[0]]
+      new_window = tk.Toplevel(parent)
+      question_frame = selected_response.get_tkinter_frame(new_window)
+      question_frame.pack()
+    
+    # Set up a callback for double-clicking
+    question_listbox.bind('<Double-1>', doubleclick_callback)
+    
+    frame.pack()
+    return frame
+
 
 class Response:
   """
@@ -79,6 +110,9 @@ class Response:
   def __init__(self, student_id):
     self.student_id = student_id
     self.score = None
+  
+  def __str__(self):
+    return f"Response({self.student_id}, {self.score})"
 
 class Response_fromPDF(Response):
   def __init__(self, student_id, img: PIL.Image.Image):
@@ -130,4 +164,24 @@ class Response_fromPDF(Response):
     
     return img_base64_str
   
-
+  
+  def get_tkinter_frame(self, parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    
+    self.photo = PIL.ImageTk.PhotoImage(self.img)
+    self.label = tk.Label(frame, image=self.photo, compound="top")
+    self.label.grid(row=0, column=0)
+    
+    # Text area for GPT feedback
+    # text_area = scrolledtext.ScrolledText(frame, wrap=tk.WORD, width=60, height=20)
+    # text_area.grid(row=0, column=2)
+    
+    # Create a button
+    # generate_gpt_button = ttk.Button(new_frame, text="Query GPT", command=(lambda :self.query_gpt(question, text_area)))
+    # generate_gpt_button.grid(row=1, columnspan=True)
+    
+    # if hasattr(self, "question_frame"): self.question_frame.destroy()
+    # self.question_frame = frame
+    # self.question_frame.grid(row=0, column=0)
+    
+    return frame

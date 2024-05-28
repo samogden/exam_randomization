@@ -57,7 +57,10 @@ class Assignment:
     question_listbox.focus()
     
     def doubleclick_callback(_):
-      log.info(f"x: {question_listbox.selection_get()}")
+      selected_question = self.questions[question_listbox.curselection()[0]]
+      new_window = tk.Toplevel(parent)
+      question_frame = selected_question.get_tkinter_frame(new_window)
+      question_frame.pack()
     
     # Set up a callback for double-clicking
     question_listbox.bind('<Double-1>', doubleclick_callback)
