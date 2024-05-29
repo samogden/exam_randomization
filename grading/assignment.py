@@ -88,6 +88,7 @@ class Assignment:
           # "feedback_gpt" : r.feedback_gpt
         })
     df = pd.DataFrame.from_records(records)
+    df.to_csv("full.csv")
     log.debug(df)
     df_grouped_and_summed = df.groupby("student").agg({
       'input_file': 'min',
@@ -95,9 +96,16 @@ class Assignment:
       'score': 'sum',
       'score_gpt' : 'sum'
     })
-    df_grouped_and_summed.to_csv("output.csv")
+    df_grouped_and_summed.to_csv("grades.csv")
     # todo: add feedback file (But since feedback isn't gathered currently it's a moot point)
   
+  def autograde(self):
+    for q in self.questions:
+      log.debug(f"Question: {q}")
+      for r in q.responses:
+        log.debug(f"response: {r.student_id}")
+        r.update_from_gpt()
+        r.score = r.score_gpt
 
 class ScannedExam(Assignment):
   def __init__(self, path_to_base_exam, path_to_scanned_exams, limit=None):

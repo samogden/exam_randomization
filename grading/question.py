@@ -28,7 +28,7 @@ from openai import OpenAI
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 class Question:
   def __init__(self, question_number, responses : List[Response], max_points = 0):
@@ -199,13 +199,24 @@ class Response(abc.ABC):
         }
   
   
-  def update_from_gpt(self, callback_func=(lambda : None), ignore_existing=False, fakeit=False):
+  def update_from_gpt(self, callback_func=(lambda : None), ignore_existing=False, fakeit=False, max_tries=3):
     if (self.feedback_gpt is not None) and (not ignore_existing):
       # Then we can assume it's already been run or started so we should skip
       callback_func()
       return
-    response = self.get_chat_gpt_response(fakeit=fakeit)
-    log.debug(f"response: {response}")
+    response = None
+    tries = 0
+    while response is None and tries < max_tries:
+      try:
+        response = self.get_chat_gpt_response(fakeit=fakeit)
+      except Exception as e:
+        log.error(e)
+        log.error(e.with_traceback())
+        log.debug("Trying again")
+        tries += 1
+    if response is None:
+      response = self.get_chat_gpt_response(fakeit=True
+      )
     if "student text" in response:
       self.student_text = response["student text"]
     else:

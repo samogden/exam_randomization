@@ -34,6 +34,7 @@ def parse_flags():
   parser.add_argument("--input_dir", default="~/Documents/CSUMB/grading/CST334/2024Spring/Exam3/00-base")
   parser.add_argument("--query_ai", action="store_true")
   parser.add_argument("--base_exam", default="../exam_generation/exam.pdf")
+  parser.add_argument("--autograde", action="store_true")
   
   parser.add_argument("--debug", action="store_true")
   
@@ -127,8 +128,14 @@ def main():
   flags = parse_flags()
   dotenv.load_dotenv()
   
-  a = ScannedExam(flags.base_exam, flags.input_dir, limit=10)
+  a = ScannedExam(flags.base_exam, flags.input_dir)
   print(a)
+  if flags.autograde:
+    try:
+      a.autograde()
+    finally:
+      a.get_feedback()
+    return
   
   root = tk.Tk()
 
