@@ -85,12 +85,12 @@ class Assignment:
           "score" : r.score,
           "feedback" : r.feedback,
           "score_gpt" : r.score_gpt,
-          # "feedback_gpt" : r.feedback_gpt
+          "feedback_gpt" : r.feedback_gpt
         })
     df = pd.DataFrame.from_records(records)
     df.to_csv("full.csv")
     log.debug(df)
-    df_grouped_and_summed = df.groupby("student").agg({
+    df_grouped_and_summed = df.drop(["feedback_gpt"], axis=1).groupby("student").agg({
       'input_file': 'min',
       'question': 'nunique',
       'score': 'sum',
@@ -114,6 +114,7 @@ class ScannedExam(Assignment):
     if limit is not None:
       files = files[:limit]
     
+    # todo: If there is no base exam then default to a per-page grading scheme
     question_locations = QuestionLocation.get_question_locations(path_to_base_exam)
     
     question_responses : collections.defaultdict[int,List[question.Response]] = collections.defaultdict(list)
