@@ -272,6 +272,7 @@ class Response_fromPDF(Response):
     def on_submit():
       self.set_score(int(self.score_box.get(1.0, 'end-1c')))
       self.feedback = self.text_area_feedback.get(1.0, 'end-1c')
+      parent.destroy()
       callback()
     score_frame = tk.Frame(frame)
     tk.Label(score_frame, text="Score").grid(row=0, column=0)
