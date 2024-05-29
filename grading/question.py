@@ -48,20 +48,24 @@ class Question:
     question_scrollbar.pack(side=tk.RIGHT, fill=tk.BOTH)
     
     # Make a Listbox for questions
-    question_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
-    for i, r in enumerate(self.responses):
-      question_listbox.insert(i, r)
-    question_listbox.pack()
-    question_listbox.focus()
+    response_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
+    def redraw_responses():
+      response_listbox.delete(0, tk.END)
+      for i, r in enumerate(self.responses):
+        response_listbox.insert(i, f"{'ungraded' if r.score is None else 'graded'}")
+    redraw_responses()
+    response_listbox.pack()
+    response_listbox.focus()
     
     def doubleclick_callback(_):
-      selected_response = self.responses[question_listbox.curselection()[0]]
+      
+      selected_response = self.responses[response_listbox.curselection()[0]]
       new_window = tk.Toplevel(parent)
-      question_frame = selected_response.get_tkinter_frame(new_window)
+      question_frame = selected_response.get_tkinter_frame(new_window, callback=redraw_responses)
       question_frame.pack()
     
     # Set up a callback for double-clicking
-    question_listbox.bind('<Double-1>', doubleclick_callback)
+    response_listbox.bind('<Double-1>', doubleclick_callback)
     
     frame.pack()
     return frame
@@ -229,7 +233,7 @@ class Response_fromPDF(Response):
       }
     }
   
-  def get_tkinter_frame(self, parent) -> tk.Frame:
+  def get_tkinter_frame(self, parent, callback=(lambda : None)) -> tk.Frame:
     
     frame = tk.Frame(parent)
     
@@ -253,15 +257,18 @@ class Response_fromPDF(Response):
     explanation_frame.grid(row=1, column=1)
     
     # Set up the place to enter in the score for the submission
+    def on_submit():
+      self.set_score(int(self.score_box.get(1.0, 'end-1c')))
+      callback()
     score_frame = tk.Frame(frame)
     tk.Label(score_frame, text="Score").grid(row=0, column=0)
     self.score_box = tk.Text(score_frame, height=1, width=4)
     self.score_box.grid(row=0, column=1)
-    self.submit_button = tk.Button(score_frame, text="Submit", command=(lambda : self.set_score(int(self.score_box.get(1.0, 'end-1c')))))
+    self.submit_button = tk.Button(score_frame, text="Submit", command=on_submit)
     self.submit_button.grid(row=0, column=2)
     score_frame.grid(row=2, column=1)
     
-    def update_after_completion():
+    def update_after_gpt_completion():
       log.debug("Updating after completion")
 
       def replace_text_area(text_area, new_text):
@@ -276,7 +283,7 @@ class Response_fromPDF(Response):
     threading.Thread(
       target=self.update_from_gpt,
       kwargs={
-        "callback_func" : update_after_completion,
+        "callback_func" : update_after_gpt_completion,
         "fakeit" : True
       }
     ).start()
