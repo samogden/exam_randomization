@@ -128,15 +128,10 @@ class Response(abc.ABC):
       }
     )
     
-    # Add response to grade
-    # messages.append(
-    #   self._get_response_for_gpt()
-    # )
-    
     client = OpenAI()
     response = client.chat.completions.create(
       model="gpt-4o",
-      response_format={ "type": "json_object" },
+      response_format={ "type": "json_object"},
       messages=messages,
       temperature=1,
       max_tokens=max_tokens,
@@ -144,10 +139,6 @@ class Response(abc.ABC):
       frequency_penalty=0,
       presence_penalty=0
     )
-    
-    # log.debug(f"response: {response}")
-    # log.debug(f"response.choices[0].message.content: {response.choices[0].message.content}")
-    # log.debug(f"json.loads(response.choices[0].message.content): {json.loads(response.choices[0].message.content)}")
     
     return json.loads(response.choices[0].message.content)
 
