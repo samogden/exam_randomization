@@ -52,15 +52,18 @@ class Assignment:
     
     # Make a Listbox for questions
     question_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
-    for i, q in enumerate(self.questions):
-      question_listbox.insert(i, q)
+    def redraw_questions():
+      question_listbox.delete(0, tk.END)
+      for i, q in enumerate(self.questions):
+        question_listbox.insert(i, q if any([r.score is None for r in q.responses]) else "completed")
+    redraw_questions()
     question_listbox.pack()
     question_listbox.focus()
     
     def doubleclick_callback(_):
       selected_question = self.questions[question_listbox.curselection()[0]]
       new_window = tk.Toplevel(parent)
-      question_frame = selected_question.get_tkinter_frame(new_window)
+      question_frame = selected_question.get_tkinter_frame(new_window, callback=redraw_questions)
       question_frame.pack()
     
     # Set up a callback for double-clicking

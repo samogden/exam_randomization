@@ -40,7 +40,7 @@ class Question:
     return f"Question({self.question_number}, {len(self.responses)})"
   
   
-  def get_tkinter_frame(self, parent) -> tk.Frame:
+  def get_tkinter_frame(self, parent, callback=(lambda : None)) -> tk.Frame:
     frame = tk.Frame(parent)
     
     # Make a scrollbar for the Listbox
@@ -50,6 +50,7 @@ class Question:
     # Make a Listbox for questions
     response_listbox = tk.Listbox(frame, yscrollcommand=question_scrollbar.set)
     def redraw_responses():
+      callback() # todo make this propagate better?
       response_listbox.delete(0, tk.END)
       for i, r in enumerate(self.responses):
         response_listbox.insert(i, f"{'ungraded' if r.score is None else 'graded'}")
