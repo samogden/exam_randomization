@@ -85,7 +85,8 @@ class Assignment:
         })
     df = pd.DataFrame.from_records(records)
     log.debug(df)
-    df.to_csv("output.csv")
+    df.groupby("student").sum().to_csv("output.csv")
+    # todo: add feedback file (But since feedback isn't gathered currently it's a moot point)
   
 
 class ScannedExam(Assignment):
