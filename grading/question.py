@@ -166,6 +166,7 @@ class Response(abc.ABC):
   def update_from_gpt(self, callback_func=(lambda : None), ignore_existing=False, fakeit=False):
     if (self.feedback_gpt is not None) and (not ignore_existing):
       # Then we can assume it's already been run or started so we should skip
+      callback_func()
       return
     response = self.get_chat_gpt_response(fakeit=fakeit)
     log.debug(f"response: {response}")
@@ -278,7 +279,10 @@ class Response_fromPDF(Response):
       # self.text_area_gpt_response.
       replace_text_area(self.text_area_gpt_response, self.feedback_gpt)
       replace_text_area(self.text_area_student_text, self.student_text)
-      replace_text_area(self.score_box, self.score_gpt)
+      if self.score is not None:
+        replace_text_area(self.score_box, self.score)
+      else:
+        replace_text_area(self.score_box, self.score_gpt)
 
 
     threading.Thread(
