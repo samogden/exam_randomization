@@ -247,20 +247,31 @@ class Response_fromPDF(Response):
     # Set up the area that will contain the returned student text
     student_text_frame = tk.Frame(frame)
     tk.Label(student_text_frame, text="Student response").pack(anchor=tk.SW)
-    self.text_area_student_text = scrolledtext.ScrolledText(student_text_frame, wrap=tk.WORD)
+    self.text_area_student_text = scrolledtext.ScrolledText(student_text_frame, wrap=tk.WORD, width=80)
     self.text_area_student_text.pack()
     student_text_frame.grid(row=0, column=1)
     
     # Set up the response form GPT
     explanation_frame = tk.Frame(frame)
-    tk.Label(explanation_frame, text="GPT Response").pack(anchor=tk.SW)
-    self.text_area_gpt_response = scrolledtext.ScrolledText(explanation_frame, wrap=tk.WORD)
+    
+    explanation_frame_gpt = tk.Frame(explanation_frame)
+    tk.Label(explanation_frame_gpt, text="GPT Response").pack(anchor=tk.SW)
+    self.text_area_gpt_response = scrolledtext.ScrolledText(explanation_frame_gpt, wrap=tk.WORD, width=40)
     self.text_area_gpt_response.pack()
+    explanation_frame_gpt.grid(column=0, row=0)
+    
+    explanation_frame_feedback = tk.Frame(explanation_frame)
+    tk.Label(explanation_frame_feedback, text="Feedback").pack(anchor=tk.SW)
+    self.text_area_feedback = scrolledtext.ScrolledText(explanation_frame_feedback, wrap=tk.WORD, width=40)
+    self.text_area_feedback.pack()
+    explanation_frame_feedback.grid(column=1, row=0)
+    
     explanation_frame.grid(row=1, column=1)
     
     # Set up the place to enter in the score for the submission
     def on_submit():
       self.set_score(int(self.score_box.get(1.0, 'end-1c')))
+      self.feedback = self.text_area_feedback.get(1.0, 'end-1c')
       callback()
     score_frame = tk.Frame(frame)
     tk.Label(score_frame, text="Score").grid(row=0, column=0)
