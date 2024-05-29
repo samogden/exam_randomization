@@ -59,7 +59,7 @@ class Question:
     response_listbox.focus()
     
     def doubleclick_callback(_):
-      
+      # todo: Update this so we can move on to the next one when we click the button, but I think that's a bit deeper than I want
       selected_response = self.responses[response_listbox.curselection()[0]]
       new_window = tk.Toplevel(parent)
       question_frame = selected_response.get_tkinter_frame(new_window, callback=redraw_responses)
@@ -127,11 +127,11 @@ class Response(abc.ABC):
           {
             "type": "text",
             "text":
-              "Please review this submission for me."
+              "Please grade this submission for me."
               "Please give me a response in the form of a JSON dictionary with the following keys:\n"
-              "possible points : the number of points possible from the problem\n"
-              "awarded points : how many points do you award to the student's submission, and only use integer value\n"
-              "student text : what did the student write as their answer to the question\n"
+              "possible_points : the number of points possible from the problem\n"
+              "awarded_points : how many points do you award to the student's submission, and only use integer value\n"
+              "student_text : all the handwritten text that the student gave as their response to the question\n"
               "explanation : why are you assigning the grade you are\n"
           },
           self._get_student_response_for_gpt()
@@ -170,9 +170,15 @@ class Response(abc.ABC):
       return
     response = self.get_chat_gpt_response(fakeit=fakeit)
     log.debug(f"response: {response}")
-    self.student_text = response["student text"]
+    if "student text" in response:
+      self.student_text = response["student text"]
+    else:
+      self.student_text = response["student_text"]
     self.feedback_gpt = response["explanation"]
-    self.score_gpt = response["awarded points"]
+    if "awarded points" in response:
+      self.score_gpt = response["awarded points"]
+    else:
+      self.score_gpt = response["awarded_points"]
     
     callback_func()
 
@@ -268,7 +274,7 @@ class Response_fromPDF(Response):
     
     explanation_frame.grid(row=1, column=1)
     
-    # Set up the place to enter in the score for the submission
+    # Set up the place to enter the score for the submission
     def on_submit():
       self.set_score(int(self.score_box.get(1.0, 'end-1c')))
       self.feedback = self.text_area_feedback.get(1.0, 'end-1c')
@@ -301,7 +307,7 @@ class Response_fromPDF(Response):
       target=self.update_from_gpt,
       kwargs={
         "callback_func" : update_after_gpt_completion,
-        "fakeit" : True
+        "fakeit" : False
       }
     ).start()
     # self.update_from_gpt(callback_func=update_after_completion, fakeit=True)
