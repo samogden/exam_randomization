@@ -59,11 +59,46 @@ class Question:
     response_listbox.focus()
     
     def doubleclick_callback(_):
-      # todo: Update this so we can move on to the next one when we click the button, but I think that's a bit deeper than I want
-      selected_response = self.responses[response_listbox.curselection()[0]]
-      new_window = tk.Toplevel(parent)
-      question_frame = selected_response.get_tkinter_frame(new_window, callback=redraw_responses)
-      question_frame.pack()
+      
+      response_window = tk.Toplevel(parent)
+      response_frame = tk.Frame(response_window)
+      response_frame.pack()
+      
+      
+      def submit_callback():
+        replace_response_frame(response_frame)
+        redraw_responses()
+        
+      def show_response(response, parent):
+        question_frame = response.get_tkinter_frame(parent, callback=submit_callback)
+        question_frame.pack()
+        
+      def replace_response_frame(response_frame):
+        # get rid of the old response frame and all its children
+        response_frame.destroy()
+        
+        # See what responses are available (i.e. not yet graded)
+        possible_responses = list(filter(
+          lambda r: r.score is None,
+          self.responses
+        ))
+        # If there are no ungraded responses then close the window
+        if len(possible_responses) == 0:
+          response_window.destroy()
+          return
+        
+        
+        # Otherwise, pick a response and rebuild the frame
+        next_response = random.choice(possible_responses)
+        response_frame = tk.Frame(response_window)
+        response_frame.pack()
+        show_response(next_response, response_frame)
+      
+      
+      response_idx = response_listbox.curselection()[0]
+      selected_response = self.responses[response_idx]
+      show_response(selected_response, response_frame)
+      return
     
     # Set up a callback for double-clicking
     response_listbox.bind('<Double-1>', doubleclick_callback)
