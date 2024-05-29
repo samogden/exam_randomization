@@ -130,7 +130,6 @@ def main():
   a = ScannedExam(flags.base_exam, flags.input_dir, limit=10)
   print(a)
   
-  
   root = tk.Tk()
 
   menubar = tk.Menu(root)

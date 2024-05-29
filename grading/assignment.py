@@ -15,6 +15,7 @@ from typing import List
 import PIL.Image
 import pymupdf as fitz
 import requests
+import pandas as pd
 
 import question
 
@@ -69,11 +70,22 @@ class Assignment:
     return frame
     
   def get_feedback(self):
+    records = []
     for q in self.questions:
       for r in q.responses:
         if r.score is None:
           continue
-        log.debug(f"score: {r.score}")
+        records.append({
+          "student" : r.student_id,
+          "question" : q.question_number,
+          "score" : r.score,
+          "feedback" : r.feedback,
+          "score_gpt" : r.score_gpt,
+          "feedback_gpt" : r.feedback_gpt
+        })
+    df = pd.DataFrame.from_records(records)
+    log.debug(df)
+    df.to_csv("output.csv")
   
 
 class ScannedExam(Assignment):
