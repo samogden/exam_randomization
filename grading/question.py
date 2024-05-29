@@ -9,6 +9,8 @@ import json
 import logging
 import os
 import random
+import threading
+import time
 from pprint import pprint
 from typing import List, Dict
 
@@ -57,7 +59,6 @@ class Question:
       new_window = tk.Toplevel(parent)
       question_frame = selected_response.get_tkinter_frame(new_window)
       question_frame.pack()
-      log.info(pprint(selected_response.get_chat_gpt_response()))
     
     # Set up a callback for double-clicking
     question_listbox.bind('<Double-1>', doubleclick_callback)
@@ -74,19 +75,24 @@ class Response(abc.ABC):
     self.student_id = student_id
     
     # Things that we'll get from the user or from elsewhere
-    self.score = None
-    self.feedback = None
-    self.score_gpt = None
-    self.feedback_gpt = None
+    self.score = None         # user/gpt
+    self.feedback = None      # user
+    self.student_text = None  # gpt
+    self.score_gpt = None     # gpt
+    self.feedback_gpt = None  # gpt
     
   def __str__(self):
     return f"Response({self.student_id}, {self.score})"
   
   @abc.abstractmethod
-  def _get_response_for_gpt(self) -> Dict:
+  def _get_student_response_for_gpt(self) -> Dict:
     pass
   
-  def get_chat_gpt_response(self, system_prompt=None, examples=None, max_tokens=1000) -> str:
+  def set_score(self, new_score):
+    log.debug(f"Updating score from {self.score} to {new_score}")
+    self.score = new_score
+  
+  def get_chat_gpt_response(self, system_prompt=None, examples=None, max_tokens=1000, fakeit=False) -> Dict:
     log.debug("Sending request to OpenAI...")
     
     messages = []
@@ -123,24 +129,47 @@ class Response(abc.ABC):
               "student text : what did the student write as their answer to the question\n"
               "explanation : why are you assigning the grade you are\n"
           },
-          self._get_response_for_gpt()
+          self._get_student_response_for_gpt()
         ]
       }
     )
     
-    client = OpenAI()
-    response = client.chat.completions.create(
-      model="gpt-4o",
-      response_format={ "type": "json_object"},
-      messages=messages,
-      temperature=1,
-      max_tokens=max_tokens,
-      top_p=1,
-      frequency_penalty=0,
-      presence_penalty=0
-    )
+    if not fakeit:
+      client = OpenAI()
+      response = client.chat.completions.create(
+        model="gpt-4o",
+        response_format={ "type": "json_object"},
+        messages=messages,
+        temperature=1,
+        max_tokens=max_tokens,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+      )
+      
+      return json.loads(response.choices[0].message.content)
+    else:
+      time.sleep(1)
+      return {
+        'awarded points': 8,
+        'explanation': 'This is a fake explanation',
+        'possible points': 8,
+        'student text': 'text that the student said'
+        }
+  
+  
+  def update_from_gpt(self, callback_func=(lambda : None), ignore_existing=False, fakeit=False):
+    if (self.feedback_gpt is not None) and (not ignore_existing):
+      # Then we can assume it's already been run or started so we should skip
+      return
+    response = self.get_chat_gpt_response(fakeit=fakeit)
+    log.debug(f"response: {response}")
+    self.student_text = response["student text"]
+    self.feedback_gpt = response["explanation"]
+    self.score_gpt = response["awarded points"]
     
-    return json.loads(response.choices[0].message.content)
+    callback_func()
+
 
 class Response_fromPDF(Response):
   def __init__(self, student_id, img: PIL.Image.Image):
@@ -192,7 +221,7 @@ class Response_fromPDF(Response):
     
     return img_base64_str
   
-  def _get_response_for_gpt(self):
+  def _get_student_response_for_gpt(self):
     return {
       "type": "image_url",
       "image_url": {
@@ -201,22 +230,52 @@ class Response_fromPDF(Response):
     }
   
   def get_tkinter_frame(self, parent) -> tk.Frame:
+    
     frame = tk.Frame(parent)
     
+    # Set up the image
     self.photo = PIL.ImageTk.PhotoImage(self.img)
     self.label = tk.Label(frame, image=self.photo, compound="top")
-    self.label.grid(row=0, column=0)
+    self.label.grid(row=0, column=0, rowspan=4)
     
-    # Text area for GPT feedback
-    # text_area = scrolledtext.ScrolledText(frame, wrap=tk.WORD, width=60, height=20)
-    # text_area.grid(row=0, column=2)
+    # Set up the area that will contain the returned student text
+    self.text_area_student_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD)
+    self.text_area_student_text.grid(row=0, column=1)
     
-    # Create a button
-    # generate_gpt_button = ttk.Button(new_frame, text="Query GPT", command=(lambda :self.query_gpt(question, text_area)))
-    # generate_gpt_button.grid(row=1, columnspan=True)
+    # Set up the response form GPT
+    self.text_area_gpt_response = scrolledtext.ScrolledText(frame, wrap=tk.WORD)
+    self.text_area_gpt_response.grid(row=1, column=1)
     
-    # if hasattr(self, "question_frame"): self.question_frame.destroy()
-    # self.question_frame = frame
-    # self.question_frame.grid(row=0, column=0)
+    # Set up the place to enter in the score for the submission
+    score_frame = tk.Frame(frame)
+    self.score_box = tk.Text(score_frame, height=1, width=4)
+    self.score_box.grid(row=0, column=0)
+    
+    self.submit_button = tk.Button(score_frame, text="Submit", command=(lambda : self.set_score(int(self.score_box.get(1.0, 'end-1c')))))
+    self.submit_button.grid(row=0, column=1)
+    
+    score_frame.grid(row=2, column=1)
+    
+    def update_after_completion():
+      log.debug("Updating after completion")
+
+      def replace_text_area(text_area, new_text):
+        text_area.delete('1.0', tk.END)
+        text_area.insert(tk.END, new_text)
+      # self.text_area_gpt_response.
+      replace_text_area(self.text_area_gpt_response, self.feedback_gpt)
+      replace_text_area(self.text_area_student_text, self.student_text)
+      replace_text_area(self.score_box, self.score_gpt)
+
+
+    threading.Thread(
+      target=self.update_from_gpt,
+      kwargs={
+        "callback_func" : update_after_completion,
+        "fakeit" : True
+      }
+    ).start()
+    # self.update_from_gpt(callback_func=update_after_completion, fakeit=True)
+    
     
     return frame
