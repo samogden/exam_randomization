@@ -132,17 +132,18 @@ def main():
   
   
   root = tk.Tk()
+
+  menubar = tk.Menu(root)
+  filemenu = tk.Menu(menubar, tearoff=0)
+  filemenu.add_command(label="Save", command=(lambda : a.get_feedback()))
+  filemenu.add_command(label="Exit", command=root.quit)
+  menubar.add_cascade(label="File", menu=filemenu)
+  
+  root.config(menu=menubar)
+  
   a.get_tkinter_frame(root)
   root.mainloop()
   
-  return
-  
-  
-  submissions = Assignment.read_directory(flags.input_dir, flags.base_exam)
-  
-  root = tk.Tk()
-  app = GradingGUI(root, submissions)
-  root.mainloop()
 
 
 if __name__ == "__main__":

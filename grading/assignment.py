@@ -68,6 +68,13 @@ class Assignment:
     frame.pack()
     return frame
     
+  def get_feedback(self):
+    for q in self.questions:
+      for r in q.responses:
+        if r.score is None:
+          continue
+        log.debug(f"score: {r.score}")
+  
 
 class ScannedExam(Assignment):
   def __init__(self, path_to_base_exam, path_to_scanned_exams, limit=None):
