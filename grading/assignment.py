@@ -80,15 +80,22 @@ class Assignment:
           continue
         records.append({
           "student" : r.student_id,
+          "input_file" : r.input_file,
           "question" : q.question_number,
           "score" : r.score,
           "feedback" : r.feedback,
           "score_gpt" : r.score_gpt,
-          "feedback_gpt" : r.feedback_gpt
+          # "feedback_gpt" : r.feedback_gpt
         })
     df = pd.DataFrame.from_records(records)
     log.debug(df)
-    df.groupby("student").sum().to_csv("output.csv")
+    df_grouped_and_summed = df.groupby("student").agg({
+      'input_file': 'min',
+      'question': 'nunique',
+      'score': 'sum',
+      'score_gpt' : 'sum'
+    })
+    df_grouped_and_summed.to_csv("output.csv")
     # todo: add feedback file (But since feedback isn't gathered currently it's a moot point)
   
 

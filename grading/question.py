@@ -111,8 +111,9 @@ class Response(abc.ABC):
   """
   Class for containing student responses to a question
   """
-  def __init__(self, student_id):
+  def __init__(self, student_id, input_file):
     self.student_id = student_id
+    self.input_file = os.path.basename(input_file)
     
     # Things that we'll get from the user or from elsewhere
     self.score = None         # user/gpt
@@ -189,7 +190,7 @@ class Response(abc.ABC):
       
       return json.loads(response.choices[0].message.content)
     else:
-      time.sleep(1)
+      # time.sleep(1)
       return {
         'awarded points': 8,
         'explanation': 'This is a fake explanation',
@@ -219,8 +220,8 @@ class Response(abc.ABC):
 
 
 class Response_fromPDF(Response):
-  def __init__(self, student_id, img: PIL.Image.Image):
-    super().__init__(student_id)
+  def __init__(self, student_id, input_file, img: PIL.Image.Image):
+    super().__init__(student_id, input_file)
     self.img : PIL.Image.Image = img
   
   @classmethod
@@ -245,6 +246,7 @@ class Response_fromPDF(Response):
         question_pixmap = page.get_pixmap(matrix=fitz.Matrix(1, 1), clip=question_rect)
         responses[q_start.question_number] = cls(
           student_id,
+          path_to_pdf,
           PIL.Image.open(io.BytesIO(question_pixmap.tobytes()))
         )
       
@@ -342,7 +344,7 @@ class Response_fromPDF(Response):
       target=self.update_from_gpt,
       kwargs={
         "callback_func" : update_after_gpt_completion,
-        "fakeit" : False
+        "fakeit" : True
       }
     ).start()
     # self.update_from_gpt(callback_func=update_after_completion, fakeit=True)
