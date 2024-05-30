@@ -85,7 +85,7 @@ class Assignment:
           "score" : r.score,
           "feedback" : r.feedback,
           "score_gpt" : r.score_gpt,
-          "feedback_gpt" : r.feedback_gpt
+          # "feedback_gpt" : r.feedback_gpt
         })
     df = pd.DataFrame.from_records(records)
     df.to_csv("full.csv")
