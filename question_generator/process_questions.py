@@ -35,6 +35,7 @@ class SchedulingQuestion(Question, abc.ABC):
   
   MAX_JOBS = 5
   MAX_ARRIVAL_TIME = 20
+  MIN_JOB_DURATION = 2
   MAX_JOB_DURATION = 20
   
   ANSWER_EPSILON = 1.0
@@ -191,7 +192,13 @@ class SchedulingQuestion(Question, abc.ABC):
     log.debug(f"Completed in {curr_time}")
   
   
-  def __init__(self, num_jobs=MAX_JOBS, max_arrival_time=MAX_ARRIVAL_TIME, max_duration=MAX_JOB_DURATION, single_target=True, **kwargs):
+  def __init__(self,
+      num_jobs=MAX_JOBS,
+      max_arrival_time=MAX_ARRIVAL_TIME,
+      min_duration=MIN_JOB_DURATION,
+      max_duration=MAX_JOB_DURATION,
+      single_target=True,
+      **kwargs):
     if "kind" in kwargs:
       self.SCHEDULER_KIND = kwargs["kind"]
     else:
@@ -229,7 +236,11 @@ class SchedulingQuestion(Question, abc.ABC):
     else:
       log.debug("Generating new jobs")
       jobs = [
-        SchedulingQuestion.Job(job_id, random.randint(0, max_arrival_time), random.randint(1, max_duration))
+        SchedulingQuestion.Job(
+          job_id,
+          random.randint(0, max_arrival_time),
+          random.randint(min_duration, max_duration)
+        )
         for job_id in range(num_jobs)
       ]
     
