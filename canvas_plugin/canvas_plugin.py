@@ -28,7 +28,9 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
       answers.append({
         "blank_id": blank_name,
         "answer_text": variation,
-        "answer_weight": 100
+        "answer_weight": 100,
+        # todo: "neutral_comments" are per-answer, so we should make them more specific
+        "neutral_comments": '\n\n'.join(question.get_explanation())
       })
   return {
     "question_name": f"question created at {time.time()}",
@@ -37,7 +39,7 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
     "question_type": "fill_in_multiple_blanks_question",
     # "question_type": "true_false_question",
     "points_possible": 1,
-    "answers": answers
+    "answers": answers,
   }
   
   
@@ -77,6 +79,12 @@ def add_question_group(
     question_for_canvas["quiz_group_id"] = group.id
     quiz.create_question(question=question_for_canvas)
 
+def add_quiz(
+    canvas : canvasapi.Canvas,
+    course: canvasapi.course.Course,
+    num_questions: int
+):
+  course.create_quiz()
 
 def main():
   dotenv.load_dotenv()
