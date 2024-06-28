@@ -1,8 +1,8 @@
 #!env python
-from typing import List
+from typing import List, Dict
 
-from question import Question
-from variable import Variable, VariableHex
+from .question import Question, CanvasQuestion
+from .variable import Variable, VariableHex
 
 import random
 import math
@@ -176,19 +176,24 @@ class Paging(MemoryAccessQuestion):
     self.pfn_bits_var = Variable("# PFN bits", self.num_pfn_bits)
     self.offset_bits_var = Variable("# offset bits", self.num_offset_bits)
     
-    self.virtual_address_var = VariableHex("Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}")
-    self.pfn_var = VariableHex("PFN", f"0b{self.pfn:0{self.num_pfn_bits}b}")
+    # self.virtual_address_var = VariableHex("Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}")
+    self.virtual_address_var = Variable("Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}")
+    self.vpn_var = Variable("VPN", f"0b{self.vpn:0{self.num_vpn_bits}b}")
     
     if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
       # Set our actual entry to be in the table and valid
       self.pte = self.pfn + (2**(self.num_pfn_bits))
       self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits))
+      # self.pfn_var = VariableHex("PFN", f"0b{self.pfn:0{self.num_pfn_bits}b}")
+      self.pfn_var = Variable("PFN", f"0b{self.pfn:0{self.num_pfn_bits}b}")
     else:
       # Leave it as invalid
       self.pte = self.pfn
       self.physical_address_var = Variable("Physical Address", "INVALID")
+      self.pfn_var = Variable("PFN",  "INVALID")
     
-    self.pte_var = VariableHex("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
+    # self.pte_var = VariableHex("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
+    self.pte_var = Variable("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
     
     # logging.debug(f"va: {self.virtual_address:{self.num_vpn_bits+self.num_offset_bits}b}")
     # logging.debug(f"    {self.vpn:0{self.num_vpn_bits}b}{self.offset:0{self.num_offset_bits}b}")
@@ -335,27 +340,86 @@ class Paging_with_table(Paging):
     ])
     return explanation_lines
 
-if False:
-  class Segmentation(MemoryAccessQuestion):
-    MIN_VIRTUAL_ADDRESS_BITS = 3
-    MAX_VIRTUAL_ADDRESS_BITS = 8
-    def __init__(self, num_virtual_bits=None):
-      super().__init__()
-      return
-      if num_virtual_bits == None:
-        self.num_virtual_bits = random.randint(self.MIN_VIRTUAL_ADDRESS_BITS, self.MAX_VIRTUAL_ADDRESS_BITS)
-      
-      self.offset = random.randint(0, 2**(self.num_virtual_bits-2))
-      self.segment = random.choices([0,1,2,4], weights=[(1-self.PROBABILITY_OF_INVALID)/3, (1-self.PROBABILITY_OF_INVALID)/3, self.PROBABILITY_OF_INVALID, (1-self.PROBABILITY_OF_INVALID)/3])
-      
-      self.virtual_address = self.segment * 2**(self.num_virtual_bits-2) + self.offset
-      
-      # Generate the segment base and bounds randomly
-      if self.segment == 3:
-        # Then we're invalid, and that's a different can of worms
-        # todo
-        pass
-      # todo complete this after I do explanations
+class Paging_canvas(Paging_with_table, CanvasQuestion):
+  
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.blank_vars : Dict[str,Variable] = {}
+  
+  def get_question_body(self) -> List[str]:
+    # markdown_lines = super().get_question_body()
+    markdown_lines = [
+      "Given the below information please calculate the equivalent physical address of the given virtual address, filling out all steps along the way."
+    ]
+    
+    markdown_lines.extend(
+      self.get_table_lines(
+        table_data={
+          "Virtual Address": [self.virtual_address_var.true_value],
+          "# VPN bits": [self.vpn_bits_var.true_value],
+          "# PFN bits": [self.pfn_bits_var.true_value],
+        },
+        sorted_keys=[
+          "Virtual Address",
+          "# VPN bits",
+          "# PFN bits",
+        ],
+        add_header_space=False
+      )
+    )
+    
+    # Make values for Page Table
+    table_size = random.randint(5,10)
+    table_bottom = self.vpn - random.randint(0, table_size)
+    if table_bottom < 0:
+      table_bottom = 0
+    table_top = min([table_bottom + table_size, 2**self.num_vpn_bits])
+    
+    page_table = {}
+    page_table[self.vpn] = self.pte
+    
+    # Fill in the rest of the table
+    # for vpn in range(2**self.num_vpn_bits):
+    for vpn in range(table_bottom, table_top):
+      if vpn == self.vpn: continue
+      pte = page_table[self.vpn]
+      while pte in page_table.values():
+        pte = random.randint(0, 2**self.num_pfn_bits-1)
+        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
+          # Randomly set it to be valid
+          pte += (2**(self.num_pfn_bits))
+      # Once we have a unique random entry, put it into the Page Table
+      page_table[vpn] = pte
+    
+    table_lines = self.get_table_lines(
+      table_data={
+        # pte: [f"<tt>0b{vpn:0{self.num_vpn_bits}b}</tt>"]
+        f"<tt>0b{vpn:0{self.num_vpn_bits}b}</tt>" : [f"<tt>0b{pte:0{(self.num_pfn_bits+1)}b}</tt>"]
+        for vpn, pte in sorted(page_table.items())
+      },
+      # sorted_keys=[
+      #   sorted(page_table.keys())
+      # ],
+      headers=["VPN", "PTE"]
+    )
+    
+    markdown_lines.extend(table_lines)
+    
+    markdown_lines.extend([
+      "VPN: [vpn_val]",
+      "PTE: [pte_val]",
+      "PFN: [pfn_val]",
+      "Physical Address: [physical_address_val]",
+    ])
+    
+    self.blank_vars.update({
+      "vpn_val" : self.vpn_var,
+      "pte_val" : self.pte_var,
+      "pfn_val" : self.pfn_var,
+      "physical_address_val": self.physical_address_var
+    })
+    
+    return markdown_lines
 
 def main():
   pass

@@ -31,8 +31,11 @@ class Variable:
   def get_info(self):
     return (self.name, self.id, self.true_value)
   
+  def get_answers(self) -> List[str]:
+    return [f"{self.true_value}"]
+  
   def get_markdown_answers(self) -> List[str]:
-    return [f"* {self.true_value}\n"]
+    return [f"* {ans}\n" for ans in self.get_answers()]
   
   # todo: Add in a "get raw" function that returns the valye, if available, and a "get formatted" version that using a formating string
 
@@ -57,6 +60,7 @@ class VariableFloat(Variable):
       return f"Incorrect! {self.true_value: 0.3f} != {self.given_value: 0.3f} (your answer)"
   
   def get_markdown_answers(self, precision=None) -> List[str]:
+    # todo: make canvas friendly
     if precision is None:
       precision = self.precision
     return [f"= {self.true_value:.{precision}f} +- {self.epsilon}\n"]
@@ -65,13 +69,13 @@ class VariableHex(Variable):
   def __init__(self, *args, num_bits=0, **kwargs):
     super().__init__(*args, **kwargs)
     self.num_bits = num_bits
-  def get_markdown_answers(self) -> List[str]:
+  def get_answers(self) -> List[str]:
     return [
-      f"* {self.true_value}",
-      f"* {self.true_value:x}",
-      f"* 0x{self.true_value:X}",
-      f"* {self.true_value:0{self.num_bits}b}",
-      f"* 0b{self.true_value:0{self.num_bits}b}"
+      f"{self.true_value}",
+      f"{self.true_value:x}",
+      f"0x{self.true_value:X}",
+      f"{self.true_value:0{self.num_bits}b}",
+      f"0b{self.true_value:0{self.num_bits}b}"
     ]
 
 class Variable_BNFRule(Variable):
@@ -96,7 +100,7 @@ class Variable_BNFRule(Variable):
     variations.extend(['|'.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
     variations.extend([' |'.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
     variations.extend(['| '.join([p_sub.replace('`','') for p_sub in p]) for p in itertools.permutations(self.productions)])
-    return [f"* {answer}" for answer in variations]
+    return [f"{answer}" for answer in variations]
 
 class Variable_BNFstr(Variable):
   # todo: this should probably be more separate
@@ -111,6 +115,7 @@ class Variable_BNFstr(Variable):
       self.incorrect_choices.append(choice)
     
   def get_markdown_answers(self) -> List[str]:
+    # todo: make canvas compatible
     lines = []
     lines.extend([
       f"[*] {answer}" for answer in self.correct_choices

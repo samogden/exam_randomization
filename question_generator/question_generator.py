@@ -102,21 +102,27 @@ def main():
       # "Paging" : {},
       # "Paging_with_table" : {},
       
-      # "SchedulingQuestion" : {
-      #   "variations" : [
-      #     { "kwargs" : { "kind" : enum_var} } for enum_var in list(SchedulingQuestion.Kind)
-      #   ]
-      # },
+      "SchedulingQuestion" : {
+        "variations" : [
+          { "kwargs" : {
+            "kind" : enum_var,
+            "num_jobs": 3,
+            "max_arrival_time": 10,
+            "min_duration": 4,
+            "max_duration": 10,
+          } } for enum_var in list(SchedulingQuestion.Kind)
+        ]
+      },
       #
       # "BNFQuestion_rewriting_left_recursion" : {},
       # "BNFQuestion_rewriting_left_factoring" : {},
       # "BNFQuestion_rewriting_nonterminal_expansion" : {},
       
-      "BNFQuestion_generation" : {
-        "variations" : [
-          { "kwargs" : { "switch" : num} } for num in range(3)
-        ]
-      },
+      # "BNFQuestion_generation" : {
+      #   "variations" : [
+      #     { "kwargs" : { "switch" : num} } for num in range(3)
+      #   ]
+      # },
     },
     points_per_question=flags.points_per_question
   )

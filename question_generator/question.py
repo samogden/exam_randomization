@@ -6,8 +6,7 @@ import time
 import random
 from typing import List, Dict
 
-from variable import Variable
-
+from .variable import Variable
 
 class Question:
   
@@ -137,7 +136,7 @@ class Question:
   @classmethod
   def get_table_lines_html(cls,
       table_data: Dict[str,List[str]],
-      headers: List[str],
+      headers: List[str] = [],
       sorted_keys: List[str] = None,
       add_header_space: bool = False
   ) -> List[str]:
@@ -176,3 +175,8 @@ class Question:
       return cls.get_table_lines_markdown(*args, **kwargs)
     else:
       return cls.get_table_lines_html(*args, **kwargs)
+    
+class CanvasQuestion(Question):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.blank_vars: Dict[str,Variable] = {}
