@@ -67,9 +67,13 @@ def add_question_group(
       "question_points": 1
     }
   ])
-  for _ in range(max([num_to_add, 5])):
-    question = memory_questions.Paging_canvas()
-    question_for_canvas = get_question_for_canvas(question)
+  questions_to_add = set()
+  while len(questions_to_add) < num_to_add:
+    log.debug(f"Currently have {len(questions_to_add)}")
+    questions_to_add.add(memory_questions.Paging_canvas())
+    
+  for q in questions_to_add:
+    question_for_canvas = get_question_for_canvas(q)
     question_for_canvas["quiz_group_id"] = group.id
     quiz.create_question(question=question_for_canvas)
 

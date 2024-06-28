@@ -180,3 +180,12 @@ class CanvasQuestion(Question):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.blank_vars: Dict[str,Variable] = {}
+  
+  def __eq__(self, other):
+    if isinstance(other, self.__class__):
+      return all([self.blank_vars[key] == other.blank_vars[key] for key in self.blank_vars.keys()])
+    return False
+  
+  def __hash__(self):
+    logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
+    return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]))

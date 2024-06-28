@@ -344,7 +344,14 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
   
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.blank_vars : Dict[str,Variable] = {}
+    
+    
+    self.blank_vars.update({
+      "vpn_val" : self.vpn_var,
+      "pte_val" : self.pte_var,
+      "pfn_val" : self.pfn_var,
+      "physical_address_val": self.physical_address_var
+    })
   
   def get_question_body(self) -> List[str]:
     # markdown_lines = super().get_question_body()
@@ -411,13 +418,6 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
       "PFN: [pfn_val]",
       "Physical Address: [physical_address_val]",
     ])
-    
-    self.blank_vars.update({
-      "vpn_val" : self.vpn_var,
-      "pte_val" : self.pte_var,
-      "pfn_val" : self.pfn_var,
-      "physical_address_val": self.physical_address_var
-    })
     
     return markdown_lines
 
