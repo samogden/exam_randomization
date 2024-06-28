@@ -29,8 +29,6 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
         "blank_id": blank_name,
         "answer_text": variation,
         "answer_weight": 100,
-        # todo: "neutral_comments" are per-answer, so we should make them more specific
-        "neutral_comments": '\n\n'.join(question.get_explanation())
       })
   return {
     "question_name": f"question created at {time.time()}",
@@ -40,6 +38,8 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
     # "question_type": "true_false_question",
     "points_possible": 1,
     "answers": answers,
+    # todo: "neutral_comments" are per-answer, so we should make them more specific
+    "neutral_comments_html": '<br>\n'.join(question.get_explanation())
   }
   
   
@@ -84,17 +84,27 @@ def add_quiz(
     course: canvasapi.course.Course,
     num_questions: int
 ):
-  course.create_quiz()
+  q = course.create_quiz(quiz={
+    "title": f"New Quiz {time.time()}",
+    "hide_results" : None,
+    "show_correct_answers": True,
+    "scoring_policy": "keep_highest",
+    "allowed_attempts": -1,
+  })
+  return q
 
 def main():
   dotenv.load_dotenv()
   canvas = canvasapi.Canvas(os.environ.get("CANVAS_API_URL"), os.environ.get("CANVAS_API_KEY"))
-  course = canvas.get_course(23751)
-  quiz = course.get_quiz(98873)
+  course = canvas.get_course(25068)
+  quiz = course.get_quiz(98876)
+  # quiz = add_quiz(canvas, course, 10)
   
-  question = memory_questions.Paging_canvas()
-  # add_question(canvas, course, quiz, question)
-  add_question_group(canvas, course, quiz, 10)
+  add_question(canvas, course, quiz, memory_questions.Paging_canvas())
+  # add_question_group(canvas, course, quiz, 10)
+  
+  for q in quiz.get_questions():
+    log.debug(f"{pprint.pformat(q.__dict__)}")
   
 
 if __name__ == "__main__":
