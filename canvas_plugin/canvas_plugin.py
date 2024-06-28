@@ -1,6 +1,7 @@
 #!env python
 import pprint
 import time
+from typing import Dict
 
 import canvasapi
 import canvasapi.course
@@ -17,12 +18,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def add_question(
-    canvas : canvasapi.Canvas,
-    course: canvasapi.course.Course,
-    quiz: canvasapi.quiz.Quiz,
-    question: question_module.CanvasQuestion
-):
+def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
   
   question_text = '<br>\n'.join(question.get_question_body())
   answers = []
@@ -34,18 +30,49 @@ def add_question(
         "answer_text": variation,
         "answer_weight": 100
       })
+  return {
+    "question_name": f"question created at {time.time()}",
+    "question_text": f"{question_text}",
+    # "quiz_group_id": #todo
+    "question_type": "fill_in_multiple_blanks_question",
+    # "question_type": "true_false_question",
+    "points_possible": 1,
+    "answers": answers
+  }
+  
+  
+
+def add_question(
+    canvas : canvasapi.Canvas,
+    course: canvasapi.course.Course,
+    quiz: canvasapi.quiz.Quiz,
+    question: question_module.CanvasQuestion
+):
   
   q = quiz.create_question(
-    question={
-      "question_name": f"question created at {time.time()}",
-      "question_text": f"{question_text}",
-      # "quiz_group_id": #todo
-      "question_type": "fill_in_multiple_blanks_question",
-      # "question_type": "true_false_question",
-      "points_possible": 1,
-      "answers": answers
-    }
+    question=get_question_for_canvas(question)
   )
+
+
+def add_question_group(
+    canvas : canvasapi.Canvas,
+    course: canvasapi.course.Course,
+    quiz: canvasapi.quiz.Quiz,
+    num_to_add: int
+):
+  group = quiz.create_question_group([
+    {
+      "name": "Paging Questions",
+      "pick_count": 5,
+      "question_points": 1
+    }
+  ])
+  for _ in range(max([num_to_add, 5])):
+    question = memory_questions.Paging_canvas()
+    question_for_canvas = get_question_for_canvas(question)
+    question_for_canvas["quiz_group_id"] = group.id
+    quiz.create_question(question=question_for_canvas)
+
 
 def main():
   dotenv.load_dotenv()
@@ -54,7 +81,8 @@ def main():
   quiz = course.get_quiz(98873)
   
   question = memory_questions.Paging_canvas()
-  add_question(canvas, course, quiz, question)
+  # add_question(canvas, course, quiz, question)
+  add_question_group(canvas, course, quiz, 10)
   
 
 if __name__ == "__main__":
