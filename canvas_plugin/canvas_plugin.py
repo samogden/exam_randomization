@@ -82,7 +82,7 @@ def add_question_group(
 def add_quiz(
     canvas : canvasapi.Canvas,
     course: canvasapi.course.Course,
-    num_questions: int
+    assignment_group: canvasapi.course.AssignmentGroup|None = None
 ):
   q = course.create_quiz(quiz={
     "title": f"New Quiz {time.time()}",
@@ -90,21 +90,41 @@ def add_quiz(
     "show_correct_answers": True,
     "scoring_policy": "keep_highest",
     "allowed_attempts": -1,
+    "assignment_group_id": assignment_group.id
   })
   return q
+
+def create_quiz_with_questions(
+    canvas: canvasapi.Canvas,
+    course: canvasapi.course.Course,
+    assignment_group: canvasapi.course.AssignmentGroup|None = None
+):
+  quiz = add_quiz(canvas, course, assignment_group)
+  
+  # add_question(canvas, course, quiz, memory_questions.Paging_canvas())
+  add_question_group(canvas, course, quiz, 10)
+  
+  for q in quiz.get_questions():
+    log.debug(f"{pprint.pformat(q.__dict__)}")
+
+def create_assignment_group(canvas: canvasapi.Canvas, course: canvasapi.course.Course, name="dev") -> canvasapi.course.AssignmentGroup:
+  for assignment_group in course.get_assignment_groups():
+    if assignment_group.name == name:
+      log.info("Found group existing, returning")
+      return assignment_group
+  assignment_group = course.create_assignment_group(
+    name="dev",
+    group_weight=0.0,
+    position=0,
+  )
+  return assignment_group
 
 def main():
   dotenv.load_dotenv()
   canvas = canvasapi.Canvas(os.environ.get("CANVAS_API_URL"), os.environ.get("CANVAS_API_KEY"))
   course = canvas.get_course(25068)
-  quiz = course.get_quiz(98876)
-  # quiz = add_quiz(canvas, course, 10)
-  
-  add_question(canvas, course, quiz, memory_questions.Paging_canvas())
-  # add_question_group(canvas, course, quiz, 10)
-  
-  for q in quiz.get_questions():
-    log.debug(f"{pprint.pformat(q.__dict__)}")
+  assignment_group = create_assignment_group(canvas, course)
+  quiz = create_quiz_with_questions(canvas, course, assignment_group)
   
 
 if __name__ == "__main__":
