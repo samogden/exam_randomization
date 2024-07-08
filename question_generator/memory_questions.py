@@ -435,6 +435,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
     explanation_lines.extend([
       "We next use our VPN to index into our page table and find the corresponding entry."
       f"Our Page Table Entry is:",
+      "",
       f"<tt>0b{self.pte:0{(self.num_pfn_bits+1)}b}</tt>"
       f"which we found by looking for our VPN in the page table.",
       "",
@@ -459,6 +460,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
       "Next, we convert our PTE to our PFN by removing our metadata.  In this case we're just removing the leading bit.  We can do this by applying a binary mask.",
       f"PFN = PTE & mask",
       f"which is,",
+      "",
       f"<tt>{self.pfn_var}</tt> = <tt>0b{self.pte:0{self.num_pfn_bits+1}b}</tt> & <tt>0b{(2**self.num_pfn_bits)-1:0{self.num_pfn_bits+1}b}</tt>"
     ])
     

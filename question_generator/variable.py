@@ -89,9 +89,9 @@ class VariableHex(Variable):
   def get_answers(self) -> List[str]:
     return [
       f"{self.true_value}",
-      f"{self.true_value:x}",
+      # f"{self.true_value:x}",
       f"0x{self.true_value:X}",
-      f"{self.true_value:0{self.num_bits}b}",
+      # f"{self.true_value:0{self.num_bits}b}",
       f"0b{self.true_value:0{self.num_bits}b}"
     ]
 
