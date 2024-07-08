@@ -1,6 +1,7 @@
 #!env python
 import pprint
 import time
+from datetime import datetime
 from typing import Dict
 
 import canvasapi
@@ -31,7 +32,7 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
         "answer_weight": 100,
       })
   return {
-    "question_name": f"question created at {time.time()}",
+    "question_name": f"question created at {datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')}",
     "question_text": f"{question_text}",
     # "quiz_group_id": #todo
     "question_type": "fill_in_multiple_blanks_question",
@@ -85,7 +86,7 @@ def add_quiz(
     assignment_group: canvasapi.course.AssignmentGroup|None = None
 ):
   q = course.create_quiz(quiz={
-    "title": f"New Quiz {time.time()}",
+    "title": f"New Quiz {datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')}",
     "hide_results" : None,
     "show_correct_answers": True,
     "scoring_policy": "keep_highest",

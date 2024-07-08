@@ -1,4 +1,7 @@
 #!env python
+from __future__ import annotations
+
+import enum
 import itertools
 import random
 from typing import List
@@ -9,7 +12,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.WARNING)
 
 class Variable:
-  def __init__(self, name, true_value):
+  def __init__(self, name, true_value, *args, **kwargs):
     self.name = name
     self.true_value = true_value
     self.given_value = None
@@ -26,7 +29,7 @@ class Variable:
       return f"Incorrect! {self.true_value} != {self.given_value} (your answer)"
   
   def __str__(self):
-    return f"{self.name}: {self.true_value}"
+    return f"{self.true_value}"
   
   def get_info(self):
     return (self.name, self.id, self.true_value)
@@ -66,9 +69,23 @@ class VariableFloat(Variable):
     return [f"= {self.true_value:.{precision}f} +- {self.epsilon}\n"]
 
 class VariableHex(Variable):
-  def __init__(self, *args, num_bits=0, **kwargs):
+  class PRESENTATION(enum.Enum):
+    HEX = enum.auto()
+    BINARY = enum.auto()
+    DECIMAL = enum.auto()
+  def __init__(self, *args, num_bits=0, default_presentation=PRESENTATION.HEX, **kwargs):
     super().__init__(*args, **kwargs)
     self.num_bits = num_bits
+    self.default_presentation = default_presentation
+  
+  def __str__(self):
+    if self.default_presentation == VariableHex.PRESENTATION.HEX:
+      return f"0x{self.true_value:x}"
+    elif self.default_presentation == VariableHex.PRESENTATION.DECIMAL:
+      return f"{self.true_value}"
+    elif self.default_presentation == VariableHex.PRESENTATION.BINARY:
+      return f"0b{self.true_value:0{self.num_bits}b}"
+  
   def get_answers(self) -> List[str]:
     return [
       f"{self.true_value}",

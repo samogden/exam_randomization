@@ -176,24 +176,21 @@ class Paging(MemoryAccessQuestion):
     self.pfn_bits_var = Variable("# PFN bits", self.num_pfn_bits)
     self.offset_bits_var = Variable("# offset bits", self.num_offset_bits)
     
-    # self.virtual_address_var = VariableHex("Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}")
-    self.virtual_address_var = Variable("Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}")
-    self.vpn_var = Variable("VPN", f"0b{self.vpn:0{self.num_vpn_bits}b}")
+    self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, (self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
+    self.vpn_var = VariableHex("VPN", self.vpn, self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     
     if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
       # Set our actual entry to be in the table and valid
       self.pte = self.pfn + (2**(self.num_pfn_bits))
-      self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits))
-      # self.pfn_var = VariableHex("PFN", f"0b{self.pfn:0{self.num_pfn_bits}b}")
-      self.pfn_var = Variable("PFN", f"0b{self.pfn:0{self.num_pfn_bits}b}")
+      self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
+      self.pfn_var = VariableHex("PFN", self.pfn, self.num_pfn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     else:
       # Leave it as invalid
       self.pte = self.pfn
       self.physical_address_var = Variable("Physical Address", "INVALID")
       self.pfn_var = Variable("PFN",  "INVALID")
     
-    # self.pte_var = VariableHex("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
-    self.pte_var = Variable("PTE", f"0b{self.pte:0{self.num_pfn_bits+1}b}")
+    self.pte_var = VariableHex("PTE", self.pte, self.num_pfn_bits+1, default_presentation=VariableHex.PRESENTATION.BINARY)
     
     # logging.debug(f"va: {self.virtual_address:{self.num_vpn_bits+self.num_offset_bits}b}")
     # logging.debug(f"    {self.vpn:0{self.num_vpn_bits}b}{self.offset:0{self.num_offset_bits}b}")
@@ -362,9 +359,9 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
     markdown_lines.extend(
       self.get_table_lines(
         table_data={
-          "Virtual Address": [self.virtual_address_var.true_value],
-          "# VPN bits": [self.vpn_bits_var.true_value],
-          "# PFN bits": [self.pfn_bits_var.true_value],
+          "Virtual Address": [self.virtual_address_var],
+          "# VPN bits": [self.vpn_bits_var],
+          "# PFN bits": [self.pfn_bits_var],
         },
         sorted_keys=[
           "Virtual Address",
