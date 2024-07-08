@@ -102,7 +102,7 @@ class BaseAndBounds(MemoryAccessQuestion):
     self.virtual_address_var = Variable("Virtual Address", f"0x{self.virtual_address :X}")
     
     if self.virtual_address < self.bounds:
-      self.physical_address_var = VariableHex("Physical Address", self.base + self.virtual_address)
+      self.physical_address_var = VariableHex("Physical Address", num_bits=(self.base + self.virtual_address))
     else:
       self.physical_address_var = Variable("Physical Address", "INVALID")
     
@@ -176,21 +176,21 @@ class Paging(MemoryAccessQuestion):
     self.pfn_bits_var = Variable("# PFN bits", self.num_pfn_bits)
     self.offset_bits_var = Variable("# offset bits", self.num_offset_bits)
     
-    self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, (self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
-    self.vpn_var = VariableHex("VPN", self.vpn, self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
+    self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, num_bits=(self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
+    self.vpn_var = VariableHex("VPN", self.vpn, num_bits=self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     
     if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
       # Set our actual entry to be in the table and valid
       self.pte = self.pfn + (2**(self.num_pfn_bits))
       self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
-      self.pfn_var = VariableHex("PFN", self.pfn, self.num_pfn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
+      self.pfn_var = VariableHex("PFN", self.pfn, num_bits=self.num_pfn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     else:
       # Leave it as invalid
       self.pte = self.pfn
       self.physical_address_var = Variable("Physical Address", "INVALID")
       self.pfn_var = Variable("PFN",  "INVALID")
     
-    self.pte_var = VariableHex("PTE", self.pte, self.num_pfn_bits+1, default_presentation=VariableHex.PRESENTATION.BINARY)
+    self.pte_var = VariableHex("PTE", self.pte, num_bits=(self.num_pfn_bits+1), default_presentation=VariableHex.PRESENTATION.BINARY)
     
     # logging.debug(f"va: {self.virtual_address:{self.num_vpn_bits+self.num_offset_bits}b}")
     # logging.debug(f"    {self.vpn:0{self.num_vpn_bits}b}{self.offset:0{self.num_offset_bits}b}")
@@ -417,6 +417,62 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
     ])
     
     return markdown_lines
+  
+  
+  def get_explanation(self) -> List[str]:
+    explanation_lines = [
+      "The core idea of Paging is we want to break the virtual address into the VPN and the offset.  "
+      "From here, we get the Page Table Entry corresponding to the VPN, and check the validity of the entry.  "
+      "If it is valid, we clear the metadata and attach the PFN to the offset and have our physical address.",
+      "",
+      "Don't forget to pad with the appropriate number of 0s (the appropriate number is the number of bits)!",
+      "",
+      f"Virtual Address = VPN | offset",
+      f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b} = 0b{self.vpn:0{self.num_vpn_bits}b} | 0b{self.offset:0{self.num_offset_bits}b}",
+      ""
+    ]
+    
+    explanation_lines.extend([
+      "We next use our VPN to index into our page table and find the corresponding entry."
+      f"Our Page Table Entry is: `0b{self.vpn:0{self.num_vpn_bits}b}` | `0b{self.pte:0{(self.num_pfn_bits+1)}b}`, where the first value is our VPN and the second is our PTE.",
+      "",
+    ])
+    
+    is_valid = (self.pte // (2**self.num_pfn_bits) == 1)
+    if is_valid:
+      explanation_lines.extend([
+        f"In our PTE we see that the first bit is ***{self.pte // (2**self.num_pfn_bits)}*** meaning that the translation is ***VALID***"
+      ])
+    else:
+      explanation_lines.extend([
+        f"In our PTE we see that the first bit is ***{self.pte // (2**self.num_pfn_bits)}*** meaning that the translation is ***INVALID***.",
+        "Therefore, we just write \"INVALID\" as our answer.",
+        "If it were valid we would complete the below steps.",
+        "",
+        "===================================================="
+        "\n",
+      ])
+    
+    explanation_lines.extend([
+      "Next, we convert our PTE to our PFN by removing our metadata.  In this case we're just removing the leading bit.  We can do this by applying a binary mask.",
+      f"PFN = PTE & mask",
+      f"0b{self.pfn} = 0b{self.pte:0{self.num_pfn_bits+1}b} & 0b{(2**self.num_pfn_bits)-1:0{self.num_pfn_bits+1}b}"
+    ])
+    
+    explanation_lines.extend([
+      "We then add combine our PFN and offset",
+      "",
+      "Physical Address = PFN | offset",
+      f"{'***' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'***' if is_valid else ''} = 0b{self.pfn:0{self.num_pfn_bits}b} | 0b{self.offset:0{self.num_vpn_bits}b}",
+      "",
+      "",
+      "Note: Strictly speaking, this calculation is:",
+      f"{'***' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'***' if is_valid else ''} = 0b{self.pfn:0{self.num_pfn_bits}b}{0:0{self.num_offset_bits}} + 0b{self.offset:0{self.num_offset_bits}b}",
+      "But that's a lot of extra 0s, so I'm splitting them up for succinctness",
+      ""
+    ])
+    return explanation_lines
+
 
 def main():
   pass
