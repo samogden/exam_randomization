@@ -428,46 +428,49 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
       "Don't forget to pad with the appropriate number of 0s (the appropriate number is the number of bits)!",
       "",
       f"Virtual Address = VPN | offset",
-      f"0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b} = 0b{self.vpn:0{self.num_vpn_bits}b} | 0b{self.offset:0{self.num_offset_bits}b}",
+      f"<tt>0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}</tt> = <tt>0b{self.vpn:0{self.num_vpn_bits}b}</tt> | <tt>0b{self.offset:0{self.num_offset_bits}b}</tt>",
       ""
     ]
     
     explanation_lines.extend([
       "We next use our VPN to index into our page table and find the corresponding entry."
-      f"Our Page Table Entry is: `0b{self.vpn:0{self.num_vpn_bits}b}` | `0b{self.pte:0{(self.num_pfn_bits+1)}b}`, where the first value is our VPN and the second is our PTE.",
+      f"Our Page Table Entry is:",
+      f"<tt>0b{self.pte:0{(self.num_pfn_bits+1)}b}</tt>"
+      f"which we found by looking for our VPN in the page table.",
       "",
     ])
     
     is_valid = (self.pte // (2**self.num_pfn_bits) == 1)
     if is_valid:
       explanation_lines.extend([
-        f"In our PTE we see that the first bit is ***{self.pte // (2**self.num_pfn_bits)}*** meaning that the translation is ***VALID***"
+        f"In our PTE we see that the first bit is <b>{self.pte // (2**self.num_pfn_bits)}</b> meaning that the translation is <b>VALID</b>"
       ])
     else:
       explanation_lines.extend([
-        f"In our PTE we see that the first bit is ***{self.pte // (2**self.num_pfn_bits)}*** meaning that the translation is ***INVALID***.",
+        f"In our PTE we see that the first bit is <b>{self.pte // (2**self.num_pfn_bits)}</b> meaning that the translation is <b>INVALID</b>.",
         "Therefore, we just write \"INVALID\" as our answer.",
         "If it were valid we would complete the below steps.",
         "",
-        "===================================================="
+        "<hr>"
         "\n",
       ])
     
     explanation_lines.extend([
       "Next, we convert our PTE to our PFN by removing our metadata.  In this case we're just removing the leading bit.  We can do this by applying a binary mask.",
       f"PFN = PTE & mask",
-      f"0b{self.pfn} = 0b{self.pte:0{self.num_pfn_bits+1}b} & 0b{(2**self.num_pfn_bits)-1:0{self.num_pfn_bits+1}b}"
+      f"which is,",
+      f"<tt>{self.pfn_var}</tt> = <tt>0b{self.pte:0{self.num_pfn_bits+1}b}</tt> & <tt>0b{(2**self.num_pfn_bits)-1:0{self.num_pfn_bits+1}b}</tt>"
     ])
     
     explanation_lines.extend([
       "We then add combine our PFN and offset",
       "",
       "Physical Address = PFN | offset",
-      f"{'***' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'***' if is_valid else ''} = 0b{self.pfn:0{self.num_pfn_bits}b} | 0b{self.offset:0{self.num_vpn_bits}b}",
+      f"{'<tt><b>' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'</b></tt>' if is_valid else ''} = <tt>0b{self.pfn:0{self.num_pfn_bits}b}</tt> | <tt>0b{self.offset:0{self.num_vpn_bits}b}</tt>",
       "",
       "",
       "Note: Strictly speaking, this calculation is:",
-      f"{'***' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'***' if is_valid else ''} = 0b{self.pfn:0{self.num_pfn_bits}b}{0:0{self.num_offset_bits}} + 0b{self.offset:0{self.num_offset_bits}b}",
+      f"{'<tt><b>' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'</b></tt>' if is_valid else ''} = <tt>0b{self.pfn:0{self.num_pfn_bits}b}{0:0{self.num_offset_bits}}</tt> + <tt>0b{self.offset:0{self.num_offset_bits}b}</tt>",
       "But that's a lot of extra 0s, so I'm splitting them up for succinctness",
       ""
     ])
