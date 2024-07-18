@@ -342,7 +342,6 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-    
     self.blank_vars.update({
       "vpn_val" : self.vpn_var,
       "pte_val" : self.pte_var,

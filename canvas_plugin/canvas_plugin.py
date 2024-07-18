@@ -14,6 +14,7 @@ import sys
 
 from question_generator import question as question_module
 from question_generator import memory_questions as memory_questions
+from question_generator import process_questions as process_questions
 
 import logging
 logging.basicConfig()
@@ -57,7 +58,8 @@ def add_question_group(
     course: canvasapi.course.Course,
     quiz: canvasapi.quiz.Quiz,
     num_to_add: int,
-    existing_questions: Set[question_module.Question]
+    existing_questions: Set[question_module.Question],
+    question_class : question_module.CanvasQuestion
 ):
   group = quiz.create_question_group([
     {
@@ -70,7 +72,7 @@ def add_question_group(
   questions_to_add = set()
   while len(questions_to_add) < num_to_add:
     log.debug(f"Currently have {len(questions_to_add)}")
-    new_question = memory_questions.Paging_canvas()
+    new_question = question_class()
     if new_question in existing_questions:
       continue
     questions_to_add.add(new_question)
@@ -100,6 +102,7 @@ def add_quiz(
 def create_quiz_with_questions(
     canvas: canvasapi.Canvas,
     course: canvasapi.course.Course,
+    question_class : question_module.CanvasQuestion,
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
     questions_per_group = 100
@@ -108,7 +111,17 @@ def create_quiz_with_questions(
   
   quiz_questions = set()
   for _ in range(num_groups):
-    quiz_questions.union(add_question_group(canvas, course, quiz, questions_per_group, quiz_questions))
+    quiz_questions.union(
+      add_question_group(
+        canvas,
+        course,
+        quiz,
+        questions_per_group,
+        quiz_questions,
+        question_class
+      )
+    )
+    
   
   # for q in quiz.get_questions():
   #   log.debug(f"{pprint.pformat(q.__dict__)}")
@@ -140,7 +153,14 @@ def main():
   
   course = canvas.get_course(args.course_id)
   assignment_group = create_assignment_group(canvas, course)
-  quiz = create_quiz_with_questions(canvas, course, assignment_group)
+  quiz = create_quiz_with_questions(
+    canvas,
+    course,
+    process_questions.SchedulingQuestion_canvas,
+    assignment_group,
+    num_groups=1,
+    questions_per_group=10
+  )
   
 
 if __name__ == "__main__":

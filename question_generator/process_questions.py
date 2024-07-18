@@ -12,9 +12,8 @@ from typing import List, Tuple
 
 import matplotlib.colors
 
-from question import Question
-
-from variable import Variable, VariableFloat
+from .question import Question, CanvasQuestion
+from .variable import Variable, VariableFloat
 
 import dataclasses
 
@@ -271,6 +270,9 @@ class SchedulingQuestion(Question, abc.ABC):
         Variable(f"Job{job_id} duration", self.job_stats[job_id]["duration"])
       ])
     
+    # todo: make this less convoluted
+    self.average_response_var = VariableFloat(f"Average Response Time", self.overall_stats["Response"])
+    self.average_tat_var = VariableFloat("Average Turnaround Time", self.overall_stats["Response"])
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
@@ -452,6 +454,53 @@ class SchedulingQuestion(Question, abc.ABC):
     
     return explanation_lines
     
+class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    
+    for job_id in self.job_stats.keys():
+      self.blank_vars.update({
+        f"job{job_id}_response" : VariableFloat(f"Job{job_id} Response Time", self.job_stats[job_id]["Response"]),
+        f"job{job_id}_tat" : VariableFloat(f"Job{job_id} TAT", self.job_stats[job_id]["TAT"]),
+      })
+    self.blank_vars.update({
+      "average_response" : self.average_response_var,
+      "average_tat" : self.average_tat_var
+    })
+  
+  
+  def get_question_prelude(self):
+    return [f"Given the below information, compute the required values if using <b>{self.SCHEDULER_NAME}</b> scheduling.  Break any ties using the job number."]
+  
+  def get_question_body(self) -> List[str]:
+    
+    question_lines = self.get_question_prelude()
+    
+    question_lines.extend(
+      self.get_table_lines(
+        headers=["Arrival", "Duration", "Response Time", "TAT"],
+        table_data={
+          f"Job{job_id}" : [
+            self.job_stats[job_id]["arrival"],
+            self.job_stats[job_id]["duration"],
+            f"[job{job_id}_response]",
+            f"[job{job_id}_tat]",
+          ]
+          for job_id in sorted(self.job_stats.keys())
+        },
+        add_header_space=True
+      )
+    )
+    
+    question_lines.extend([
+      f"Overall average response time: [average_response]",
+      f"Overall average TAT: [average_tat]"
+    ])
+    
+    
+    
+    return question_lines
+  
 
 
 def main():
