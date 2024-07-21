@@ -6,9 +6,15 @@ import collections
 import enum
 import math
 import os
+import pprint
 import random
 import uuid
 from typing import List, Tuple
+
+
+import canvasapi
+import canvasapi.course
+import canvasapi.quiz
 
 import matplotlib.colors
 
@@ -387,10 +393,18 @@ class SchedulingQuestion(Question, abc.ABC):
     if not os.path.exists(image_dir): os.mkdir(image_dir)
     image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
     plt.savefig(image_path)
+    
+    self.img = image_path
     return image_path
   
   
-  def get_explanation(self, image_dir="imgs") -> List[str]:
+  def get_explanation(
+      self,
+      *args,
+      image_dir="imgs",
+      **kwargs
+  ) -> List[str]:
+    log.debug("get_explanation")
     
     # todo: We should vary the phrasing depending on if it's response or TAT
     explanation_lines = []
@@ -501,7 +515,88 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     
     return question_lines
   
-
+  
+  
+  def get_explanation(
+      self,
+      course: canvasapi.course.Course,
+      quiz: canvasapi.quiz.Quiz,
+      image_dir="imgs",
+  ) -> List[str]:
+    log.debug("get_explanation")
+    
+    # todo: We should vary the phrasing depending on if it's response or TAT
+    explanation_lines = []
+    
+    explanation_lines.extend([
+      f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
+    ])
+    
+    # Give the general formula
+    if self.target == "Response":
+      calculation_base = "start"
+    else:
+      calculation_base = "completion"
+    explanation_lines.extend([
+      "We do this by subtracting arrival time from the start time, which is",
+      f"Job_{self.target} = Job_{calculation_base} - Job_arrival\n",
+    ])
+    
+    # Individual job explanation
+    explanation_lines.extend([
+      f"For each of our {len(self.job_stats.keys())} jobs, this calculation would be:"
+    ])
+    # todo: make this more flexible
+    if self.target == "Response":
+      explanation_lines.extend([
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
+        for job_id in sorted(self.job_stats.keys())
+      ])
+    else:
+      explanation_lines.extend([
+        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
+        for job_id in sorted(self.job_stats.keys())
+      ])
+    
+    explanation_lines.extend(["\n"])
+    summation_line = ' + '.join([
+      f"{self.job_stats[job_id][self.target]:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
+    ])
+    
+    explanation_lines.extend([
+      f"We then calculate the average of these to find the average {self.target} time",
+      f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value:0.{self.ROUNDING_DIGITS}f}"
+    ])
+    
+    explanation_lines.extend(
+      self.get_table_lines(
+        headers=["Time", "Events"],
+        table_data={
+          f"{t:02.{self.ROUNDING_DIGITS}f}s" : ['\n'.join(self.timeline[t])]
+          for t in sorted(self.timeline.keys())
+        },
+        sorted_keys=[f"{t:02.{self.ROUNDING_DIGITS}f}s" for t in sorted(self.timeline.keys())],
+      )
+    )
+    
+    # todo: see if I can move this out of this file, or somehow figure out the looping to make it not silly
+    # it will probably be something along the lines of
+    # 1. generate question
+    # 2. Generate image from question information
+    # 3. generate explanation with image generated
+    image_path = self.make_image(image_dir)
+    course.create_folder(f"{quiz.id}", parent_folder_path="Quiz Files")
+    upload_success, f = course.upload(self.img, parent_folder_path=f"Quiz Files/{quiz.id}")
+    
+    log.debug(f"f: {f}")
+    log.debug(f"f: {pprint.pformat(f)}")
+    
+    explanation_lines.extend(
+      # [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
+      [f"<img src=\"/courses/{course.id}/files/{f['id']}/preview\"\"/>"]
+    )
+    
+    return explanation_lines
 
 def main():
   q = SchedulingQuestion(

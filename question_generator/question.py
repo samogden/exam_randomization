@@ -17,6 +17,7 @@ class Question:
       target_vars = random.choices(self.given_vars, k=1)
       self.given_vars.remove(target_vars[0])
     self.target_vars = target_vars
+    self.img = None
   
   def get_tuple(self):
     return tuple([var.true_value for var in sorted(self.target_vars + self.given_vars, key=(lambda v: v.name))])
@@ -49,7 +50,7 @@ class Question:
     sys.stdout.flush()
     time.sleep(0.1)
   
-  def get_explanation(self) -> List[str]:
+  def get_explanation(self, *args, **kwargs) -> List[str]:
     return [] # todo
   
   def to_markdown(self) -> str:
