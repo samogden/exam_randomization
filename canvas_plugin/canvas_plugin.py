@@ -11,6 +11,8 @@ import canvasapi.quiz
 import dotenv, os
 import sys
 
+sys.path.append(os.getcwd())
+print(sys.path)
 
 from question_generator import question as question_module
 from question_generator import memory_questions as memory_questions
@@ -19,7 +21,7 @@ from question_generator import process_questions as process_questions
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 logger = logging.getLogger("canvasapi")
@@ -32,7 +34,11 @@ logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
 
 
-def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
+def get_question_for_canvas(
+    course: canvasapi.course.Course,
+    quiz: canvasapi.quiz.Quiz,
+    question: question_module.CanvasQuestion,
+) -> Dict:
   
   question_text = '<br>\n'.join(question.get_question_body())
   answers = []
@@ -43,13 +49,14 @@ def get_question_for_canvas(question: question_module.CanvasQuestion) -> Dict:
         "answer_text": variation,
         "answer_weight": 100,
       })
+  log.debug(f"question.img: {question.img}")
   return {
     "question_name": f"question created at {datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')}",
     "question_text": f"{question_text}",
     "question_type": "fill_in_multiple_blanks_question",
     "points_possible": 1,
     "answers": answers,
-    "neutral_comments_html": '<br>\n'.join(question.get_explanation())
+    "neutral_comments_html": '<br>\n'.join(question.get_explanation(course, quiz))
   }
   
 
@@ -78,7 +85,7 @@ def add_question_group(
     questions_to_add.add(new_question)
     
   for q in questions_to_add:
-    question_for_canvas = get_question_for_canvas(q)
+    question_for_canvas = get_question_for_canvas(course, quiz, q)
     question_for_canvas["quiz_group_id"] = group.id
     quiz.create_question(question=question_for_canvas)
   
@@ -105,7 +112,7 @@ def create_quiz_with_questions(
     question_class : question_module.CanvasQuestion,
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
-    questions_per_group = 100
+    questions_per_group = 1
 ):
   quiz = add_quiz(canvas, course, assignment_group)
   
@@ -138,12 +145,26 @@ def create_assignment_group(canvas: canvasapi.Canvas, course: canvasapi.course.C
   )
   return assignment_group
 
+def test(course, *args, **kwargs):
+  log.debug(f"os.getcwd(): {os.getcwd()}")
+  
+  
+  course.upload("imgs/test.png", parent_folder_path="Quiz Files")
+  
+  return
+  
+  quiz = course.get_quiz(98924)
+  for q in quiz.get_questions():
+    log.debug(pprint.pformat(q.__dict__))
+    break
+
 def main():
   dotenv.load_dotenv()
   
   parser = argparse.ArgumentParser()
   parser.add_argument("--course_id", type=int, default=25068)
   parser.add_argument("--prod", action="store_true")
+  parser.add_argument("--test", action="store_true")
   args = parser.parse_args()
   
   if args.prod:
@@ -151,15 +172,18 @@ def main():
   else:
     canvas = canvasapi.Canvas(os.environ.get("CANVAS_API_URL"), os.environ.get("CANVAS_API_KEY"))
   
+  if args.test:
+    return test(course=canvas.get_course(args.course_id))
+  
   course = canvas.get_course(args.course_id)
   assignment_group = create_assignment_group(canvas, course)
-  quiz = create_quiz_with_questions(
+  create_quiz_with_questions(
     canvas,
     course,
     process_questions.SchedulingQuestion_canvas,
     assignment_group,
     num_groups=1,
-    questions_per_group=10
+    questions_per_group=1
   )
   
 
