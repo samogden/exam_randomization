@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import enum
 import itertools
+import math
 import random
 from typing import List
 
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
+
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 class Variable:
   def __init__(self, name, true_value, *args, **kwargs):
@@ -43,7 +47,7 @@ class Variable:
   # todo: Add in a "get raw" function that returns the valye, if available, and a "get formatted" version that using a formating string
 
 class VariableFloat(Variable):
-  precision = 3
+  default_sigfigs = 1
   def __init__(self, name, true_value, epsilon=0.1):
     self.epsilon = epsilon
     super().__init__(name, true_value)
@@ -62,11 +66,51 @@ class VariableFloat(Variable):
     else:
       return f"Incorrect! {self.true_value: 0.3f} != {self.given_value: 0.3f} (your answer)"
   
-  def get_markdown_answers(self, precision=None) -> List[str]:
+  def get_markdown_answers(self, sigfigs=None) -> List[str]:
     # todo: make canvas friendly
-    if precision is None:
-      precision = self.precision
-    return [f"= {self.true_value:.{precision}f} +- {self.epsilon}\n"]
+    if sigfigs is None:
+      sigfigs = self.default_sigfigs
+    return [f"= {self.true_value:.{sigfigs}f} +- {self.epsilon}\n"]
+  
+  def get_answers(self, sigfigs=None) -> List[str]:
+    if sigfigs is None:
+      sigfigs = self.default_sigfigs
+    
+    answers = [self.true_value]
+    
+    log.debug(f"math.log10(self.epsilon): {math.log10(self.epsilon)}")
+    num_sig_figs = 1+ math.ceil(abs(math.log10(self.epsilon)))
+    log.debug(f"num_sig_figs: { num_sig_figs}")
+    
+    # https://chatgpt.com/share/40e95507-a88b-41eb-b469-b56f7d4a9dea
+    def write_floats(start, end, granularity):
+      # Generate the numbers in the range with the specified granularity
+      numbers = []
+      current = start
+      while current <= end:
+        numbers.append(round(current, len(str(granularity).split('.')[1])))
+        current += granularity
+      
+      # Format each number with all possible significant figures
+      result = []
+      for number in numbers:
+        str_number = f"{number:.{len(str(granularity).split('.')[1])}f}"
+        result.append(str_number)
+        integer_part, decimal_part = str_number.split('.')
+        if int(decimal_part) == 0:
+          result.append(str(int(number)))
+        else:
+          for i in range(1, len(decimal_part)+1):
+            result.append(f"{integer_part}.{decimal_part[:i]}")
+      
+      # Remove duplicates and sort
+      result = sorted(set(result))
+      
+      return result
+    
+    answers = write_floats(self.true_value - self.epsilon, self.true_value + self.epsilon, 10**(-num_sig_figs))
+    return answers
+    
 
 class VariableHex(Variable):
   class PRESENTATION(enum.Enum):
