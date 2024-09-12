@@ -76,7 +76,7 @@ class VariableFloat(Variable):
     if sigfigs is None:
       sigfigs = self.default_sigfigs
     
-    num_sig_figs = 1+ math.ceil(abs(math.log10(self.epsilon)))
+    num_sig_figs = 1 #+ math.ceil(abs(math.log10(self.epsilon)))
     
     # https://chatgpt.com/share/40e95507-a88b-41eb-b469-b56f7d4a9dea
     def write_floats(start, end, granularity):
@@ -104,7 +104,8 @@ class VariableFloat(Variable):
       
       return result
     
-    answers = write_floats(self.true_value - self.epsilon, self.true_value + self.epsilon, 10**(-num_sig_figs))
+    # answers = write_floats(self.true_value - self.epsilon, self.true_value + self.epsilon, 10**(-num_sig_figs))
+    answers = [f"{self.true_value:0.1f}"]
     return answers
     
 
