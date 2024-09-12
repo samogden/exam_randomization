@@ -51,7 +51,7 @@ def get_question_for_canvas(
       })
   log.debug(f"question.img: {question.img}")
   return {
-    "question_name": f"question created at {datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')}",
+    "question_name": f"question created at {datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
     "question_text": f"{question_text}",
     "question_type": "fill_in_multiple_blanks_question",
     "points_possible": 1,
@@ -97,12 +97,17 @@ def add_quiz(
     assignment_group: canvasapi.course.AssignmentGroup|None = None
 ):
   q = course.create_quiz(quiz={
-    "title": f"New Quiz {datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')}",
+    "title": f"New Quiz {datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
     "hide_results" : None,
     "show_correct_answers": True,
     "scoring_policy": "keep_highest",
     "allowed_attempts": -1,
-    "assignment_group_id": assignment_group.id
+    "assignment_group_id": assignment_group.id,
+    "description": """
+      This quiz is aimed to help you practice skills.
+      Please take it as many times as necessary to get full marks!
+      Please note that although the answers section may be a bit lengthy, check below them for a full explanation of how to solve the problem!
+    """
   })
   return q
 
@@ -112,7 +117,7 @@ def create_quiz_with_questions(
     question_class : question_module.CanvasQuestion,
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
-    questions_per_group = 1
+    questions_per_group = 10
 ):
   quiz = add_quiz(canvas, course, assignment_group)
   
@@ -146,25 +151,19 @@ def create_assignment_group(canvas: canvasapi.Canvas, course: canvasapi.course.C
   return assignment_group
 
 def test(course, *args, **kwargs):
-  log.debug(f"os.getcwd(): {os.getcwd()}")
-  
-  
-  course.upload("imgs/test.png", parent_folder_path="Quiz Files")
-  
-  return
-  
-  quiz = course.get_quiz(98924)
-  for q in quiz.get_questions():
-    log.debug(pprint.pformat(q.__dict__))
-    break
+  pass
 
 def main():
   dotenv.load_dotenv()
   
   parser = argparse.ArgumentParser()
-  parser.add_argument("--course_id", type=int, default=25068)
+  parser.add_argument("--course_id", type=int, default=25523)
   parser.add_argument("--prod", action="store_true")
   parser.add_argument("--test", action="store_true")
+  
+  parser.add_argument("--num_groups", type=int, default=5)
+  parser.add_argument("--questions_per_group", type=int, default=100)
+  
   args = parser.parse_args()
   
   if args.prod:
@@ -182,8 +181,8 @@ def main():
     course,
     process_questions.SchedulingQuestion_canvas,
     assignment_group,
-    num_groups=1,
-    questions_per_group=1
+    num_groups=args.num_groups,
+    questions_per_group=args.questions_per_group
   )
   
 
