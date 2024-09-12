@@ -278,7 +278,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     # todo: make this less convoluted
     self.average_response_var = VariableFloat(f"Average Response Time", self.overall_stats["Response"])
-    self.average_tat_var = VariableFloat("Average Turnaround Time", self.overall_stats["Response"])
+    self.average_tat_var = VariableFloat("Average Turnaround Time", self.overall_stats["TAT"])
     
     if single_target:
       # Then we pick one of the overalls, since this is a canvas quiz
@@ -484,7 +484,10 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
   
   
   def get_question_prelude(self):
-    return [f"Given the below information, compute the required values if using <b>{self.SCHEDULER_NAME}</b> scheduling.  Break any ties using the job number."]
+    return [
+      f"Given the below information, compute the required values if using <b>{self.SCHEDULER_NAME}</b> scheduling.  Break any ties using the job number.",
+      "Please round all answers to 1 decimal place (even if they are whole numbers)."
+    ]
   
   def get_question_body(self) -> List[str]:
     
@@ -512,7 +515,6 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     ])
     
     
-    
     return question_lines
   
   
@@ -529,7 +531,7 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     explanation_lines = []
     
     explanation_lines.extend([
-      f"To calculate the overall {self.target} time we want to first start by calculating the {self.target} of all of our individual jobs."
+      f"To calculate the overall {self.target} time using {self.SCHEDULER_KIND} we want to first start by calculating the {self.target} of all of our individual jobs."
     ])
     
     # Give the general formula
