@@ -531,8 +531,10 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     explanation_lines = []
     
     explanation_lines.extend([
-      f"To calculate the overall {self.target} time using {self.SCHEDULER_KIND} we want to first start by calculating the {self.target} of all of our individual jobs."
+      f"To calculate the overall Turnaround and Response times using {self.SCHEDULER_KIND} we want to first start by calculating the respective target and response times of all of our individual jobs."
     ])
+    
+    
     
     # Give the general formula
     if self.target == "Response":
@@ -540,36 +542,64 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     else:
       calculation_base = "completion"
     explanation_lines.extend([
-      "We do this by subtracting arrival time from the start time, which is",
-      f"Job_{self.target} = Job_{calculation_base} - Job_arrival\n",
+      "We do this by subtracting arrival time from either the completion time or the start time.  That is:"
+      "",
+      f"Job_TAT = Job_completion - Job_arrival\n",
+      ""
+      f"Job_response = Job_start - Job_arrival\n",
+      "",
     ])
     
     # Individual job explanation
     explanation_lines.extend([
-      f"For each of our {len(self.job_stats.keys())} jobs, this calculation would be:"
+      f"For each of our {len(self.job_stats.keys())} jobs, we can make these calculations.",
+      ""
     ])
-    # todo: make this more flexible
-    if self.target == "Response":
-      explanation_lines.extend([
-        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
-        for job_id in sorted(self.job_stats.keys())
-      ])
-    else:
-      explanation_lines.extend([
-        f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
-        for job_id in sorted(self.job_stats.keys())
-      ])
+    
+    ## Add in TAT
+    explanation_lines.extend([
+      "For turnaround time (TAT) this would be:"
+    ])
+    explanation_lines.extend([
+      f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
+      for job_id in sorted(self.job_stats.keys())
+    ])
+    explanation_lines.extend(["\n"])
+    summation_line = ' + '.join([
+      f"{self.job_stats[job_id][self.target]:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
+    ])
+    explanation_lines.extend([
+      f"We then calculate the average of these to find the average TAT time",
+      f"Avg(TAT) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.overall_stats['TAT']:0.{self.ROUNDING_DIGITS}f}",
+      "\n",
+    ])
+    
+    
+    ## Add in Response
+    explanation_lines.extend([
+      "For response time this would be:"
+    ])
+    explanation_lines.extend([
+      f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
+      for job_id in sorted(self.job_stats.keys())
+    ])
     
     explanation_lines.extend(["\n"])
     summation_line = ' + '.join([
       f"{self.job_stats[job_id][self.target]:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
     ])
-    
     explanation_lines.extend([
-      f"We then calculate the average of these to find the average {self.target} time",
-      f"Avg({self.target}) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.target_vars[0].true_value:0.{self.ROUNDING_DIGITS}f}"
+      f"We then calculate the average of these to find the average Response time",
+      f"Avg(Response) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.overall_stats['Response']:0.{self.ROUNDING_DIGITS}f}",
+      "\n",
     ])
     
+    explanation_lines.extend([
+      "We can track these events either in a table or by drawing a diagram.  Note that in the diagram color corresponds to how many jobs are running at once, and events that happen at the same time may be merged together (i.e. there might not be 2N vertical lines for N jobs).",
+      ""
+    ])
+    
+    ## Add in table
     explanation_lines.extend(
       self.get_table_lines(
         headers=["Time", "Events"],
