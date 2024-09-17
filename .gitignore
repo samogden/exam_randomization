@@ -7,3 +7,4 @@ out/
 *.zip
 .env
 output.csv
+imgs/
