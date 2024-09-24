@@ -89,11 +89,11 @@ class SchedulingQuestion(Question, abc.ABC):
     def mark_start(self, curr_time) -> None:
       log.debug(f"starting {self.arrival} -> {self.duration} at {curr_time}")
       self.start_time = curr_time
-      self.response_time = curr_time - self.arrival
+      self.response_time = curr_time - self.arrival + self.SCHEDULER_EPSILON
     def mark_end(self, curr_time) -> None:
       log.debug(f"ending {self.arrival} -> {self.duration} at {curr_time}")
       self.end_time = curr_time
-      self.turnaround_time = curr_time - self.arrival
+      self.turnaround_time = curr_time - self.arrival + self.SCHEDULER_EPSILON
     
     def time_remaining(self, curr_time) -> float:
       time_remaining = self.duration
