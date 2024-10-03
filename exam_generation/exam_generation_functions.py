@@ -38,6 +38,10 @@ class QuickFunctions:
   @classmethod
   def pick_a_choice(cls, list_of_choices):
     return str(random.choice(list_of_choices))
+    
+  @classmethod
+  def shuffle_list(cls, list_to_shuffle):
+    return '\n'.join(random.sample(list_to_shuffle, len(list_to_shuffle)))
   
   @classmethod
   def number_in_range(cls, lower_bound, upper_bound):
