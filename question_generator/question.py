@@ -189,4 +189,4 @@ class CanvasQuestion(Question):
   
   def __hash__(self):
     logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
-    return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]))
+    return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))

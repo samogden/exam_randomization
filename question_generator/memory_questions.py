@@ -73,7 +73,7 @@ class VirtualAddress_parts(Question):
     ]
 
 class MemoryAccessQuestion(Question):
-  PROBABILITY_OF_INVALID = .25
+  PROBABILITY_OF_VALID = .875
   
   def get_question_prelude(self) -> List[str]:
     prelude = super().get_question_prelude()
@@ -95,14 +95,14 @@ class BaseAndBounds(MemoryAccessQuestion):
     
     self.bounds = int(math.pow(2, bounds_bits))
     self.base = random.randint(1, int(math.pow(2, base_bits))) * self.bounds
-    self.virtual_address = random.randint(1, int(self.bounds / self.PROBABILITY_OF_INVALID))
+    self.virtual_address = random.randint(1, int(self.bounds / self.PROBABILITY_OF_VALID))
     
     self.bounds_var = Variable("bounds", f"0x{self.bounds :X}")
     self.base_var = Variable("Base", f"0x{self.base :X}")
     self.virtual_address_var = Variable("Virtual Address", f"0x{self.virtual_address :X}")
     
     if self.virtual_address < self.bounds:
-      self.physical_address_var = VariableHex("Physical Address", num_bits=(self.base + self.virtual_address))
+      self.physical_address_var = VariableHex("Physical Address", num_bits=(self.base + self.virtual_address), true_value=(self.virtual_address + self.base))
     else:
       self.physical_address_var = Variable("Physical Address", "INVALID")
     
@@ -179,7 +179,7 @@ class Paging(MemoryAccessQuestion):
     self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, num_bits=(self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
     self.vpn_var = VariableHex("VPN", self.vpn, num_bits=self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     
-    if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
+    if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
       # Set our actual entry to be in the table and valid
       self.pte = self.pfn + (2**(self.num_pfn_bits))
       self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
@@ -261,7 +261,7 @@ class Paging_with_table(Paging):
       pte = page_table[self.vpn]
       while pte in page_table.values():
         pte = random.randint(0, 2**self.num_pfn_bits-1)
-        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
+        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
           # Randomly set it to be valid
           pte += (2**(self.num_pfn_bits))
       # Once we have a unique random entry, put it into the Page Table
@@ -337,6 +337,71 @@ class Paging_with_table(Paging):
     ])
     return explanation_lines
 
+
+######################
+## Canvas Questions ##
+######################
+
+class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    
+    self.blank_vars.update({
+      "physical_address_val": self.physical_address_var
+    })
+  
+  def get_question_body(self, *args, **kwargs) -> List[str]:
+    question_lines = [
+      f"Given a virtual address space with the below base and bounds, what is the physical address of {self.virtual_address_var}?",
+      "If it is not a valid address simply enter INVALID."
+    ]
+    question_lines.extend(
+      self.get_table_lines(
+        table_data={
+          "Base" : [self.base_var],
+          "Bounds" : [self.bounds_var]
+        },
+        sorted_keys=[
+          "Base", "Bounds"
+        ],
+        add_header_space=False
+      )
+    )
+    
+    question_lines.extend([
+      "Physical Address: [physical_address_val]",
+    ])
+    
+    return question_lines
+    
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    explanation_lines = [
+      "There's two steps to figuring out base and bounds.",
+      "1. Are we within the bounds?",
+      "2. If so, add to our base.",
+      "",
+    ]
+    if self.virtual_address < self.bounds:
+      explanation_lines.extend([
+        f"Step 1: {self.virtual_address_var.true_value} < {self.bounds_var.true_value} --> {'<b>>VALID</b>' if (self.virtual_address < self.bounds) else 'INVALID'}",
+        "",
+        f"Step 2: Since the previous check passed, we calculate {self.base_var.true_value} + {self.virtual_address_var.true_value} = <b>{self.physical_address_var.true_value}</b>.",
+        "If it had been invalid we would have simply written INVALID"
+      ]
+      )
+    else:
+      explanation_lines.extend([
+        f"Step 1: {self.virtual_address_var.true_value} < {self.bounds_var.true_value} --> {'VALID' if (self.virtual_address < self.bounds) else '<b>INVALID</b>'}",
+        "",
+        f"Step 2: Since the previous check failed, we simply write <b>INVALID</b>.",
+        f"If it had been valid, we would have calculated {self.base_var.true_value} + {self.virtual_address_var.true_value} = {self.physical_address_var.true_value}"
+      ]
+      )
+    return explanation_lines
+
+
+
 class Paging_canvas(Paging_with_table, CanvasQuestion):
   
   def __init__(self, *args, **kwargs):
@@ -349,7 +414,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
       "physical_address_val": self.physical_address_var
     })
   
-  def get_question_body(self) -> List[str]:
+  def get_question_body(self, *args, **kwargs) -> List[str]:
     # markdown_lines = super().get_question_body()
     markdown_lines = [
       "Given the below information please calculate the equivalent physical address of the given virtual address, filling out all steps along the way."
@@ -388,7 +453,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
       pte = page_table[self.vpn]
       while pte in page_table.values():
         pte = random.randint(0, 2**self.num_pfn_bits-1)
-        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_INVALID), self.PROBABILITY_OF_INVALID], k=1)[0]:
+        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
           # Randomly set it to be valid
           pte += (2**(self.num_pfn_bits))
       # Once we have a unique random entry, put it into the Page Table
@@ -418,7 +483,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
     return markdown_lines
   
   
-  def get_explanation(self) -> List[str]:
+  def get_explanation(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "The core idea of Paging is we want to break the virtual address into the VPN and the offset.  "
       "From here, we get the Page Table Entry corresponding to the VPN, and check the validity of the entry.  "
