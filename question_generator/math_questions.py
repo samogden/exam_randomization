@@ -1,8 +1,8 @@
 #!env python
 from typing import List
 
-from question import Question
-from variable import Variable
+from .question import Question, CanvasQuestion
+from .variable import Variable, VariableHex
 
 import random
 import math
@@ -13,9 +13,9 @@ logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
 
-class BitsAndBytes(Question):
+class BitsAndBytes(CanvasQuestion):
   MIN_BITS = 3
-  MAX_BITS = 20
+  MAX_BITS = 32
   
   def __init__(
       self,
@@ -27,7 +27,20 @@ class BitsAndBytes(Question):
     self.num_bytes = Variable("Number of bytes", int(math.pow(2, self.num_bits.true_value)))
     super().__init__(given_vars=[self.num_bits, self.num_bytes])
     
-  def get_explanation(self) -> List[str]:
+    self.blank_vars.update({
+      "answer" : self.target_vars[0]
+    })
+  
+  def get_question_body(self, *args, **kwargs) -> List[str]:
+    question_lines = super().get_question_body(*args, **kwargs)
+    
+    question_lines.extend([
+      f"{self.target_vars[0].name}: [answer]"
+    ])
+    return question_lines
+    
+    
+  def get_explanation(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "Remember that for these problems we use one of these two equations (which are equivalent)",
       "1. log2(`Number of bytes`) = `Number of bits`",
@@ -46,7 +59,7 @@ class BitsAndBytes(Question):
     
     return explanation_lines
 
-class HexAndBinary(Question):
+class HexAndBinary(CanvasQuestion):
   MIN_HEXITS = 1
   MAX_HEXITS = 8
   
@@ -64,8 +77,19 @@ class HexAndBinary(Question):
         self.binary_var
       ]
     )
+    self.blank_vars.update({
+      "answer" : self.target_vars[0]
+    })
   
-  def get_explanation(self) -> List[str]:
+  def get_question_body(self, *args, **kwargs) -> List[str]:
+    question_lines = super().get_question_body(*args, **kwargs)
+    
+    question_lines.extend([
+      f"{self.target_vars[0].name}: [answer]"
+    ])
+    return question_lines
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "The core idea for converting between binary and hex is to divide and conquer.  "
       "Specifically, each hexit (hexadecimal digit) is equivalent to 4 bits.  "

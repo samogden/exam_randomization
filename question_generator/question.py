@@ -29,10 +29,10 @@ class Question:
     for variable in self.target_vars:
       logging.info(variable.get_feedback())
   
-  def get_question_prelude(self) -> List[str]:
+  def get_question_prelude(self, *args, **kwargs) -> List[str]:
     return ["Given the below information, please answer the questions."]
   
-  def get_question_body(self) -> List[str]:
+  def get_question_body(self, *args, **kwargs) -> List[str]:
     return [f"{var}\n" for var in self.given_vars]
   
   def print_question(self) -> None:
