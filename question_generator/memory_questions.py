@@ -452,6 +452,8 @@ class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
   def __init__(self, *args, **kwargs):
     super().__init__(given_vars=[], target_vars=[], *args, **kwargs)
     
+    use_binary = random.randint(0,1) % 2 ==0
+    
     self.base = {
       "code" : 0,
       "heap" : 0,
@@ -475,29 +477,19 @@ class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
         for segment in base.keys()
       ]))
       
-    logging.debug(pprint.pformat(self.base))
-    logging.debug(pprint.pformat(self.bounds))
-    logging.debug(segment_collision(self.base, self.bounds))
-    logging.debug("")
       
     while (segment_collision(self.base, self.bounds)):
       for segment in self.base.keys():
         self.bounds[segment] = random.randint(1, max_bounds)
         self.base[segment] = random.randint(0, (2**self.physical_bits - self.bounds[segment]))
-      logging.debug(pprint.pformat(self.base))
-      logging.debug(pprint.pformat(self.bounds))
-      logging.debug(segment_collision(self.base, self.bounds))
-      logging.debug("")
     
     self.segment = random.choice(list(self.base.keys()) + ["unallocated"])
-    logging.debug(f"segment: {self.segment}")
     self.segment_bits = {
       "code" : 0,
       "heap" : 1,
       "unallocated" : 2,
       "stack" : 3
     }[self.segment]
-    logging.debug(f"segment_bits: 0b{self.segment_bits:02b}")
     
     try:
       self.virtual_address_offset = random.randint(0,
@@ -517,33 +509,29 @@ class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
     if self.segment == "unallocated" or (self.bounds[self.segment] < self.virtual_address_offset):
       self.physical_address_var = Variable("Physical Address", "INVALID")
     else:
-      if self.segment in ["code", "heap"]:
-        if (self.bounds[self.segment] < self.virtual_address_offset):
-          self.physical_address_var = Variable("Physical Address", "INVALID")
-        else:
-          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + self.virtual_address_offset, num_bits=self.physical_bits)
+      if not self.__within_bounds(self.segment, self.virtual_address_offset, self.bounds[self.segment]):
+        self.physical_address_var = Variable("Physical Address", "INVALID")
       else:
-        # stack is the annoying one, isn't it.
-        pass
-        neg_offset = self.virtual_address_offset - 2**(self.virtual_bits-2)
-        if self.bounds[segment] < abs(neg_offset):
-          self.physical_address_var = Variable("Physical Address", "INVALID")
+        
+        if self.segment in ["code", "heap"]:
+          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + self.virtual_address_offset, num_bits=self.physical_bits, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
         else:
-          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + neg_offset, num_bits=self.physical_bits)
+          neg_offset = self.virtual_address_offset - 2**(self.virtual_bits-2)
+          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + neg_offset, num_bits=self.physical_bits, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
           
       
-    self.virtual_address_var = VariableHex("Virtual Address", true_value=self.virtual_address, num_bits=self.virtual_bits)
-    self.segment_var = Variable("Segment", true_value=self.segment)
+    self.virtual_address_var = VariableHex("Virtual Address", true_value=self.virtual_address, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
+    self.segment_var = Variable("Segment", true_value=self.segment, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
     self.base_vars = {
-      "code" : VariableHex("Code Base", true_value=self.base["code"]),
-      "heap" : VariableHex("Heap Base", true_value=self.base["heap"]),
-      "stack" : VariableHex("Stack Base", true_value=self.base["stack"]),
+      "code" : VariableHex("Code Base", true_value=self.base["code"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
+      "heap" : VariableHex("Heap Base", true_value=self.base["heap"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
+      "stack" : VariableHex("Stack Base", true_value=self.base["stack"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
     }
     
     self.bounds_vars = {
-      "code" : VariableHex("Code Bound", true_value=self.bounds["code"]),
-      "heap" : VariableHex("Heap Bound", true_value=self.bounds["heap"]),
-      "stack" : VariableHex("Stack Bound", true_value=self.bounds["stack"]),
+      "code" : VariableHex("Code Bound", true_value=self.bounds["code"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
+      "heap" : VariableHex("Heap Bound", true_value=self.bounds["heap"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
+      "stack" : VariableHex("Stack Bound", true_value=self.bounds["stack"], default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)),
     }
     
     self.blank_vars.update({
@@ -579,7 +567,90 @@ class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
     
     return question_lines
   
-
+  def __within_bounds(self, segment, offset, bounds):
+    if segment == "unallocated":
+      return False
+    elif segment == "stack":
+      neg_offset = offset - 2**(self.virtual_bits-2)
+      if bounds < abs(neg_offset):
+        return False
+      else:
+        return True
+    else:
+      # Then we are in the code or the heap
+      if bounds < offset:
+        return False
+      else:
+        return True
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    explanation_lines = [
+      "The core idea to keep in mind with segmentation is that you should always check the first two bits of the virtual address to see what segment it is in and then go from there."
+      "Keep in mind, we also may need to include padding if our virtual address has a number of leading zeros left off!",
+      ""
+    ]
+    
+    explanation_lines.extend([
+      f"In this problem our virtual address, converted to binary and including padding, is 0b{self.virtual_address:0{self.virtual_bits}b}.",
+      f"From this we know that our segment bits are 0b{self.segment_bits:2b}, meaning that we are in the <b>{self.segment_var}</b> segment.",
+      ""
+    ])
+    
+    if self.segment == "unallocated":
+      explanation_lines.extend([
+        "Since this is the unallocated segment there are no possible valid translations, so we enter <b>INVALID</b>."
+      ])
+    else:
+      explanation_lines.extend([
+        f"Since we are in the {self.segment_var} segment, we see from our table that our bounds are {self.bounds_vars[self.segment]}. "
+        f"Remember that our check for our {self.segment_var} segment is: "
+      ])
+      
+      if self.segment == "stack":
+        explanation_lines.extend([
+          "abs(offset – MAX_SEGMENT_SIZE) <= bounds(stack)",
+          f"Where MAX_SEGMENT_SIZE is {2**(self.virtual_bits-2)} since our virtual address size is defined by {self.virtual_bits} bits.",
+          "This becomes:",
+          f"<code> if (abs(0b{self.virtual_address_offset:0b} - 0b{2**(self.virtual_bits-2):0b}) > 0b{self.bounds[self.segment]:0b}) : INVALID</code>",
+          "which becomes",
+          f"<code> if (abs(-0b{abs(self.virtual_address_offset - 2**(self.virtual_bits-2)):0b}) > 0b{self.bounds[self.segment]:0b} : INVALID</code>",
+          "which becomes",
+          f"<code> if (0b{abs(self.virtual_address_offset - 2**(self.virtual_bits-2)):0b}) > 0b{self.bounds[self.segment]:0b} : INVALID</code>",
+        ])
+      else:
+        explanation_lines.extend([
+          f"<code> if (offset > bounds({self.segment})) : INVALID</code>",
+          "which becomes"
+          f"<code> if ({self.virtual_address_offset:0b} > {self.bounds[self.segment]:0b}) : INVALID</code>"
+        ])
+        
+      if not self.__within_bounds(self.segment, self.virtual_address_offset, self.bounds[self.segment]):
+        # then we are outside of bounds
+        explanation_lines.extend([
+          "We can therefore see that we are outside of bounds so we should put <b>INVALID</b>.",
+          "If we <i>were</i> requesting a valid memory location we could use the below steps to do so."
+        ])
+      else:
+        explanation_lines.extend([
+          "We are therefore in bounds so we can calculate our physical address."
+        ])
+      
+      explanation_lines.append("")
+      
+      explanation_lines.extend([
+        "To find the physical address we use the formula:"
+      ])
+      if self.segment == "stack":
+        explanation_lines.extend([
+          "<code>physical_address = offset + (offset – MAX_SEGMENT_SIZE)<code>",
+          "which becomes",
+          "<code>physical_address = offset + (offset – MAX_SEGMENT_SIZE)<code>",
+        ])
+      
+      
+      
+    return explanation_lines
+    
 
 
 class Paging_canvas(Paging_with_table, CanvasQuestion):
