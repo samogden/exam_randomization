@@ -90,6 +90,8 @@ class BaseAndBounds(MemoryAccessQuestion):
       self
   ):
     
+    use_binary = random.randint(0,1) % 2 ==0
+    
     bounds_bits = random.randint(1, self.MAX_BOUNDS_BITS)
     base_bits = self.MAX_BITS - bounds_bits
     
@@ -97,14 +99,26 @@ class BaseAndBounds(MemoryAccessQuestion):
     self.base = random.randint(1, int(math.pow(2, base_bits))) * self.bounds
     self.virtual_address = random.randint(1, int(self.bounds / self.PROBABILITY_OF_VALID))
     
-    self.bounds_var = Variable("bounds", f"0x{self.bounds :X}")
-    self.base_var = Variable("Base", f"0x{self.base :X}")
-    self.virtual_address_var = Variable("Virtual Address", f"0x{self.virtual_address :X}")
+    self.bounds_var = VariableHex("Bounds", self.bounds, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
+    self.base_var = VariableHex("Base", self.base, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
+    self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX))
+    
+    logging.debug(f"bounds: {self.bounds}")
+    logging.debug(f"base: {self.base}")
+    logging.debug(f"va: {self.virtual_address}")
     
     if self.virtual_address < self.bounds:
-      self.physical_address_var = VariableHex("Physical Address", num_bits=(self.base + self.virtual_address), true_value=(self.virtual_address + self.base))
+      self.physical_address_var = VariableHex(
+        "Physical Address",
+        num_bits=math.ceil(math.log2(self.base + self.virtual_address)),
+        true_value=(self.virtual_address + self.base),
+        default_presentation=(VariableHex.PRESENTATION.BINARY if use_binary else VariableHex.PRESENTATION.HEX)
+      )
     else:
       self.physical_address_var = Variable("Physical Address", "INVALID")
+    
+    logging.debug(f"pa: {self.virtual_address + self.base}")
+    logging.debug(f"pa: {self.physical_address_var}")
     
     
     super().__init__(
@@ -341,6 +355,35 @@ class Paging_with_table(Paging):
 ######################
 ## Canvas Questions ##
 ######################
+
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    
+    line_to_add = ""
+    if self.num_va_bits in self.target_vars:
+      line_to_add += f"***{self.num_va_bits.true_value}***"
+    else:
+      line_to_add += f"{self.num_va_bits.true_value}"
+    
+    line_to_add += " = "
+    
+    if self.num_vpn_bits in self.target_vars:
+      line_to_add += f"***{self.num_vpn_bits.true_value}***"
+    else:
+      line_to_add += f"{self.num_vpn_bits.true_value}="
+    
+    line_to_add += " + "
+    
+    if self.num_offset_bits in self.target_vars:
+      line_to_add += f"***{self.num_offset_bits.true_value}***"
+    else:
+      line_to_add += f"{self.num_offset_bits.true_value}"
+    
+    return [
+      "VA = VPN + offset",
+      line_to_add
+    ]
+
 
 class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion):
   def __init__(self, *args, **kwargs):
