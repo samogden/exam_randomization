@@ -28,14 +28,13 @@
 
 \newcounter{NumQuestions}
 \newcounter{NumPoints}
-\newcommand{\question}[2]{ %
+\newcommand{\question}[1]{ %
     \vspace{1cm}\par %
     \stepcounter{NumQuestions} %
     \addtocounter{NumPoints}{ #1 } %
     \noindent\begin{minipage}[t]{0.9\textwidth}
     \noindent\textbf{Question \theNumQuestions:} \\%
     \ttfamily %
-    \noindent{ #2 } %
     \end{minipage}
     \noindent\begin{minipage}[t]{0.1\textwidth}
     \vspace{0pt}

@@ -134,10 +134,10 @@ class Question():
     return template.render()
   
   def get_question(self, env):
-    return f"\\question{{{self.value}}}{{\n{self.fill_in(env).replace('[', '{[').replace(']', ']}')}\n}}"
+    return f"\\question{{{{self.value}}}}\n{self.fill_in(env).replace('[', '{[').replace(']', ']}')}\n"
   
   def generate_latex(self, is_first=False):
-    return_str = f"\\question{{{self.value}}}{{\n{self.fill_in(self.env).replace('[', '{[').replace(']', ']}')}\n}}"
+    return_str = f"\\question{{{self.value}}}\n{self.fill_in(self.env).replace('[', '{[').replace(']', ']}')}\n"
     if self.clear_page:
       if is_first:
         return_str = return_str + "\\newpage"
