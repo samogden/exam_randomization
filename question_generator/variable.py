@@ -121,7 +121,7 @@ class VariableHex(Variable):
   
   def __str__(self):
     if self.default_presentation == VariableHex.PRESENTATION.HEX:
-      return f"0x{self.true_value:x}"
+      return f"0x{self.true_value:X}"
     elif self.default_presentation == VariableHex.PRESENTATION.DECIMAL:
       return f"{self.true_value}"
     elif self.default_presentation == VariableHex.PRESENTATION.BINARY:
