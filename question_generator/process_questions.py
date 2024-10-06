@@ -38,10 +38,10 @@ class SchedulingQuestion(Question, abc.ABC):
     ShortestTimeRemaining = enum.auto()
     RoundRobin = enum.auto()
   
-  MAX_JOBS = 5
-  MAX_ARRIVAL_TIME = 20
+  MAX_JOBS = 4
+  MAX_ARRIVAL_TIME = 15
   MIN_JOB_DURATION = 2
-  MAX_JOB_DURATION = 20
+  MAX_JOB_DURATION = 15
   
   ANSWER_EPSILON = 1.0
   
@@ -277,7 +277,7 @@ class SchedulingQuestion(Question, abc.ABC):
       ])
     
     # todo: make this less convoluted
-    self.average_response_var = VariableFloat(f"Average Response Time", self.overall_stats["Response"])
+    self.average_response_var = VariableFloat(f"Average Response Time", self.overall_stats["Response"] )
     self.average_tat_var = VariableFloat("Average Turnaround Time", self.overall_stats["TAT"])
     
     if single_target:
@@ -630,27 +630,58 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     
     return explanation_lines
 
+class ForkQuestion(CanvasQuestion):
+  def __init__(self, *args, **kwargs):
+    
+    given_variables = []
+    target_variables = []
+    
+    def generate_fork(chance_of_bad=0.5):
+      if random.random() < chance_of_bad:
+        return [
+          f"int rc = fork({random.randint(0,127)})"
+        ]
+      else :
+        return [
+          f"int rc = fork()"
+        ]
+    def generate_check(change_of_bad=0.5):
+      pass
+    
+    
+    # Generate a C program that forks...
+    
+    # I think the idea is that it'll do random stuff.  Basically have a few blocks that will:
+    # 1. fork off new processes
+    # 2. check to see if it's the parent or child
+    # 3. wait for processes
+    # 4. exec something
+    
+    # Question can essentially be a multiple choice that they can say how it's doing, as either:
+    # 1. yes this works as expected
+    # 2. no, this does not appropriately catch child processes
+    # 3. no, this does not appropriately exec
+    # 4. no, this does not appropriately run
+    # 5. no, other that's not listed
+    
+    # I can create this by having a series of functions that have a probability of generating a wrong answer that each time increases
+    # (pass in a 0.25 and each time square it or something so it quickly will definitely produce an error)
+    #
+    
+    super().__init__(
+      given_vars=given_variables,
+      target_vars=target_variables
+    )
+
+
 def main():
-  q = SchedulingQuestion(
-    kind=SchedulingQuestion.Kind.LIFO,
-    # num_jobs=3,
-    # max_arrival_time=5
-    # jobs = [
-    #   SchedulingQuestion.Job(6.0, 5.0),
-    #   SchedulingQuestion.Job(5.0, 9.0),
-    #   SchedulingQuestion.Job(1.0, 6.0),
-    #   SchedulingQuestion.Job(3.0, 2.0),
-    #   SchedulingQuestion.Job(1.0, 7.0),
-    # ]
-  )
+  q = ForkQuestion()
   for var in q.target_vars:
     print(var)
   # print(q.target_vars)
   
   print('\n'.join(q.get_question_body()))
   print('\n'.join(q.get_explanation()))
-
-
   
   
   
