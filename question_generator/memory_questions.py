@@ -1,4 +1,5 @@
 #!env python
+import pprint
 from typing import List, Dict
 
 from .question import Question, CanvasQuestion
@@ -442,6 +443,142 @@ class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion):
       ]
       )
     return explanation_lines
+
+
+class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
+  MAX_BITS = 32
+  MIN_VIRTUAL_BITS = 4
+  MAX_VIRTUAL_BITS = 10
+  def __init__(self, *args, **kwargs):
+    super().__init__(given_vars=[], target_vars=[], *args, **kwargs)
+    
+    self.base = {
+      "code" : 0,
+      "heap" : 0,
+      "stack" : 0,
+    }
+    self.bounds = {
+      "code" : 0,
+      "heap" : 0,
+      "stack" : 0,
+    }
+    
+    self.virtual_bits = random.randint(self.MIN_VIRTUAL_BITS, self.MAX_VIRTUAL_BITS)
+    self.physical_bits = random.randint(self.virtual_bits+1, self.MAX_BITS)
+    
+    max_bounds = 2**(self.virtual_bits - 3)
+    
+    def segment_collision(base, bounds):
+      # lol, I think this is probably silly, but should work
+      return 0 != len(set.intersection(*[
+        set(range(base[segment], base[segment]+bounds[segment]+1))
+        for segment in base.keys()
+      ]))
+      
+    logging.debug(pprint.pformat(self.base))
+    logging.debug(pprint.pformat(self.bounds))
+    logging.debug(segment_collision(self.base, self.bounds))
+    logging.debug("")
+      
+    while (segment_collision(self.base, self.bounds)):
+      for segment in self.base.keys():
+        self.bounds[segment] = random.randint(1, max_bounds)
+        self.base[segment] = random.randint(0, (2**self.physical_bits - self.bounds[segment]))
+      logging.debug(pprint.pformat(self.base))
+      logging.debug(pprint.pformat(self.bounds))
+      logging.debug(segment_collision(self.base, self.bounds))
+      logging.debug("")
+    
+    self.segment = random.choice(list(self.base.keys()) + ["unallocated"])
+    logging.debug(f"segment: {self.segment}")
+    self.segment_bits = {
+      "code" : 0,
+      "heap" : 1,
+      "unallocated" : 2,
+      "stack" : 3
+    }[self.segment]
+    logging.debug(f"segment_bits: 0b{self.segment_bits:02b}")
+    
+    try:
+      self.virtual_address_offset = random.randint(0,
+        min([
+          ((self.virtual_bits-2)**2)-1,
+          int(self.bounds[self.segment] / self.PROBABILITY_OF_VALID)
+        ])
+      )
+    except KeyError:
+      self.virtual_address_offset = random.randint(0, ((self.virtual_bits-2)**2)-1)
+      
+    self.virtual_address = (
+        (self.segment_bits << (self.virtual_bits - 2))
+        + self.virtual_address_offset
+    )
+    
+    if self.segment == "unallocated" or (self.bounds[self.segment] < self.virtual_address_offset):
+      self.physical_address_var = Variable("Physical Address", "INVALID")
+    else:
+      if self.segment in ["code", "heap"]:
+        if (self.bounds[self.segment] < self.virtual_address_offset):
+          self.physical_address_var = Variable("Physical Address", "INVALID")
+        else:
+          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + self.virtual_address_offset, num_bits=self.physical_bits)
+      else:
+        # stack is the annoying one, isn't it.
+        pass
+        neg_offset = self.virtual_address_offset - 2**(self.virtual_bits-2)
+        if self.bounds[segment] < abs(neg_offset):
+          self.physical_address_var = Variable("Physical Address", "INVALID")
+        else:
+          self.physical_address_var = VariableHex("Physical Address", true_value=self.base[self.segment] + neg_offset, num_bits=self.physical_bits)
+          
+      
+    self.virtual_address_var = VariableHex("Virtual Address", true_value=self.virtual_address, num_bits=self.virtual_bits)
+    self.segment_var = Variable("Segment", true_value=self.segment)
+    self.base_vars = {
+      "code" : VariableHex("Code Base", true_value=self.base["code"]),
+      "heap" : VariableHex("Heap Base", true_value=self.base["heap"]),
+      "stack" : VariableHex("Stack Base", true_value=self.base["stack"]),
+    }
+    
+    self.bounds_vars = {
+      "code" : VariableHex("Code Bound", true_value=self.bounds["code"]),
+      "heap" : VariableHex("Heap Bound", true_value=self.bounds["heap"]),
+      "stack" : VariableHex("Stack Bound", true_value=self.bounds["stack"]),
+    }
+    
+    self.blank_vars.update({
+      "segment_val" : self.segment_var,
+      "physical_address_val" : self.physical_address_var
+    })
+  
+  def get_question_body(self) -> List[str]:
+    question_lines = [
+      f"Given a virtual address space of {self.virtual_bits}bits, and a physical address space of {self.physical_bits}bits, what is the physical address associated with the virtual address {self.virtual_address_var}?",
+      "If it is invalid simply type INVALID"
+    ]
+    
+    question_lines.extend(
+      self.get_table_lines(
+        table_data={
+          "code": [self.base_vars["code"], self.bounds_vars["code"]],
+          "heap": [self.base_vars["heap"], self.bounds_vars["heap"]],
+          "stack": [self.base_vars["stack"], self.bounds_vars["stack"]],
+        },
+        sorted_keys=[
+          "code", "heap", "stack"
+        ],
+        headers=["base", "bounds"],
+        add_header_space=True
+      )
+    )
+    
+    question_lines.extend([
+      "Segment name: [segment_val]",
+      "Physical Address: [physical_address_val]"
+    ])
+    
+    return question_lines
+  
 
 
 
