@@ -191,6 +191,9 @@ def main():
     course,
     question_classes=[
       math_questions.BitsAndBytes,
+      math_questions.BitsAndBytes,
+      math_questions.HexAndBinary,
+      math_questions.HexAndBinary,
       math_questions.HexAndBinary
     ],
     # process_questions.SchedulingQuestion_canvas,
