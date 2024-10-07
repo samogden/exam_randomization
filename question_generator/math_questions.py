@@ -2,7 +2,7 @@
 from typing import List
 
 from .question import Question, CanvasQuestion
-from .variable import Variable, VariableHex
+from .variable import Variable, VariableBytes
 
 import random
 import math
@@ -15,27 +15,44 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 class BitsAndBytes(CanvasQuestion):
   MIN_BITS = 3
-  MAX_BITS = 32
+  MAX_BITS = 49
   
   def __init__(
       self,
-      num_bits=None
+      num_bits=None,
+      *args, **kwargs
   ):
-    if num_bits is None:
-      num_bits = random.randint(self.MIN_BITS, self.MAX_BITS)
-    self.num_bits = Variable("Number of bits", num_bits)
-    self.num_bytes = Variable("Number of bytes", int(math.pow(2, self.num_bits.true_value)))
-    super().__init__(given_vars=[self.num_bits, self.num_bytes])
+    super().__init__(given_vars=[], target_vars=[], *args, **kwargs)
+    self.from_binary = 0 == random.randint(0,1)
     
-    self.blank_vars.update({
-      "answer" : self.target_vars[0]
-    })
+    if num_bits is None:
+      self.num_bits = random.randint(self.MIN_BITS, self.MAX_BITS)
+      self.num_bytes = int(math.pow(2, self.num_bits))
+    
+    self.num_bits_var = Variable("Number of bits", self.num_bits)
+    self.num_bytes_var = VariableBytes("Number of Bytes", self.num_bytes)
+    
+    if self.from_binary:
+      self.blank_vars.update({
+        "answer" : self.num_bytes_var
+      })
+    else:
+      self.blank_vars.update({
+        "answer" : self.num_bits_var
+      })
+      
   
   def get_question_body(self, *args, **kwargs) -> List[str]:
-    question_lines = super().get_question_body(*args, **kwargs)
+    question_lines = []
+    
+    question_lines = [
+      f"Given that we have {self.num_bits_var if self.from_binary else self.num_bytes_var}{'bits' if self.from_binary else 'Bytes'}, "
+      f"how many {'bits' if not self.from_binary else 'Bytes'} "
+      f"{'do we need to address our memory' if not self.from_binary else 'of memory can be address'}?"
+    ]
     
     question_lines.extend([
-      f"{self.target_vars[0].name}: [answer]"
+      f"{'Address space size' if self.from_binary else 'Number of bits in address'}: [answer]{'bits' if not self.from_binary else 'Bytes'}"
     ])
     return question_lines
     
@@ -43,18 +60,20 @@ class BitsAndBytes(CanvasQuestion):
   def get_explanation(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "Remember that for these problems we use one of these two equations (which are equivalent)",
-      "1. log2(`Number of bytes`) = `Number of bits`",
-      "2. 2 ^ (`Number of bits`) = `Number of bytes`",
-      "Therefore, we calculate",
+      "<ul>"
+      r"<li> \( log_{2}(\text{#Bytes}) = \text{#bits} \) </li>",
+      r"<li> \( 2^{(\text{#bits})} = \text{#Bytes} \) </li>",
+      "</ul>",
+      "Therefore, we calculate:",
     ]
     
-    if self.num_bits in self.given_vars:
+    if self.from_binary:
       explanation_lines.extend([
-        f"2 ^ ({self.num_bits.true_value}) = ***{self.num_bytes.true_value}***"
+        f"\\( 2 ^ {{{self.num_bits}bits}} = \\textbf{{{self.num_bytes}}}Bytes \\)"
       ])
     else:
       explanation_lines.extend([
-        f"log2({self.num_bytes.true_value}) = ***{self.num_bits.true_value}***"
+        f"\\( log_{2}({self.num_bytes}Bytes) = \\textbf{{{self.num_bits}}}bits \\)"
       ])
     
     return explanation_lines
@@ -82,7 +101,13 @@ class HexAndBinary(CanvasQuestion):
     })
   
   def get_question_body(self, *args, **kwargs) -> List[str]:
-    question_lines = super().get_question_body(*args, **kwargs)
+    question_lines = []
+    question_lines.extend(super().get_question_prelude(*args, **kwargs))
+    question_lines.extend(super().get_question_body(*args, **kwargs))
+    
+    question_lines = [
+      f"Given the number {self.given_vars[0]} please convert it to the appropriate format below."
+    ]
     
     question_lines.extend([
       f"{self.target_vars[0].name}: [answer]"

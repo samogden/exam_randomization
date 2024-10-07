@@ -1,7 +1,9 @@
 #!env python
 import argparse
+import collections.abc
 import pprint
 import time
+import typing
 from datetime import datetime
 from typing import Dict, Set
 
@@ -16,6 +18,7 @@ print(sys.path)
 
 from question_generator import question as question_module
 from question_generator import memory_questions as memory_questions
+from question_generator import math_questions as math_questions
 from question_generator import process_questions as process_questions
 
 import logging
@@ -32,6 +35,8 @@ handler.setLevel(logging.WARNING)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
+
+QUESTION_GENERATOR_ATTEMPT_TIMEOUT_MULTIPLIER = 10
 
 
 def get_question_for_canvas(
@@ -66,7 +71,7 @@ def add_question_group(
     quiz: canvasapi.quiz.Quiz,
     num_to_add: int,
     existing_questions: Set[question_module.Question],
-    question_class : question_module.CanvasQuestion
+    question_class : question_module.CanvasQuestion,
 ):
   group = quiz.create_question_group([
     {
@@ -77,7 +82,9 @@ def add_question_group(
   ])
   
   questions_to_add = set()
-  while len(questions_to_add) < num_to_add:
+  counter = 0
+  while (len(questions_to_add) < num_to_add) and (counter < num_to_add * QUESTION_GENERATOR_ATTEMPT_TIMEOUT_MULTIPLIER):
+    counter += 1
     log.debug(f"Currently have {len(questions_to_add)}")
     new_question = question_class()
     if new_question in existing_questions:
@@ -114,15 +121,18 @@ def add_quiz(
 def create_quiz_with_questions(
     canvas: canvasapi.Canvas,
     course: canvasapi.course.Course,
-    question_class : question_module.CanvasQuestion,
+    question_classes : question_module.CanvasQuestion|typing.List[question_module.CanvasQuestion],
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
     questions_per_group = 10
 ):
   quiz = add_quiz(canvas, course, assignment_group)
   
+  if not isinstance(question_classes, collections.abc.Iterable):
+    question_classes = [question_classes]
+  
   quiz_questions = set()
-  for _ in range(num_groups):
+  for i in range(num_groups):
     quiz_questions.union(
       add_question_group(
         canvas,
@@ -130,7 +140,7 @@ def create_quiz_with_questions(
         quiz,
         questions_per_group,
         quiz_questions,
-        question_class
+        question_classes[i%len(question_classes)]
       )
     )
     
@@ -179,10 +189,14 @@ def main():
   create_quiz_with_questions(
     canvas,
     course,
-    process_questions.SchedulingQuestion_canvas,
-    assignment_group,
+    question_classes=[
+      math_questions.BitsAndBytes,
+      math_questions.HexAndBinary
+    ],
+    # process_questions.SchedulingQuestion_canvas,
+    assignment_group=assignment_group,
     num_groups=args.num_groups,
-    questions_per_group=args.questions_per_group
+    questions_per_group=args.questions_per_group,
   )
   
 

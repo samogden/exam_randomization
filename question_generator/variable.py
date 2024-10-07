@@ -130,10 +130,36 @@ class VariableHex(Variable):
   def get_answers(self) -> List[str]:
     return [
       f"{self.true_value}",
-      # f"{self.true_value:x}",
       f"0x{self.true_value:X}",
-      # f"{self.true_value:0{self.num_bits}b}",
       f"0b{self.true_value:0{self.num_bits}b}"
+    ]
+
+class VariableBytes(Variable):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+  
+  def get_answers(self) -> List[str]:
+    def bytes_to_human_readable(size_in_bytes):
+      # Define the SI units
+      SI_UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+      
+      # Start at the smallest unit (bytes)
+      unit_index = 0
+      
+      # Divide the size by 1000 while it's large enough to convert to the next unit
+      while size_in_bytes >= 1024 and unit_index < len(SI_UNITS) - 1:
+        size_in_bytes /= 1024
+        unit_index += 1
+      
+      # Format the number with two decimal places
+      return f"{size_in_bytes:.0f}{SI_UNITS[unit_index]}"
+    return [
+      f"{self.true_value}",
+      f"{bytes_to_human_readable(self.true_value)}",
+      f"{self.true_value}B",
+      f"{bytes_to_human_readable(self.true_value)}B",
+      f"{self.true_value}Bytes",
+      f"{bytes_to_human_readable(self.true_value)}Bytes",
     ]
 
 class Variable_BNFRule(Variable):
@@ -183,3 +209,4 @@ class Variable_BNFstr(Variable):
     ])
     
     return sorted(lines, key=(lambda _: random.random()))
+
