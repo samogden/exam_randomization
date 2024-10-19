@@ -190,11 +190,13 @@ def main():
     canvas,
     course,
     question_classes=[
-      math_questions.BitsAndBytes,
-      math_questions.BitsAndBytes,
-      math_questions.HexAndBinary,
-      math_questions.HexAndBinary,
-      math_questions.HexAndBinary
+      # math_questions.BitsAndBytes,
+      # math_questions.HexAndBinary,
+      # memory_questions.BaseAndBounds_canvas,
+      # memory_questions.Segmentation_canvas,
+      # memory_questions.Paging_canvas,
+      # process_questions.SchedulingQuestion_canvas,
+      memory_questions.CachingQuestion
     ],
     # process_questions.SchedulingQuestion_canvas,
     assignment_group=assignment_group,

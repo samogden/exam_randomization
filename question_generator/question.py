@@ -11,11 +11,12 @@ from .variable import Variable
 class Question:
   
   # todo: create question from given information, so we can recreate as necessary.  Basically pickle it lol
-  def __init__(self, given_vars: List[Variable], target_vars: List[Variable] = None, *args, **kwargs):
+  def __init__(self, given_vars: List[Variable]=None, target_vars: List[Variable] = None, *args, **kwargs):
     self.given_vars = given_vars
-    if target_vars is None:
-      target_vars = random.choices(self.given_vars, k=1)
-      self.given_vars.remove(target_vars[0])
+    if self.given_vars is not None:
+      if target_vars is None:
+        target_vars = random.choices(self.given_vars, k=1)
+        self.given_vars.remove(target_vars[0])
     self.target_vars = target_vars
     self.img = None
   
@@ -139,7 +140,8 @@ class Question:
       table_data: Dict[str,List[str]],
       headers: List[str] = [],
       sorted_keys: List[str] = None,
-      add_header_space: bool = False
+      add_header_space: bool = False,
+      hide_keys: bool = False
   ) -> List[str]:
     
     table_lines = ["<table  style=\"border: 1px solid black;\">"]
@@ -157,9 +159,10 @@ class Question:
     
     for key in sorted_keys:
       table_lines.append("<tr>")
-      table_lines.append(
-        f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
-      )
+      if not hide_keys:
+        table_lines.append(
+          f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
+        )
       table_lines.extend([
         f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
         for cell_text in table_data[key]
