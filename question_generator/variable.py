@@ -105,7 +105,7 @@ class VariableFloat(Variable):
       return result
     
     # answers = write_floats(self.true_value - self.epsilon, self.true_value + self.epsilon, 10**(-num_sig_figs))
-    answers = [f"{self.true_value:0.1f}"]
+    answers = [f"{self.true_value:0.2f}"]
     return answers
     
 
