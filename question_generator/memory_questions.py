@@ -846,7 +846,7 @@ class CachingQuestion(CanvasQuestion):
         upcoming_requests = self.all_requests[request_number+1:]
         self.cache_state = sorted(
           self.cache_state,
-          key=(lambda e: upcoming_requests.index(e) if e in upcoming_requests else -math.inf),
+          key=(lambda e: upcoming_requests.index(e) if e in upcoming_requests else (-math.inf, e)),
           reverse=False
         )
 
