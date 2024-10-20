@@ -2,7 +2,7 @@
 from typing import List
 
 from .question import Question, CanvasQuestion
-from .variable import Variable, VariableBytes
+from .variable import Variable, VariableBytes, VariableFloat
 
 import random
 import math
@@ -10,7 +10,8 @@ import math
 import logging
 
 logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 class BitsAndBytes(CanvasQuestion):
@@ -145,6 +146,68 @@ class HexAndBinary(CanvasQuestion):
       ])
     
     return explanation_lines
+
+class AverageMemoryAccessTime(CanvasQuestion):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    
+    orders_of_magnitude_different = random.randint(1,4)
+    self.hit_latency = random.randint(1,9)
+    self.miss_latency = int(random.randint(1, 9) * math.pow(10, orders_of_magnitude_different))
+    
+    if random.random() > 0.5:
+      # Then let's make it very close to 99%
+      self.hit_rate = (99 + random.random()) / 100
+    else:
+      self.hit_rate = random.random()
+    self.hit_rate = round(self.hit_rate, 4)
+  
+    self.amat = self.hit_rate * self.hit_latency + (1 - self.hit_rate) * self.miss_latency
+    self.amat_var = VariableFloat("Average Memory Access Time", true_value=self.amat)
+    self.blank_vars.update({
+      "amat" : self.amat_var
+    })
+    
+    log.debug(f"orders_of_magnitude_different: {orders_of_magnitude_different}")
+    log.debug(f"self.hit_latency: {self.hit_latency}")
+    log.debug(f"self.miss_latency: {self.miss_latency}")
+    log.debug(f"self.hit_rate: {self.hit_rate}")
+  
+  def get_question_body(self, *args, **kwargs) -> List[str]:
+    lines = [
+      "Please calculate the Average Memory Access Time given the below information.  Please round your answer to 2 decimal points.",
+      "<ul>",
+    ]
+    
+    info_lines = [
+      f" <li>Hit Latency: {self.hit_latency} cycles</li>"
+      f" <li>Miss Latency: {self.miss_latency} cycles</li>"
+    ]
+    if random.random() > 0.5:
+      info_lines.append(f" <li>Hit Rate: {100 * self.hit_rate: 0.2f}% </li>")
+    else:
+      info_lines.append(f" <li>Miss Rate: {100 * (1 - self.hit_rate): 0.2f}% </li>")
+    
+    lines.extend(random.sample(info_lines, len(info_lines)))
+    lines.append("</ul>")
+    
+    lines.extend([
+      "",
+      "Average Memory Access Time: [amat]cycles"
+    ])
+    
+    return lines
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    lines = [
+      "Remember that to calculate the Average Memory Access Time we weight both the hit and miss times by their relative likelihood.",
+      "That is, we calculate <tt>(hit_rate)*(hit_cost) + (1 - hit_rate)*(miss_cost)</tt>."
+      "",
+      "In this case, that calculation becomes:",
+      f"({self.hit_rate: 0.2f})*({self.hit_latency}) + ({1 - self.hit_rate: 0.2f})*({self.miss_latency}) = {self.amat:0.2f}cycles"
+    ]
+    return lines
+  
 
 def main():
   pass

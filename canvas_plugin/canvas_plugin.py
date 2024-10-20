@@ -196,7 +196,8 @@ def main():
       # memory_questions.Segmentation_canvas,
       # memory_questions.Paging_canvas,
       # process_questions.SchedulingQuestion_canvas,
-      memory_questions.CachingQuestion
+      # memory_questions.CachingQuestion,
+      math_questions.AverageMemoryAccessTime
     ],
     # process_questions.SchedulingQuestion_canvas,
     assignment_group=assignment_group,
