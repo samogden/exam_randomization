@@ -805,15 +805,6 @@ class CachingQuestion(CanvasQuestion):
       self.cache_state = [] # queue.Queue(maxsize=cache_size)
       self.last_used = collections.defaultdict(lambda: -math.inf)
       self.frequency = collections.defaultdict(lambda: 0)
-      
-      if kind == CachingQuestion.Kind.FIFO:
-        def sort_cache(cache):
-          return cache
-      elif kind == CachingQuestion.Kind.LRU:
-        def sort_cache(cache):
-          return sorted(cache, key=(lambda e: self.last_used[e]))
-      elif kind == CachingQuestion.Kind.LFU:
-        pass
     
     def query_cache(self, request, request_number):
       was_hit = request in self.cache_state
@@ -848,14 +839,14 @@ class CachingQuestion(CanvasQuestion):
       elif self.kind == CachingQuestion.Kind.LFU:
         self.cache_state = sorted(
           self.cache_state,
-          key=(lambda e: self.frequency[e]),
+          key=(lambda e: (self.frequency[e], e)),
           reverse=False
         )
       elif self.kind == CachingQuestion.Kind.Belady:
         upcoming_requests = self.all_requests[request_number+1:]
         self.cache_state = sorted(
           self.cache_state,
-          key=(lambda e: upcoming_requests.index(e) if e in upcoming_requests else math.inf),
+          key=(lambda e: upcoming_requests.index(e) if e in upcoming_requests else -math.inf),
           reverse=False
         )
 
@@ -867,7 +858,7 @@ class CachingQuestion(CanvasQuestion):
     self.cache_policy = random.choice(list(self.Kind))
     self.cache_size = cache_size
     
-    self.requests = list(range(cache_size)) + random.choices(population=list(range(num_elements)), k=(num_requests + 3))
+    self.requests = list(range(cache_size)) + random.choices(population=list(range(num_elements)), k=(num_requests))
     
     self.cache = CachingQuestion.Cache(self.cache_policy, self.cache_size, self.requests)
     
