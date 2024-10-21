@@ -846,8 +846,9 @@ class CachingQuestion(CanvasQuestion):
         upcoming_requests = self.all_requests[request_number+1:]
         self.cache_state = sorted(
           self.cache_state,
-          key=(lambda e: upcoming_requests.index(e) if e in upcoming_requests else (-math.inf, e)),
-          reverse=False
+          # key=(lambda e: (upcoming_requests.index(e), e) if e in upcoming_requests else (-math.inf, e)),
+          key=(lambda e: (upcoming_requests.index(e), -e) if e in upcoming_requests else (math.inf, -e)),
+          reverse=True
         )
 
       return (was_hit, evicted, self.cache_state)
@@ -855,7 +856,7 @@ class CachingQuestion(CanvasQuestion):
   def __init__(self, num_elements=5, cache_size=3, num_requests=10, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-    self.cache_policy = random.choice(list(self.Kind))
+    self.cache_policy = CachingQuestion.Kind.Belady #random.choice(list(self.Kind))
     self.cache_size = cache_size
     
     self.requests = list(range(cache_size)) + random.choices(population=list(range(num_elements)), k=(num_requests))
