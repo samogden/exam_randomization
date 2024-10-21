@@ -557,7 +557,7 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
       "For turnaround time (TAT) this would be:"
     ])
     explanation_lines.extend([
-      f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
+      f"Job{job_id}_TAT = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['TAT']:0.{self.ROUNDING_DIGITS}f}"
       for job_id in sorted(self.job_stats.keys())
     ])
     explanation_lines.extend(["\n"])
@@ -576,13 +576,13 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
       "For response time this would be:"
     ])
     explanation_lines.extend([
-      f"Job{job_id}_{self.job_stats['Response']} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
+      f"Job{job_id}_response = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
       for job_id in sorted(self.job_stats.keys())
     ])
     
     explanation_lines.extend(["\n"])
     summation_line = ' + '.join([
-      f"{self.job_stats[job_id][self.target]:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
+      f"{self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
     ])
     explanation_lines.extend([
       f"We then calculate the average of these to find the average Response time",
