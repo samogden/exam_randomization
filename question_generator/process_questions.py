@@ -537,10 +537,6 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     
     
     # Give the general formula
-    if self.target == "Response":
-      calculation_base = "start"
-    else:
-      calculation_base = "completion"
     explanation_lines.extend([
       "We do this by subtracting arrival time from either the completion time or the start time.  That is:"
       "",
@@ -580,7 +576,7 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
       "For response time this would be:"
     ])
     explanation_lines.extend([
-      f"Job{job_id}_{self.target} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
+      f"Job{job_id}_{self.job_stats['Response']} = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
       for job_id in sorted(self.job_stats.keys())
     ])
     
