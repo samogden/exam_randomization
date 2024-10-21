@@ -856,7 +856,7 @@ class CachingQuestion(CanvasQuestion):
   def __init__(self, num_elements=5, cache_size=3, num_requests=10, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-    self.cache_policy = CachingQuestion.Kind.Belady #random.choice(list(self.Kind))
+    self.cache_policy = random.choice(list(self.Kind))
     self.cache_size = cache_size
     
     self.requests = list(range(cache_size)) + random.choices(population=list(range(num_elements)), k=(num_requests))
