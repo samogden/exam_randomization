@@ -204,7 +204,7 @@ class AverageMemoryAccessTime(CanvasQuestion):
       "That is, we calculate <tt>(hit_rate)*(hit_cost) + (1 - hit_rate)*(miss_cost)</tt>."
       "",
       "In this case, that calculation becomes:",
-      f"({self.hit_rate: 0.2f})*({self.hit_latency}) + ({1 - self.hit_rate: 0.2f})*({self.miss_latency}) = {self.amat:0.2f}cycles"
+      f"({self.hit_rate: 0.4f})*({self.hit_latency}) + ({1 - self.hit_rate: 0.4f})*({self.miss_latency}) = {self.amat:0.2f}cycles"
     ]
     return lines
   
