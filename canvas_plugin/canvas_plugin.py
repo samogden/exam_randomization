@@ -89,6 +89,8 @@ def add_question_group(
     new_question = question_class()
     if new_question in existing_questions:
       continue
+    if not new_question.is_interesting():
+      continue
     questions_to_add.add(new_question)
     
   for q in questions_to_add:
@@ -195,9 +197,9 @@ def main():
       # memory_questions.BaseAndBounds_canvas,
       # memory_questions.Segmentation_canvas,
       # memory_questions.Paging_canvas,
-      # process_questions.SchedulingQuestion_canvas,
+      process_questions.SchedulingQuestion_canvas,
       # memory_questions.CachingQuestion,
-      math_questions.AverageMemoryAccessTime
+      # math_questions.AverageMemoryAccessTime
     ],
     # process_questions.SchedulingQuestion_canvas,
     assignment_group=assignment_group,

@@ -179,7 +179,11 @@ class Question:
       return cls.get_table_lines_markdown(*args, **kwargs)
     else:
       return cls.get_table_lines_html(*args, **kwargs)
-    
+  
+  def is_interesting(self) -> bool:
+    return True
+  
+  
 class CanvasQuestion(Question):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
