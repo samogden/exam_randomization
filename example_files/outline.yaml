@@ -1,0 +1,24 @@
+points: # Value of the quiz or exam
+  total: 100
+  by-value: # We give the number of questions per point value
+    - 8 : 8
+    - 4 : 4
+    - 2 : 8
+    - 1 : 4
+  by-total: # We give a total number of points and where they should draw from
+    - 64 : [8]
+    - 16 : [4]
+    - 20 : [2, 1]
+sources: # Origin of questions
+  #sort-order: []
+  minimum-number:
+    - memory
+      - minimum-number: 16 # total number of questions
+      - minimum-points: 67 # total number of points these questions should be worth
+      - by-points: # minimum number for each point value
+        - 8 : 4
+        - 4 : 2
+        - 2 : 4
+        - 1 : 1
+sections:  # Are we breaking up the exam into sections (e.g t/f)
+      

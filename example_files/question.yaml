@@ -1,0 +1,46 @@
+
+comment: |
+  The goal of this question is to show how I think we'll generally be generating questions if we do a full-scale approach.
+  The idea is that we will run the question_section and the answer_section, which each supplying the appropriate code or a built-in function if we are just looking for one input.
+  Meanwhile, given_varaibles and target_variables will have presentations that can be applied.
+category: grabbag
+value: 8
+given_variables:
+  - num_bits:
+      display_name: "Number of Bits"
+      possible_values: [3,8]
+      type: "DECIMAL"
+target_variables:
+  - num_bytes:
+      display_name: "Number of bytes"
+      type: "DECIMAL"
+target_generation_code: |
+  def generate(given_variables):
+    target_vars = {
+      "num_bytes" : 2**(given_variables["num_bits"] 
+    }
+    intermediate_vars = {}
+    return target_vars, intermediate_vars
+question_section:
+  code: |
+    def generate(given_vars, target_vars, intermediate_vars):
+      lines = [
+        f"Given that we have an address space represented using {given_vars['num_bits']}bits, how many bytes large is our address space?"
+      ]
+      return lines
+answer_section:
+  function:
+    name: fill_in_the_blank
+    target: num_bytes
+explanation_section:
+  code: |
+    def generate(given_vars, target_vars, intermediate_vars):
+      lines = [
+        f"Since we know that the size of each address space is how many bytes we can point at with our combinations of bits,"
+        f" we know that since we have {given_vars['num_bits']}, "
+        f" we therefore can calculate that we have {get_exponent_str(2, given_vars['num_bits'])}bytes in our address space."
+      ]
+  comment: |
+    Note that I'm assuming we have some function `get_exponent_str` that I have yet to write but which would adapt to whether we have mathjax or latex or something else.
+    
+
