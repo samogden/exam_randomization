@@ -79,12 +79,19 @@ class Quiz:
     questions_picked.update(random_set)
     self.questions = questions_picked
     
-  def generate(self, *args, **kwargs) -> List[str]:
-    lines = []
+  def generate(self, question_kind_sort_order=None, *args, **kwargs) -> List[str]:
+    def sort_func(q):
+      if question_kind_sort_order is not None:
+        try:
+          return (-q.value, question_kind_sort_order.index(q.kind))
+        except ValueError:
+          return (-q.value, float('inf'))
+      return -q.value
     
+    lines = []
     lines.extend(self.get_header(*args, **kwargs))
     lines.extend(["", ""])
-    for question in self.questions:
+    for question in sorted(self.questions, key=sort_func):
       lines.extend(question.generate(*args, **kwargs))
       lines.extend(["", ""])
     lines.extend(["", ""])
@@ -183,7 +190,7 @@ if __name__ == "__main__":
       No devices besides calculators are allowed to be used during the exam.
     """
   )
-  quiz.select_questions(40,
+  quiz.select_questions(100,
     exam_outline=[
       {
         "num_to_pick" : 2,
@@ -204,5 +211,13 @@ if __name__ == "__main__":
   log.debug(quiz.questions)
   quiz.describe()
   
-  print('\n'.join(quiz.generate(to_latex=True)))
+  print('\n'.join(
+    quiz.generate(
+      to_latex=True,
+      question_kind_sort_order=[
+        question.Question.KIND.MEMORY,
+        question.Question.KIND.PROCESS
+      ]
+    )
+  ))
   

@@ -73,6 +73,7 @@ class Question(abc.ABC):
       return [
         r"\noindent\begin{minipage}{\textwidth}",
         r"\question{" + str(self.value) + r"}",
+        r"\noindent\begin{minipage}{0.9\textwidth}",
       ]
     return []
   def get_body(self, *args, **kwargs) -> List[str]:
@@ -82,6 +83,7 @@ class Question(abc.ABC):
   def get_footer(self, *args, **kwargs) -> List[str]:
     if kwargs.get("to_latex", False):
       return [
+        r"\end{minipage}",
         r"\end{minipage}"
       ]
     return []
