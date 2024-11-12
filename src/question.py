@@ -60,7 +60,7 @@ class Question(abc.ABC):
     self.target_vars = {}
     self.intermediate_vars = {}
   
-  def generate(self, *args, **kwargs) -> List[str]:
+  def get_lines(self, *args, **kwargs) -> List[str]:
     return (
       self.get_header(*args, **kwargs)
       + self.get_body(*args, **kwargs)

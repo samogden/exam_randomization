@@ -3,6 +3,9 @@ import itertools
 import os.path
 import pprint
 import random
+import shutil
+import subprocess
+import tempfile
 
 import question
 
@@ -79,7 +82,7 @@ class Quiz:
     questions_picked.update(random_set)
     self.questions = questions_picked
     
-  def generate(self, question_kind_sort_order=None, *args, **kwargs) -> List[str]:
+  def get_lines(self, question_kind_sort_order=None, *args, **kwargs) -> List[str]:
     def sort_func(q):
       if question_kind_sort_order is not None:
         try:
@@ -92,7 +95,7 @@ class Quiz:
     lines.extend(self.get_header(*args, **kwargs))
     lines.extend(["", ""])
     for question in sorted(self.questions, key=sort_func):
-      lines.extend(question.generate(*args, **kwargs))
+      lines.extend(question.get_lines(*args, **kwargs))
       lines.extend(["", ""])
     lines.extend(["", ""])
     lines.extend(self.get_footer(*args, **kwargs))
@@ -155,20 +158,30 @@ class Quiz:
       ]
     return []
   
+def generate_latex(q: Quiz):
   
-  def get_extras__latex(self) -> List[str]:
-    """Get the includes and anything else we need to have in addition to questions"""
-    return []
+  tmp_tex = tempfile.NamedTemporaryFile('w')
   
-  
-  def get_latex(self) -> str:
-    return '\n'.join(
-      self.get_header__latex()
-      + self.get_extras__latex()
-      + self.get_questions__latex()
-      + self.get_footer__latex()
-    )
-  
+  tmp_tex.write('\n'.join(q.get_lines(to_latex=True)))
+  tmp_tex.flush()
+  p = subprocess.Popen(f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}", shell=True)
+  try:
+    p.wait(30)
+  except subprocess.TimeoutExpired:
+    logging.error("Latex Compile timed out")
+    p.kill()
+    logging.error("Copying output to debug.tex")
+    shutil.copy(f"{tmp_tex.name}", "debug.tex")
+    tmp_tex.close()
+    return
+  proc = subprocess.Popen(
+    f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}",
+    shell=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE
+  )
+  proc.wait(timeout=30)
+  tmp_tex.close()
   
   
 if __name__ == "__main__":
@@ -212,7 +225,7 @@ if __name__ == "__main__":
   quiz.describe()
   
   print('\n'.join(
-    quiz.generate(
+    quiz.get_lines(
       to_latex=True,
       question_kind_sort_order=[
         question.Question.KIND.MEMORY,
@@ -221,3 +234,5 @@ if __name__ == "__main__":
     )
   ))
   
+  for _ in range(10):
+    generate_latex(quiz)
