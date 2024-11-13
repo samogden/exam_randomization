@@ -8,7 +8,7 @@ import enum
 import inspect
 import pprint
 import yaml
-from typing import List
+from typing import List, Dict, Any
 import jinja2
 
 import logging
@@ -64,9 +64,16 @@ class Question(abc.ABC):
     return (
       self.get_header(*args, **kwargs)
       + self.get_body(*args, **kwargs)
-      + self.get_answer_fields(*args, **kwargs)
       + self.get_footer(*args, **kwargs)
     )
+  
+  @abc.abstractmethod
+  def get_body(self, *args, **kwargs) -> List[str]:
+    return []
+  
+  @abc.abstractmethod
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    pass
   
   def get_header(self, *args, **kwargs) -> List[str]:
     if kwargs.get("to_latex", False):
@@ -76,10 +83,7 @@ class Question(abc.ABC):
         r"\noindent\begin{minipage}{0.9\textwidth}",
       ]
     return []
-  def get_body(self, *args, **kwargs) -> List[str]:
-    return []
-  def get_answer_fields(self, *args, **kwargs) -> List[str]:
-    return []
+
   def get_footer(self, *args, **kwargs) -> List[str]:
     if kwargs.get("to_latex", False):
       return [
@@ -88,13 +92,86 @@ class Question(abc.ABC):
       ]
     return []
   
+  def get_answer_key(self, *args, **kwargs) -> Dict[str,Any|None]:
+    # todo: make not return Any
+    return {}
+
+  @classmethod
+  def get_table_lines_markdown(cls,
+      table_data: Dict[str,List[str]],
+      headers: List[str],
+      sorted_keys: List[str] = None,
+      add_header_space: bool = False
+  ) -> List[str]:
+    
+    if add_header_space:
+      table_lines = '| ' + '| '.join([" "] + headers) + "|\n"
+      table_lines += "|:-" + "|-:" * (len(headers)) + "|\n"
+    else:
+      table_lines = '| ' + '| '.join(headers) + "|\n"
+      table_lines += "|:-" * (len(headers)) + "|\n"
+    
+    # table_lines += "|:---- | :----|\n"
+    if sorted_keys is None:
+      sorted_keys = sorted(table_data.keys())
+    for key in sorted_keys:
+      table_lines += '| ' + ' | '.join([f"**{key}**"] + [str(d) for d in table_data[key]]) + ' |\n'
+    
+    return [table_lines]
   
+  @classmethod
+  def get_table_lines_html(cls,
+      table_data: Dict[str,List[str]],
+      headers: List[str] = [],
+      sorted_keys: List[str] = None,
+      add_header_space: bool = False,
+      hide_keys: bool = False
+  ) -> List[str]:
+    
+    table_lines = ["<table  style=\"border: 1px solid black;\">"]
+    table_lines.append("<tr>")
+    if add_header_space:
+      table_lines.append("<th></th>")
+    table_lines.extend([
+      f"<th style=\"padding: 5px;\">{h}</th>"
+      for h in headers
+    ])
+    table_lines.append("</tr>")
+    
+    if sorted_keys is None:
+      sorted_keys = sorted(table_data.keys())
+    
+    for key in sorted_keys:
+      table_lines.append("<tr>")
+      if not hide_keys:
+        table_lines.append(
+          f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
+        )
+      table_lines.extend([
+        f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
+        for cell_text in table_data[key]
+      ])
+      table_lines.append("</tr>")
+    
+    table_lines.append("</table>")
+    
+    return ['\n'.join(table_lines)]
+  
+  @classmethod
+  def get_table_lines(cls, *args, output_markdown=False, **kwargs):
+    if output_markdown:
+      return cls.get_table_lines_markdown(*args, **kwargs)
+    else:
+      return cls.get_table_lines_html(*args, **kwargs)
   
   @classmethod
   def from_yaml(cls, path_to_yaml):
     with open(path_to_yaml) as fid:
       question_dicts = yaml.safe_load_all(fid)
       log.debug(pprint.pformat(list(question_dicts)))
+
+
+
 
 class Question_legacy(Question):
   _jinja_env = None
@@ -152,4 +229,6 @@ class Question_legacy(Question):
             )
           )
     return questions
-    
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    return []
