@@ -47,7 +47,7 @@ class BitsAndBytes(CanvasQuestion):
     question_lines = []
     
     question_lines = [
-      f"Given that we have {self.num_bits_var if self.from_binary else self.num_bytes_var}{'bits' if self.from_binary else 'Bytes'}, "
+      f"Given that we have {self.num_bits_var if self.from_binary else self.num_bytes_var} {'bits' if self.from_binary else 'Bytes'}, "
       f"how many {'bits' if not self.from_binary else 'Bytes'} "
       f"{'do we need to address our memory' if not self.from_binary else 'of memory can be address'}?"
     ]
