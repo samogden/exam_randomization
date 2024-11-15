@@ -210,15 +210,15 @@ class Question_legacy(Question):
     with open(path_to_yaml) as fid:
       question_dicts = yaml.safe_load_all(fid)
       for question_dict in question_dicts:
+        log.debug(question_dict)
+        if not question_dict.get("enabled", True):
+          continue
         extra_attrs = {
           key : question_dict[key]
           for key in question_dict.keys()
           if key not in ["value", "kind", "text"]
         }
-        if "repeat" in question_dict:
-          repeat = question_dict["repeat"]
-        else:
-          repeat = 1
+        repeat = question_dict.get("repeat", 1)
         for _ in range(repeat):
           questions.append(
             cls(
