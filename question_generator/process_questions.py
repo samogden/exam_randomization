@@ -486,7 +486,7 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
   def get_question_prelude(self):
     return [
       f"Given the below information, compute the required values if using <b>{self.SCHEDULER_NAME}</b> scheduling.  Break any ties using the job number.",
-      "Please round all answers to 1 decimal place (even if they are whole numbers)."
+      "Please round all answers to 2 decimal places (even if they are whole numbers)."
     ]
   
   def get_question_body(self) -> List[str]:
@@ -516,8 +516,6 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     
     
     return question_lines
-  
-  
   
   def get_explanation(
       self,
@@ -625,6 +623,13 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     )
     
     return explanation_lines
+
+  def is_interesting(self) -> bool:
+    duration_sum = sum([self.job_stats[job_id]['duration'] for job_id in self.job_stats.keys()])
+    tat_sum = sum([self.job_stats[job_id]['TAT'] for job_id in self.job_stats.keys()])
+    log.debug(f"{tat_sum} >= {duration_sum * 1.5} ({duration_sum})")
+    return (tat_sum >= duration_sum * 1.5)
+
 
 class ForkQuestion(CanvasQuestion):
   def __init__(self, *args, **kwargs):

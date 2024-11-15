@@ -957,7 +957,8 @@ class CachingQuestion(CanvasQuestion):
     
     return lines
     
-    
+  def is_interesting(self) -> bool:
+    return (self.hit_rate / 100.0) < 0.5
     
     
     
