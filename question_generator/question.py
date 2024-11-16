@@ -13,6 +13,11 @@ import canvasapi.quiz
 
 from .variable import Variable
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
 class Question:
   
   # todo: create question from given information, so we can recreate as necessary.  Basically pickle it lol
@@ -231,23 +236,20 @@ class CanvasQuestion__fill_in_the_blanks(CanvasQuestion):
       "neutral_comments_html": '<br>\n'.join(self.get_explanation(course, quiz))
     }
 
-class CanvasQuestion__multiple_dropdowns(CanvasQuestion):
+class CanvasQuestion__multiple_choice(CanvasQuestion):
   pass
   def get_question_for_canvas(self, course: canvasapi.course.Course, quiz: canvasapi.quiz.Quiz, *args, **kwargs) -> Dict:
     question_text = '<br>\n'.join(self.get_question_body())
     answers = []
-    for blank_name, var in self.blank_vars.items():
-      for variation in var.get_answers():
-        answers.append({
-          "blank_id": blank_name,
-          "answer_text": variation,
-          "answer_weight": 100,
-        })
-    logging.debug(f"question.img: {self.img}")
+    for i, (answer_identifier, var) in enumerate(self.blank_vars.items()):
+      answers.append({
+        "answer_text" : var,
+        "answer_weight" : 100 if "answer_idenfier" is "answer" else 0
+      })
     return {
       "question_name": f"question created at {datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
       "question_text": f"{question_text}",
-      "question_type": "fill_in_multiple_blanks_question",
+      "question_type": "multiple_choice_question",
       "points_possible": 1,
       "answers": answers,
       "neutral_comments_html": '<br>\n'.join(self.get_explanation(course, quiz))
