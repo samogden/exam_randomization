@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class HardDriveAccessTime(CanvasQuestion):
+class HardDriveAccessTime(CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
@@ -127,7 +127,7 @@ class HardDriveAccessTime(CanvasQuestion):
 
 
 
-class HardDriveAccessTime(CanvasQuestion):
+class INodeAccesses(CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     

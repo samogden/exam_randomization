@@ -18,7 +18,7 @@ import canvasapi.quiz
 
 import matplotlib.colors
 
-from .question import Question, CanvasQuestion
+from .question import Question, CanvasQuestion__fill_in_the_blanks
 from .variable import Variable, VariableFloat
 
 import dataclasses
@@ -468,7 +468,7 @@ class SchedulingQuestion(Question, abc.ABC):
     
     return explanation_lines
     
-class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
+class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
@@ -631,7 +631,7 @@ class SchedulingQuestion_canvas(SchedulingQuestion, CanvasQuestion):
     return (tat_sum >= duration_sum * 1.5)
 
 
-class ForkQuestion(CanvasQuestion):
+class ForkQuestion(CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     
     given_variables = []

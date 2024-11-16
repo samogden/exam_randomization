@@ -1,7 +1,7 @@
 #!env python
 from typing import List
 
-from .question import Question, CanvasQuestion
+from .question import Question, CanvasQuestion__fill_in_the_blanks
 from .variable import Variable, VariableBytes, VariableFloat
 
 import random
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class BitsAndBytes(CanvasQuestion):
+class BitsAndBytes(CanvasQuestion__fill_in_the_blanks):
   MIN_BITS = 3
   MAX_BITS = 49
   
@@ -79,7 +79,7 @@ class BitsAndBytes(CanvasQuestion):
     
     return explanation_lines
 
-class HexAndBinary(CanvasQuestion):
+class HexAndBinary(CanvasQuestion__fill_in_the_blanks):
   MIN_HEXITS = 1
   MAX_HEXITS = 8
   
@@ -147,7 +147,7 @@ class HexAndBinary(CanvasQuestion):
     
     return explanation_lines
 
-class AverageMemoryAccessTime(CanvasQuestion):
+class AverageMemoryAccessTime(CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
