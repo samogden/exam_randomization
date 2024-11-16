@@ -8,7 +8,7 @@ import pprint
 import queue
 from typing import List, Dict
 
-from .question import Question, CanvasQuestion
+from .question import Question, CanvasQuestion__fill_in_the_blanks
 from .variable import Variable, VariableHex, VariableFloat
 
 import random
@@ -394,7 +394,7 @@ class Paging_with_table(Paging):
     ]
 
 
-class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion):
+class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
@@ -453,7 +453,7 @@ class BaseAndBounds_canvas(BaseAndBounds, CanvasQuestion):
     return explanation_lines
 
 
-class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
+class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion__fill_in_the_blanks):
   MAX_BITS = 32
   MIN_VIRTUAL_BITS = 5
   MAX_VIRTUAL_BITS = 10
@@ -645,7 +645,7 @@ class Segmentation_canvas(MemoryAccessQuestion, CanvasQuestion):
     
 
 
-class Paging_canvas(Paging_with_table, CanvasQuestion):
+class Paging_canvas(Paging_with_table, CanvasQuestion__fill_in_the_blanks):
   
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -785,7 +785,7 @@ class Paging_canvas(Paging_with_table, CanvasQuestion):
     ])
     return explanation_lines
 
-class CachingQuestion(CanvasQuestion):
+class CachingQuestion(CanvasQuestion__fill_in_the_blanks):
   
   class Kind(enum.Enum):
     FIFO = enum.auto()
@@ -957,7 +957,8 @@ class CachingQuestion(CanvasQuestion):
     
     return lines
     
-    
+  def is_interesting(self) -> bool:
+    return (self.hit_rate / 100.0) < 0.5
     
     
     

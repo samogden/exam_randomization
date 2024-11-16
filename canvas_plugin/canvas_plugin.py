@@ -20,6 +20,7 @@ from question_generator import question as question_module
 from question_generator import memory_questions as memory_questions
 from question_generator import math_questions as math_questions
 from question_generator import process_questions as process_questions
+from question_generator import persistance_questions
 
 import logging
 logging.basicConfig()
@@ -36,33 +37,9 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
 
-QUESTION_GENERATOR_ATTEMPT_TIMEOUT_MULTIPLIER = 10
+QUESTION_GENERATOR_ATTEMPT_TIMEOUT_MULTIPLIER = 100
 
 
-def get_question_for_canvas(
-    course: canvasapi.course.Course,
-    quiz: canvasapi.quiz.Quiz,
-    question: question_module.CanvasQuestion,
-) -> Dict:
-  
-  question_text = '<br>\n'.join(question.get_question_body())
-  answers = []
-  for blank_name, var in question.blank_vars.items():
-    for variation in var.get_answers():
-      answers.append({
-        "blank_id": blank_name,
-        "answer_text": variation,
-        "answer_weight": 100,
-      })
-  log.debug(f"question.img: {question.img}")
-  return {
-    "question_name": f"question created at {datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
-    "question_text": f"{question_text}",
-    "question_type": "fill_in_multiple_blanks_question",
-    "points_possible": 1,
-    "answers": answers,
-    "neutral_comments_html": '<br>\n'.join(question.get_explanation(course, quiz))
-  }
   
 
 def add_question_group(
@@ -71,7 +48,7 @@ def add_question_group(
     quiz: canvasapi.quiz.Quiz,
     num_to_add: int,
     existing_questions: Set[question_module.Question],
-    question_class : question_module.CanvasQuestion,
+    question_class : typing.Type[question_module.CanvasQuestion],
 ):
   group = quiz.create_question_group([
     {
@@ -81,7 +58,7 @@ def add_question_group(
     }
   ])
   
-  questions_to_add = set()
+  questions_to_add : Set[question_module.CanvasQuestion] = set()
   counter = 0
   while (len(questions_to_add) < num_to_add) and (counter < num_to_add * QUESTION_GENERATOR_ATTEMPT_TIMEOUT_MULTIPLIER):
     counter += 1
@@ -93,9 +70,10 @@ def add_question_group(
       continue
     questions_to_add.add(new_question)
     
-  for q in questions_to_add:
-    question_for_canvas = get_question_for_canvas(course, quiz, q)
+  for i, q in enumerate(questions_to_add):
+    question_for_canvas = q.get_question_for_canvas(course, quiz) # get_question_for_canvas(course, quiz, q)
     question_for_canvas["quiz_group_id"] = group.id
+    log.info(f"Adding {q.__class__.__name__} {i+1}/{len(questions_to_add)}")
     quiz.create_question(question=question_for_canvas)
   
   return questions_to_add
@@ -123,7 +101,7 @@ def add_quiz(
 def create_quiz_with_questions(
     canvas: canvasapi.Canvas,
     course: canvasapi.course.Course,
-    question_classes : question_module.CanvasQuestion|typing.List[question_module.CanvasQuestion],
+    question_classes : typing.Type[question_module.CanvasQuestion] | typing.List[typing.Type[question_module.CanvasQuestion]],
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
     questions_per_group = 10
@@ -197,9 +175,12 @@ def main():
       # memory_questions.BaseAndBounds_canvas,
       # memory_questions.Segmentation_canvas,
       # memory_questions.Paging_canvas,
-      process_questions.SchedulingQuestion_canvas,
+      # process_questions.SchedulingQuestion_canvas,
       # memory_questions.CachingQuestion,
-      # math_questions.AverageMemoryAccessTime
+      # math_questions.AverageMemoryAccessTime,
+      persistance_questions.HardDriveAccessTime,
+      persistance_questions.INodeAccesses,
+      persistance_questions.VSFS_states
     ],
     # process_questions.SchedulingQuestion_canvas,
     assignment_group=assignment_group,

@@ -1,4 +1,6 @@
 #!env python
+import abc
+import datetime
 import logging
 import sys
 import textwrap
@@ -6,7 +8,15 @@ import time
 import random
 from typing import List, Dict
 
+import canvasapi.course
+import canvasapi.quiz
+
 from .variable import Variable
+
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 class Question:
   
@@ -57,7 +67,7 @@ class Question:
   def to_markdown(self) -> str:
 
     def escape_markdown(l) -> str:
-      return l.replace('#', '\#')
+      return l.replace('#', r'\#')
   
   
     question_body = ""
@@ -182,9 +192,9 @@ class Question:
   
   def is_interesting(self) -> bool:
     return True
-  
-  
-class CanvasQuestion(Question):
+
+
+class CanvasQuestion(Question, abc.ABC):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.blank_vars: Dict[str,Variable] = {}
@@ -197,3 +207,50 @@ class CanvasQuestion(Question):
   def __hash__(self):
     logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
     return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))
+  
+  @abc.abstractmethod
+  def get_question_for_canvas(self, course: canvasapi.course.Course, quiz: canvasapi.quiz.Quiz, *args, **kwargs) -> Dict:
+    pass
+
+
+class CanvasQuestion__fill_in_the_blanks(CanvasQuestion):
+  pass
+  def get_question_for_canvas(self, course: canvasapi.course.Course, quiz: canvasapi.quiz.Quiz, *args, **kwargs) -> Dict:
+    # todo: find some way to avoid passing in course and quiz, but right now they're necessary for images
+    question_text = '<br>\n'.join(self.get_question_body())
+    answers = []
+    for blank_name, var in self.blank_vars.items():
+      for variation in var.get_answers():
+        answers.append({
+          "blank_id": blank_name,
+          "answer_text": variation,
+          "answer_weight": 100,
+        })
+    logging.debug(f"question.img: {self.img}")
+    return {
+      "question_name": f"question created at {datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
+      "question_text": f"{question_text}",
+      "question_type": "fill_in_multiple_blanks_question",
+      "points_possible": 1,
+      "answers": answers,
+      "neutral_comments_html": '<br>\n'.join(self.get_explanation(course, quiz))
+    }
+
+class CanvasQuestion__multiple_choice(CanvasQuestion):
+  pass
+  def get_question_for_canvas(self, course: canvasapi.course.Course, quiz: canvasapi.quiz.Quiz, *args, **kwargs) -> Dict:
+    question_text = '<br>\n'.join(self.get_question_body())
+    answers = []
+    for i, (answer_identifier, var) in enumerate(self.blank_vars.items()):
+      answers.append({
+        "answer_text" : var,
+        "answer_weight" : 100 if "answer_idenfier" is "answer" else 0
+      })
+    return {
+      "question_name": f"question created at {datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
+      "question_text": f"{question_text}",
+      "question_type": "multiple_choice_question",
+      "points_possible": 1,
+      "answers": answers,
+      "neutral_comments_html": '<br>\n'.join(self.get_explanation(course, quiz))
+    }

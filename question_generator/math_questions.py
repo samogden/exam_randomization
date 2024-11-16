@@ -1,7 +1,7 @@
 #!env python
 from typing import List
 
-from .question import Question, CanvasQuestion
+from .question import Question, CanvasQuestion__fill_in_the_blanks
 from .variable import Variable, VariableBytes, VariableFloat
 
 import random
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class BitsAndBytes(CanvasQuestion):
+class BitsAndBytes(CanvasQuestion__fill_in_the_blanks):
   MIN_BITS = 3
   MAX_BITS = 49
   
@@ -47,7 +47,7 @@ class BitsAndBytes(CanvasQuestion):
     question_lines = []
     
     question_lines = [
-      f"Given that we have {self.num_bits_var if self.from_binary else self.num_bytes_var}{'bits' if self.from_binary else 'Bytes'}, "
+      f"Given that we have {self.num_bits_var if self.from_binary else self.num_bytes_var} {'bits' if self.from_binary else 'Bytes'}, "
       f"how many {'bits' if not self.from_binary else 'Bytes'} "
       f"{'do we need to address our memory' if not self.from_binary else 'of memory can be address'}?"
     ]
@@ -79,7 +79,7 @@ class BitsAndBytes(CanvasQuestion):
     
     return explanation_lines
 
-class HexAndBinary(CanvasQuestion):
+class HexAndBinary(CanvasQuestion__fill_in_the_blanks):
   MIN_HEXITS = 1
   MAX_HEXITS = 8
   
@@ -147,7 +147,7 @@ class HexAndBinary(CanvasQuestion):
     
     return explanation_lines
 
-class AverageMemoryAccessTime(CanvasQuestion):
+class AverageMemoryAccessTime(CanvasQuestion__fill_in_the_blanks):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
