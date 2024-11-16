@@ -8,3 +8,4 @@ out/
 .env
 output.csv
 imgs/
+debug.tex
