@@ -1,11 +1,15 @@
 #!env python
-
+import pprint
 import random
 import math
 from typing import List
 
-from .question import Question, CanvasQuestion
+
+from .question import Question, CanvasQuestion__fill_in_the_blanks, CanvasQuestion__multiple_choice
 from .variable import Variable, VariableBytes, VariableFloat
+
+from .ostep13_vsfs import fs as vsfs
+
 
 import logging
 logging.basicConfig()
@@ -202,7 +206,7 @@ class INodeAccesses(CanvasQuestion__fill_in_the_blanks):
       r"$$ {addr}_{inode} = {addr}_{inode\_start} + (\text{inode#}) \cdot (\text{inode size}) = " + f"{self.inode_start_location} + {self.inode_number} \\cdot {self.inode_size} = {self.inode_address}" + " $$",
       "",
       "Next, we us this to figure out what block the inode is in.  We do this directly so we know what block to load, thus minimizing the number of loads we have to make."
-      r"$$ \text{block_to_load} = {addr}_{inode} \mathbin{//} (\text{block size}) = " + f"{self.inode_address} \mathbin{{//}} {self.block_size} = {self.inode_block}" + "$$",
+      r"$$ \text{block_to_load} = {addr}_{inode} \mathbin{//} (\text{block size}) = " + f"{self.inode_address} \\mathbin{{//}} {self.block_size} = {self.inode_block}" + "$$",
       "",
       "When we load this block, we now have in our system memory (remember, blocks on the hard drive are effectively useless to us until they're in main memory!), the inode, so next we need to figure out where it is within that block."
       "This means that we'll need to find the offset into this block.  We'll calculate this both as the offset in bytes, and also in number of inodes, since we can use array indexing.",
@@ -212,6 +216,67 @@ class INodeAccesses(CanvasQuestion__fill_in_the_blanks):
       r"$$ \text{index within block} = \frac{\text{offset within block}}{\text{inode size}} = " + f"\\frac{{{self.inode_address_in_block}}}{{{self.inode_size}}} = {self.inode_index_in_block}" + "$$"
     ])
     
+    return lines
+
+
+class VSFS_states(CanvasQuestion__multiple_choice):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    
+    fs = vsfs(8, 8)
+    operations = fs.run_for_steps(10)
+    
+    self.start_state = operations[-1]["start_state"]
+    self.end_state = operations[-1]["end_state"]
+  
+    wrong_answers = list(filter(
+      lambda o: o != operations[-1]["cmd"],
+      map(
+        lambda o: o["cmd"],
+        operations
+      )
+    ))
+    random.shuffle(wrong_answers)
+    
+    
+    self.blank_vars.update({
+      "answer" :  f"{operations[-1]['cmd']}"
+    })
+    self.blank_vars.update({
+      f"incorrect_{i}" : f"{wrong_op}"
+      for i, wrong_op in enumerate(wrong_answers[:5])
+    })
+  
+  
+  def get_question_body(self, *args, **kwargs) -> List[str]:
+    lines = []
+    
+    lines.extend([
+      "What operation happens between these two states?",
+      "",
+      "<pre><code>",
+      self.start_state,
+      "</code></pre>",
+      "???",
+      "<pre><code>",
+      self.end_state,
+      "</code></pre>",
+    ])
+    
+    return lines
+  
+  def get_explanation(self, *args, **kwargs) -> List[str]:
+    lines = [
+      "These questions are based on the VSFS simulator that our book mentions.  We will be discussing the interpretation of this in class, but you can also find information <a href=\"https://github.com/chyyuu/os_tutorial_lab/blob/master/ostep/ostep13-vsfs.md\">here</a>, as well as simulator code.  Please note that the code uses python 2.",
+      "",
+      "In general, I recommend looking for differences between the two outputs.  Recommended steps would be:",
+      "<ol>"
+      "<li> Check to see if there are differences between the bitmaps that could indicate a file/directroy were created or removed.</li>",
+      "<li>Check the listed inodes to see if any entries have changed.  This might be a new entry entirely or a reference count changing.  If the references increased then this was likely a link or creation, and if it decreased then it is likely an unlink.</li>",
+      "<li>Look at the data blocks to see if a new entry has been added to a directory or a new block has been mapped.</li>",
+      "</ol>",
+      "These steps can usually help you quickly identify what has occured in the simulation and key you in to the right answer."
+    ]
     
     return lines
   
