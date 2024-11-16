@@ -48,13 +48,13 @@ def add_question_group(
     quiz: canvasapi.quiz.Quiz,
     num_to_add: int,
     existing_questions: Set[question_module.Question],
-    question_class : question_module.CanvasQuestion__fill_in_the_blanks,
+    question_class : typing.Type[question_module.CanvasQuestion],
 ):
   group = quiz.create_question_group([
     {
       "name": "Paging Questions",
       "pick_count": 1,
-      "question_points": 0.5
+      "question_points": 1
     }
   ])
   
@@ -70,9 +70,10 @@ def add_question_group(
       continue
     questions_to_add.add(new_question)
     
-  for q in questions_to_add:
+  for i, q in enumerate(questions_to_add):
     question_for_canvas = q.get_question_for_canvas(course, quiz) # get_question_for_canvas(course, quiz, q)
     question_for_canvas["quiz_group_id"] = group.id
+    log.info(f"Adding {q.__class__.__name__} {i+1}/{len(questions_to_add)}")
     quiz.create_question(question=question_for_canvas)
   
   return questions_to_add
@@ -177,8 +178,8 @@ def main():
       # process_questions.SchedulingQuestion_canvas,
       # memory_questions.CachingQuestion,
       # math_questions.AverageMemoryAccessTime,
-      # persistance_questions.HardDriveAccessTime,
-      # persistance_questions.INodeAccesses,
+      persistance_questions.HardDriveAccessTime,
+      persistance_questions.INodeAccesses,
       persistance_questions.VSFS_states
     ],
     # process_questions.SchedulingQuestion_canvas,
