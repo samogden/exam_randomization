@@ -50,12 +50,6 @@ class HardDriveAccessTime(CanvasQuestion__fill_in_the_blanks):
     self.transfer_delay_var = VariableFloat("Transfer Delay", self.transfer_delay)
     self.disk_access_delay_var = VariableFloat("Disk Access Delay", self.disk_access_delay)
     
-    log.debug(f"self.rotational_delay: {self.rotational_delay}")
-    log.debug(f"self.access_delay: {self.access_delay}")
-    log.debug(f"self.transfer_delay: {self.transfer_delay}")
-    log.debug(f"self.disk_access_delay: {self.disk_access_delay}")
-    
-    
     self.blank_vars.update({
       "rotational_delay" : self.rotational_delay_var,
       "access_delay" : self.access_delay_var,
