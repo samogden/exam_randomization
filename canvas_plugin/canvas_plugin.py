@@ -100,7 +100,7 @@ def add_quiz(
 def create_quiz_with_questions(
     canvas: canvasapi.Canvas,
     course: canvasapi.course.Course,
-    question_classes : question_module.CanvasQuestion__fill_in_the_blanks | typing.List[question_module.CanvasQuestion__fill_in_the_blanks],
+    question_classes : typing.Type[question_module.CanvasQuestion] | typing.List[typing.Type[question_module.CanvasQuestion]],
     assignment_group: canvasapi.course.AssignmentGroup|None = None,
     num_groups = 5,
     questions_per_group = 10
@@ -169,17 +169,17 @@ def main():
     canvas,
     course,
     question_classes=[
-      math_questions.BitsAndBytes,
-      math_questions.HexAndBinary,
-      memory_questions.BaseAndBounds_canvas,
-      memory_questions.Segmentation_canvas,
-      memory_questions.Paging_canvas,
-      process_questions.SchedulingQuestion_canvas,
-      memory_questions.CachingQuestion,
-      math_questions.AverageMemoryAccessTime,
-      persistance_questions.HardDriveAccessTime,
-      persistance_questions.INodeAccesses,
-      # persistance_questions.VSFS_states
+      # math_questions.BitsAndBytes,
+      # math_questions.HexAndBinary,
+      # memory_questions.BaseAndBounds_canvas,
+      # memory_questions.Segmentation_canvas,
+      # memory_questions.Paging_canvas,
+      # process_questions.SchedulingQuestion_canvas,
+      # memory_questions.CachingQuestion,
+      # math_questions.AverageMemoryAccessTime,
+      # persistance_questions.HardDriveAccessTime,
+      # persistance_questions.INodeAccesses,
+      persistance_questions.VSFS_states
     ],
     # process_questions.SchedulingQuestion_canvas,
     assignment_group=assignment_group,
