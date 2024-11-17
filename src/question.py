@@ -16,6 +16,9 @@ from typing import List, Dict, Any, Tuple
 import jinja2
 
 import logging
+
+from misc import OutputFormat
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -77,19 +80,19 @@ class Question(abc.ABC):
     logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
     return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))
   
-  def get_lines(self, *args, **kwargs) -> List[str]:
+  def get_lines(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
     return (
-      self.get_header(*args, **kwargs)
-      + self.get_body(*args, **kwargs)
-      + self.get_footer(*args, **kwargs)
+      self.get_header(output_format, *args, **kwargs)
+      + self.get_body(output_format, *args, **kwargs)
+      + self.get_footer(output_format, *args, **kwargs)
     )
   
   def get_question_for_canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
-    question_text = '<br>\n'.join(self.get_lines(*args, **kwargs))
+    question_text = '<br>\n'.join(self.get_lines(OutputFormat.CANVAS, *args, **kwargs))
     question_type, answers = self.get_answers(*args, **kwargs)
     return {
       "question_name": f"question created at {datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
-      "question_text": f"{question_text}",
+      "question_text": question_text.replace(r"\answerblank{3}", "[answer]"),
       "question_type": question_type, #e.g. "fill_in_multiple_blanks"
       "points_possible": 1,
       "answers": answers,

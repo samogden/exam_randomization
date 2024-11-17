@@ -1,5 +1,6 @@
 #!env python
 import collections
+import enum
 import itertools
 import os.path
 import pprint
@@ -11,6 +12,7 @@ import tempfile
 import question
 import canvas_interface
 from premade_questions import math_questions
+from misc import OutputFormat
 
 from typing import List, Dict
 
@@ -19,6 +21,8 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
+  
 class Quiz:
   """
   A quiz object that will build up questions and output them in a range of formats (hopefully)
@@ -108,20 +112,20 @@ class Quiz:
       questions_picked = self.possible_questions
     self.questions = questions_picked
     
-  def get_lines(self,  *args, **kwargs) -> List[str]:
+  def get_lines(self, output_format: OutputFormat,  *args, **kwargs) -> List[str]:
     
     lines = []
-    lines.extend(self.get_header(*args, **kwargs))
+    lines.extend(self.get_header(output_format, *args, **kwargs))
     lines.extend(["", ""])
     for question in self:
-      lines.extend(question.get_lines(*args, **kwargs))
+      lines.extend(question.get_lines(output_format, *args, **kwargs))
       lines.extend(["", ""])
     lines.extend(["", ""])
-    lines.extend(self.get_footer(*args, **kwargs))
+    lines.extend(self.get_footer(output_format, *args, **kwargs))
     
     return lines
   
-  def get_header(self, *args, **kwargs) -> List[str]:
+  def get_header(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
     if kwargs.get("to_latex", False):
       lines = [
         r"\documentclass{article}",
@@ -170,8 +174,8 @@ class Quiz:
       "Name:"
     ]
   
-  def get_footer(self, *args, **kwargs) -> List[str]:
-    if kwargs.get("to_latex", False):
+  def get_footer(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
+    if output_format == OutputFormat.LATEX:
       return [
         r"\end{document}"
       ]
@@ -187,7 +191,7 @@ def generate_latex(q: Quiz):
   
   tmp_tex = tempfile.NamedTemporaryFile('w')
   
-  tmp_tex.write('\n'.join(q.get_lines(to_latex=True)))
+  tmp_tex.write('\n'.join(q.get_lines(output_format=OutputFormat.LATEX)))
   tmp_tex.flush()
   shutil.copy(f"{tmp_tex.name}", "debug.tex")
   p = subprocess.Popen(
@@ -268,12 +272,6 @@ if __name__ == "__main__":
     question.Question.TOPIC.MEMORY,
     question.Question.TOPIC.PROCESS
   ])
-  
-  print('\n'.join(
-    quiz.get_lines(
-      to_latex=True,
-    )
-  ))
   
   for _ in range(1):
     generate_latex(quiz)
