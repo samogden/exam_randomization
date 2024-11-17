@@ -71,7 +71,7 @@ def add_question_group(
     questions_to_add.add(new_question)
     
   for i, q in enumerate(questions_to_add):
-    question_for_canvas = q.get_question_for_canvas(course, quiz) # get_question_for_canvas(course, quiz, q)
+    question_for_canvas = q.get__canvas(course, quiz) # get_question_for_canvas(course, quiz, q)
     question_for_canvas["quiz_group_id"] = group.id
     log.info(f"Adding {q.__class__.__name__} {i+1}/{len(questions_to_add)}")
     quiz.create_question(question=question_for_canvas)

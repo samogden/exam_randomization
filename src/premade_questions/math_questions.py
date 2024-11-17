@@ -38,8 +38,7 @@ class BitsAndBytes(Question):
     else:
       self.answers = [Answer("num_bits", self.num_bits, Answer.AnswerKind.BLANK)]
   
-  def get_body(self, *args, **kwargs) -> List[str]:
-    self.instantiate() # todo: is this the best way to do this?
+  def get_body_lines(self, *args, **kwargs) -> List[str]:
     lines = []
     
     lines = [
@@ -54,7 +53,7 @@ class BitsAndBytes(Question):
     
     return lines
     
-  def get_explanation(self, *args, **kwargs) -> List[str]:
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "Remember that for these problems we use one of these two equations (which are equivalent)",
       "",
@@ -110,7 +109,7 @@ class HexAndBinary(Question):
     ])
     return question_lines
   
-  def get_explanation(self, *args, **kwargs) -> List[str]:
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     explanation_lines = [
       "The core idea for converting between binary and hex is to divide and conquer.  "
       "Specifically, each hexit (hexadecimal digit) is equivalent to 4 bits.  "
@@ -199,7 +198,7 @@ class AverageMemoryAccessTime(Question):
     
     return lines
   
-  def get_explanation(self, *args, **kwargs) -> List[str]:
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     lines = [
       "Remember that to calculate the Average Memory Access Time we weight both the hit and miss times by their relative likelihood.",
       "That is, we calculate <tt>(hit_rate)*(hit_cost) + (1 - hit_rate)*(miss_cost)</tt>."

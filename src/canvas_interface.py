@@ -106,7 +106,7 @@ class CanvasInterface:
       for attempt_number in range(QUESTION_VARIATIONS_TO_TRY):
         
         # Get the question in a format that is ready for canvas (e.g. json)
-        question_for_canvas = question.get_question_for_canvas(self.course, canvas_quiz)
+        question_for_canvas = question.get__canvas(self.course, canvas_quiz)
         
         # log.debug(pprint.pformat(question_for_canvas))
         

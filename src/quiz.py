@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import tempfile
 
+import pypandoc
+
 import question
 import canvas_interface
 from premade_questions import math_questions
@@ -111,23 +113,19 @@ class Quiz:
       # todo: I know this snippet is repeated.  Oh well.
       questions_picked = self.possible_questions
     self.questions = questions_picked
-    
-  def get_lines(self, output_format: OutputFormat,  *args, **kwargs) -> List[str]:
-    
-    lines = []
-    lines.extend(self.get_header(output_format, *args, **kwargs))
-    lines.extend(["", ""])
-    for question in self:
-      lines.extend(question.get_lines(output_format, *args, **kwargs))
-      lines.extend(["", ""])
-    lines.extend(["", ""])
-    lines.extend(self.get_footer(output_format, *args, **kwargs))
-    
-    return lines
   
-  def get_header(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
-    if kwargs.get("to_latex", False):
-      lines = [
+  def get_latex(self) -> str:
+    text = self.get_header(OutputFormat.LATEX) + "\n\n"
+    for question in self:
+      text += question.get__latex() + "\n\n"
+    text += self.get_footer(OutputFormat.LATEX)
+    return text
+  
+  
+  def get_header(self, output_format: OutputFormat, *args, **kwargs) -> str:
+    lines = []
+    if output_format == OutputFormat.LATEX:
+      lines.extend([
         r"\documentclass{article}",
         r"\usepackage[a4paper, margin=1in]{geometry}",
         r"\usepackage{times}",
@@ -160,26 +158,27 @@ class Quiz:
         r"\begin{document}",
         r"\noindent\Large " + self.exam_name + r"\hfill \normalsize Name: \answerblank{5}",
         r"\vspace{0.5cm}"
-      ]
+      ])
       if len(self.instructions):
         lines.extend([
           "",
           r"\noindent\textbf{Instructions:}",
           r"\noindent " + self.instructions
         ])
-      
-      return lines
-    return [
-      f"{self.exam_name}",
-      "Name:"
-    ]
+    else:
+      lines.extend([
+        f"{self.exam_name}",
+        "Name:"
+      ])
+    return '\n'.join(lines)
   
-  def get_footer(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
+  def get_footer(self, output_format: OutputFormat, *args, **kwargs) -> str:
+    lines = []
     if output_format == OutputFormat.LATEX:
-      return [
+      lines.extend([
         r"\end{document}"
-      ]
-    return []
+      ])
+    return '\n'.join(lines)
   
   def set_sort_order(self, sort_order):
     self.question_sort_order = sort_order
@@ -191,7 +190,8 @@ def generate_latex(q: Quiz):
   
   tmp_tex = tempfile.NamedTemporaryFile('w')
   
-  tmp_tex.write('\n'.join(q.get_lines(output_format=OutputFormat.LATEX)))
+  # tmp_tex.write(pypandoc.convert_text('\n'.join(q.get_lines(output_format=OutputFormat.LATEX)), 'latex', format='md'))
+  tmp_tex.write(q.get_latex())
   tmp_tex.flush()
   shutil.copy(f"{tmp_tex.name}", "debug.tex")
   p = subprocess.Popen(
@@ -263,8 +263,8 @@ if __name__ == "__main__":
     question.Question.TOPIC.PROCESS
   ])
   #
-  # for _ in range(1):
-  #   generate_latex(quiz)
+  for _ in range(1):
+    generate_latex(quiz)
   
   interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
   interface.push_quiz_to_canvas(quiz, 2)

@@ -8,6 +8,7 @@ import datetime
 import enum
 import inspect
 import pprint
+import re
 
 import canvasapi.course
 import canvasapi.quiz
@@ -103,18 +104,14 @@ class Question(abc.ABC):
     logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
     return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))
   
-  def get_lines(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
-    lines = (
-      self.get_header(output_format, *args, **kwargs)
-      + self.get_body(output_format, *args, **kwargs)
-      + self.get_footer(output_format, *args, **kwargs)
-    )
-    return lines
+  def get__latex(self, *args, **kwargs):
+    question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
+    return re.sub(r'\[.*?\]', r"\\answerblank{3}", question_text)
+
   
-  def get_question_for_canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
+  def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
-    question_text = '<br>\n'.join(self.get_lines(OutputFormat.CANVAS, *args, **kwargs))
-    question_text = pypandoc.convert_text(question_text, 'html', format='md')
+    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS)
     
     question_type, answers = self.get_answers(*args, **kwargs)
     return {
@@ -123,29 +120,31 @@ class Question(abc.ABC):
       "question_type": question_type.value, #e.g. "fill_in_multiple_blanks"
       "points_possible": 1,
       "answers": answers,
-      "neutral_comments_html": pypandoc.convert_text('\n'.join(self.get_explanation(course, quiz)), 'html', format='md')
+      "neutral_comments_html": explanation_text
     }
   
-  def get_header(self, output_format : OutputFormat, *args, **kwargs) -> List[str]:
+  def get_header(self, output_format : OutputFormat, *args, **kwargs) -> str:
+    lines = []
     if output_format == OutputFormat.LATEX:
-      return [
+      lines.extend([
         r"\noindent\begin{minipage}{\textwidth}",
         r"\question{" + str(self.value) + r"}",
         r"\noindent\begin{minipage}{0.9\textwidth}",
-      ]
+      ])
     elif output_format == OutputFormat.CANVAS:
       pass
-    return []
+    return '\n'.join(lines)
 
-  def get_footer(self, output_format : OutputFormat, *args, **kwargs) -> List[str]:
+  def get_footer(self, output_format : OutputFormat, *args, **kwargs) -> str:
+    lines = []
     if output_format == OutputFormat.LATEX:
-      return [
+      lines.extend([
         r"\end{minipage}",
         r"\end{minipage}"
-      ]
+      ])
     elif output_format == OutputFormat.CANVAS:
       pass
-    return []
+    return '\n'.join(lines)
 
   @staticmethod
   def get_table_lines(
@@ -194,10 +193,10 @@ class Question(abc.ABC):
       log.debug(pprint.pformat(list(question_dicts)))
   
   @abc.abstractmethod
-  def get_body(self, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, *args, **kwargs) -> List[str]:
     pass
   
-  def get_explanation(self, *args, **kwargs) -> List[str]:
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     log.warning("get_explanation using default empty implementation!  Consider implementing!")
     return []
   
@@ -205,6 +204,28 @@ class Question(abc.ABC):
     log.warning("get_answers using default empty implementation!  Consider implementing!")
     return Answer.AnswerKind.BLANK, []
 
+  def instantiate(self):
+    """If it is necessary to regenerate aspects between usages, this is the time to do it"""
+    pass
+
+  def generate(self, output_format: OutputFormat):
+    # Renew the problem as appropriate
+    self.instantiate()
+    
+    question_body = self.get_header(output_format)
+    question_explanation = ""
+    
+    # Generation body and explanation based on the output format
+    if output_format == OutputFormat.CANVAS:
+      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines()), 'html', format='md')
+      question_explanation = pypandoc.convert_text('\n'.join(self.get_explanation_lines()), 'html', format='md')
+    elif output_format == OutputFormat.LATEX:
+      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines()), 'latex', format='md')
+    question_body += self.get_footer(output_format)
+    
+    # Return question body, explanation, and answers
+    return question_body, question_explanation, self.get_answers()
+  
 
 class Question_legacy(Question):
   _jinja_env = None
@@ -227,7 +248,7 @@ class Question_legacy(Question):
       for func in functions:
         self._jinja_env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
   
-  def get_body(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
     lines = []
     if output_format == OutputFormat.LATEX:
       lines.extend([
@@ -279,5 +300,5 @@ class Question_legacy(Question):
           )
     return questions
   
-  def get_explanation(self, *args, **kwargs) -> List[str]:
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     return []
