@@ -108,6 +108,8 @@ class CanvasInterface:
         # Get the question in a format that is ready for canvas (e.g. json)
         question_for_canvas = question.get_question_for_canvas(self.course, canvas_quiz)
         
+        # log.debug(pprint.pformat(question_for_canvas))
+        
         # if it is in the variations that we have already seen then skip ahead, else track
         if question_for_canvas["question_text"] in all_variations:
           continue

@@ -219,14 +219,18 @@ def generate_latex(q: Quiz):
 if __name__ == "__main__":
   questions = []
   
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
   # questions.append(
   #   math_questions.AverageMemoryAccessTime
   # )
+  
+  questions = [
+    math_questions.BitsAndBytes()
+  ]
   
   log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.value, questions))}")
   
@@ -249,20 +253,6 @@ if __name__ == "__main__":
       #     "value" : 8
       #   }
       # },
-      # {
-      #   "num_to_pick" : 2,
-      #   "filters" : {
-      #     "kind" : question.Question.KIND.PROCESS,
-      #     "value" : 8
-      #   }
-      # },
-      # {
-      #   "num_to_pick" : 2,
-      #   "filters" : {
-      #     "kind" : question.Question.KIND.MISC,
-      #     "value" : 4
-      #   }
-      # }
     ]
   )
   log.debug(quiz.questions)
@@ -272,9 +262,9 @@ if __name__ == "__main__":
     question.Question.TOPIC.MEMORY,
     question.Question.TOPIC.PROCESS
   ])
-  
-  for _ in range(1):
-    generate_latex(quiz)
+  #
+  # for _ in range(1):
+  #   generate_latex(quiz)
   
   interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
   interface.push_quiz_to_canvas(quiz, 2)

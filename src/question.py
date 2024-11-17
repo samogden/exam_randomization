@@ -11,6 +11,7 @@ import pprint
 
 import canvasapi.course
 import canvasapi.quiz
+import pypandoc
 import yaml
 from typing import List, Dict, Any, Tuple
 import jinja2
@@ -18,6 +19,7 @@ import jinja2
 import logging
 
 from misc import OutputFormat
+import markdown
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -26,6 +28,27 @@ log.setLevel(logging.DEBUG)
 
 from exam_generation_functions import QuickFunctions
 
+
+class Answer():
+  class AnswerKind(enum.Enum):
+    BLANK = "fill_in_multiple_blanks_question"
+    MULTIPLE_CHOICE = enum.auto() # todo: have baffles?
+  class VariableKind(enum.Enum): # todo: use these for generate variations?
+    INT = enum.auto()
+    FLOAT = enum.auto()
+  def __init__(self, key:str, value, kind : Answer.AnswerKind, display=None):
+    self.key = key
+    self.value = value
+    self.kind = kind
+    self.display = display if display is not None else value
+  
+  def get_for_canvas(self):
+    canvas_answer = {
+      "blank_id": self.key,
+      "answer_text": self.value,
+      "answer_weight": 100,
+    }
+    return canvas_answer
 
 class Question(abc.ABC):
   """
@@ -67,9 +90,9 @@ class Question(abc.ABC):
     self.extra_attrs = kwargs # clear page, etc.
     
     # todo: use these
-    self.given_vars = {}
-    self.target_vars = {}
-    self.intermediate_vars = {}
+    # self.given_vars = {}
+    # self.target_vars = {}
+    # self.intermediate_vars = {}
   
   def __eq__(self, other):
     if isinstance(other, self.__class__):
@@ -81,39 +104,47 @@ class Question(abc.ABC):
     return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))
   
   def get_lines(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
-    return (
+    lines = (
       self.get_header(output_format, *args, **kwargs)
       + self.get_body(output_format, *args, **kwargs)
       + self.get_footer(output_format, *args, **kwargs)
     )
+    return lines
   
   def get_question_for_canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
+    
     question_text = '<br>\n'.join(self.get_lines(OutputFormat.CANVAS, *args, **kwargs))
+    question_text = pypandoc.convert_text(question_text, 'html', format='md')
+    
     question_type, answers = self.get_answers(*args, **kwargs)
     return {
-      "question_name": f"question created at {datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}",
-      "question_text": question_text.replace(r"\answerblank{3}", "[answer]"),
-      "question_type": question_type, #e.g. "fill_in_multiple_blanks"
+      "question_name": f"{self.name} ({datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')})",
+      "question_text": question_text,
+      "question_type": question_type.value, #e.g. "fill_in_multiple_blanks"
       "points_possible": 1,
       "answers": answers,
-      "neutral_comments_html": '<br>\n'.join(self.get_explanation(course, quiz))
+      "neutral_comments_html": pypandoc.convert_text('\n'.join(self.get_explanation(course, quiz)), 'html', format='md')
     }
   
-  def get_header(self, *args, **kwargs) -> List[str]:
-    if kwargs.get("to_latex", False):
+  def get_header(self, output_format : OutputFormat, *args, **kwargs) -> List[str]:
+    if output_format == OutputFormat.LATEX:
       return [
         r"\noindent\begin{minipage}{\textwidth}",
         r"\question{" + str(self.value) + r"}",
         r"\noindent\begin{minipage}{0.9\textwidth}",
       ]
+    elif output_format == OutputFormat.CANVAS:
+      pass
     return []
 
-  def get_footer(self, *args, **kwargs) -> List[str]:
-    if kwargs.get("to_latex", False):
+  def get_footer(self, output_format : OutputFormat, *args, **kwargs) -> List[str]:
+    if output_format == OutputFormat.LATEX:
       return [
         r"\end{minipage}",
         r"\end{minipage}"
       ]
+    elif output_format == OutputFormat.CANVAS:
+      pass
     return []
 
   @staticmethod
@@ -170,9 +201,9 @@ class Question(abc.ABC):
     log.warning("get_explanation using default empty implementation!  Consider implementing!")
     return []
   
-  def get_answers(self, *args, **kwargs) -> Tuple[str, List[Dict[str,Any]]]:
+  def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
     log.warning("get_answers using default empty implementation!  Consider implementing!")
-    return "fill_in_multiple_blanks_question", []
+    return Answer.AnswerKind.BLANK, []
 
 
 class Question_legacy(Question):
@@ -196,15 +227,30 @@ class Question_legacy(Question):
       for func in functions:
         self._jinja_env.globals[func.__name__] = getattr(QuickFunctions, func.__name__)
   
-  def get_body(self, *args, **kwargs) -> List[str]:
-    
-    lines = [
-      self._jinja_env.from_string(self.text.replace("[answer]", "\\answerblank{3}")).render().replace('[', '{[').replace(']', ']}')
-    ]
-    if self.extra_attrs.get("clear_page", False):
-      lines.append(r"\vspace{10cm}")
-    
+  def get_body(self, output_format: OutputFormat, *args, **kwargs) -> List[str]:
+    lines = []
+    if output_format == OutputFormat.LATEX:
+      lines.extend([
+        self._jinja_env.from_string(self.text.replace("[answer]", "\\answerblank{3}")).render().replace('[', '{[').replace(']', ']}')
+      ])
+      if self.extra_attrs.get("clear_page", False):
+        lines.append(r"\vspace{10cm}")
+    elif output_format == OutputFormat.CANVAS:
+      lines.extend([
+        self._jinja_env.from_string(self.text).render().replace(r"\answerblank{3}", "[answer]"),
+      ])
+  
     return lines
+  
+  def get_answers(self, *args, **kwargs) -> Tuple[str, List[Dict[str,Any]]]:
+    answers = []
+    answers.append({
+      "blank_id": "answer",
+      "answer_text": "variation",
+      "answer_weight": 100,
+    })
+    return "fill_in_multiple_blanks_question", answers
+  
   
   @classmethod
   def from_yaml(cls, path_to_yaml):
