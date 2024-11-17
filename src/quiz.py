@@ -190,7 +190,7 @@ class Quiz:
 
 def generate_latex(q: Quiz):
   
-  shutil.rmtree('out')
+  if os.path.exists('out'): shutil.rmtree('out')
   
   tmp_tex = tempfile.NamedTemporaryFile('w')
   
@@ -231,11 +231,13 @@ if __name__ == "__main__":
   # questions.append(
   #   math_questions.AverageMemoryAccessTime
   # )
+
+  # questions = [
+  #   math_questions.BitsAndBytes()
+  # ]
   
-  questions = [
-    math_questions.BitsAndBytes()
-  ]
-  
+  questions = question.Question_autoyaml.from_yaml("questions.yaml")
+
   log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.value, questions))}")
   
   quiz = Quiz(
@@ -271,6 +273,6 @@ if __name__ == "__main__":
     generate_latex(quiz)
   
   interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
-  interface.push_quiz_to_canvas(quiz, 2)
+  interface.push_quiz_to_canvas(quiz, 10)
   
   quiz.describe()

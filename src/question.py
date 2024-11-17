@@ -8,7 +8,9 @@ import datetime
 import enum
 import inspect
 import pprint
+import random
 import re
+import textwrap
 
 import canvasapi.course
 import canvasapi.quiz
@@ -302,3 +304,50 @@ class Question_legacy(Question):
   
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     return []
+  
+
+class Question_autoyaml(Question):
+  
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.input_vars = {}
+    self.intermediate_vars = {}
+    
+  def get_body_lines(self, *args, **kwargs) -> List[str]:
+    # will be overwritten by the loading (hopefully)
+    pass
+  
+    
+  @classmethod
+  def from_yaml(cls, path_to_yaml):
+    with open(path_to_yaml) as fid:
+      question_dicts = list(yaml.safe_load_all(fid))
+    
+    questions = []
+    for question_dict in question_dicts:
+      log.debug(pprint.pformat(question_dict))
+      q = Question_autoyaml(
+        name=question_dict.get("name", "AutoYaml"),
+        value=question_dict.get("value", 1),
+        kind=question_dict.get("category", 'misc')
+      )
+      
+      # Use exec to attach the function to the object
+      def attach_function_to_object(obj, function_code, function_name='get_body_lines'):
+        log.debug(f"\ndef {function_name}(self):\n" + "\n".join(f"    {line}" for line in function_code.splitlines()))
+        
+        # Define the function dynamically using exec
+        exec(f"def {function_name}(self):\n" + "\n".join(f"    {line}" for line in function_code.splitlines()), globals(), locals())
+        
+        # Get the function and bind it to the object
+        function = locals()[function_name]
+        setattr(obj, function_name, function.__get__(obj))
+      
+      # Attach the function dynamically
+      attach_function_to_object(q, question_dict["functions"]["instantiate"], "instantiate")
+      attach_function_to_object(q, question_dict["functions"]["get_body_lines"], "get_body_lines")
+      attach_function_to_object(q, question_dict["functions"]["get_explanation_lines"], "get_explanation_lines")
+      attach_function_to_object(q, question_dict["functions"]["get_answers"], "get_answers")
+      
+      questions.append(q)
+    return questions
