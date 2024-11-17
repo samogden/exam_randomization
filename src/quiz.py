@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 
 import question
+import canvas_interface
 from premade_questions import math_questions
 
 from typing import List, Dict
@@ -29,8 +30,20 @@ class Quiz:
     self.possible_questions = possible_questions
     self.questions : List[question.Question] = []
     self.instructions = kwargs.get("instructions", "")
+    self.question_sort_order = None
     
     # Plan: right now we just take in questions and then assume they have a score and a "generate" button
+  
+  def __iter__(self):
+    def sort_func(q):
+      if self.question_sort_order is not None:
+        try:
+          return (-q.value, self.question_sort_order.index(q.kind))
+        except ValueError:
+          return (-q.value, float('inf'))
+      return -q.value
+    return iter(sorted(self.questions, key=sort_func))
+    
   
   def describe(self):
     counter = collections.Counter([q.value for q in self.questions])
@@ -95,19 +108,12 @@ class Quiz:
       questions_picked = self.possible_questions
     self.questions = questions_picked
     
-  def get_lines(self, question_kind_sort_order=None, *args, **kwargs) -> List[str]:
-    def sort_func(q):
-      if question_kind_sort_order is not None:
-        try:
-          return (-q.value, question_kind_sort_order.index(q.kind))
-        except ValueError:
-          return (-q.value, float('inf'))
-      return -q.value
+  def get_lines(self,  *args, **kwargs) -> List[str]:
     
     lines = []
     lines.extend(self.get_header(*args, **kwargs))
     lines.extend(["", ""])
-    for question in sorted(self.questions, key=sort_func):
+    for question in self:
       lines.extend(question.get_lines(*args, **kwargs))
       lines.extend(["", ""])
     lines.extend(["", ""])
@@ -171,7 +177,10 @@ class Quiz:
       ]
     return []
   
-  
+  def set_sort_order(self, sort_order):
+    self.question_sort_order = sort_order
+
+
 def generate_latex(q: Quiz):
   
   shutil.rmtree('out')
@@ -255,17 +264,21 @@ if __name__ == "__main__":
   log.debug(quiz.questions)
   quiz.describe()
   
+  quiz.set_sort_order([
+    question.Question.TOPIC.MEMORY,
+    question.Question.TOPIC.PROCESS
+  ])
+  
   print('\n'.join(
     quiz.get_lines(
       to_latex=True,
-      question_kind_sort_order=[
-        question.Question.KIND.MEMORY,
-        question.Question.KIND.PROCESS
-      ]
     )
   ))
   
   for _ in range(1):
     generate_latex(quiz)
+  
+  interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
+  interface.push_quiz_to_canvas(quiz, 2)
   
   quiz.describe()
