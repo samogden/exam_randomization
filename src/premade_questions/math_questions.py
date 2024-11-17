@@ -42,13 +42,14 @@ class BitsAndBytes(Question):
     lines = []
     
     lines = [
-      f"Given that we have {self.num_bits if self.from_binary else self.num_bytes} {'bits' if self.from_binary else 'Bytes'}, "
-      f"how many {'bits' if not self.from_binary else 'Bytes'} "
+      f"Given that we have {self.num_bits if self.from_binary else self.num_bytes} {'bits' if self.from_binary else 'bytes'}, "
+      f"how many {'bits' if not self.from_binary else 'bytes'} "
       f"{'do we need to address our memory' if not self.from_binary else 'of memory can be addressed'}?"
     ]
     
     lines.extend([
-      f"{'Address space size' if self.from_binary else 'Number of bits in address'}: [{self.answers[0].key}] {'bits' if not self.from_binary else 'Bytes'}"
+      "",
+      f"{'Address space size' if self.from_binary else 'Number of bits in address'}: [{self.answers[0].key}] {'bits' if not self.from_binary else 'bytes'}"
     ])
     
     return lines
@@ -57,19 +58,19 @@ class BitsAndBytes(Question):
     explanation_lines = [
       "Remember that for these problems we use one of these two equations (which are equivalent)",
       "",
-      r"- $log_{2}(\text{#Bytes}) = \text{#bits}$",
-      r"- $2^{(\text{#bits})} = \text{#Bytes}$",
+      r"- $log_{2}(\text{#bytes}) = \text{#bits}$",
+      r"- $2^{(\text{#bits})} = \text{#bytes}$",
       "",
       "Therefore, we calculate:",
     ]
     
     if self.from_binary:
       explanation_lines.extend([
-        f"\\( 2 ^ {{{self.num_bits}bits}} = \\textbf{{{self.num_bytes}}}Bytes \\)"
+        f"\\( 2 ^ {{{self.num_bits}bits}} = \\textbf{{{self.num_bytes}}}bytes \\)"
       ])
     else:
       explanation_lines.extend([
-        f"$log_{2}({self.num_bytes} \\text{{Bytes}}) = \\textbf{{{self.num_bits}}}\\text{{bits}}$"
+        f"$log_{2}({self.num_bytes} \\text{{bytes}}) = \\textbf{{{self.num_bits}}}\\text{{bits}}$"
       ])
     
     return explanation_lines

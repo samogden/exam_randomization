@@ -128,7 +128,7 @@ class Question(abc.ABC):
     if output_format == OutputFormat.LATEX:
       lines.extend([
         r"\noindent\begin{minipage}{\textwidth}",
-        r"\question{" + str(self.value) + r"}",
+        r"\question{" + str(int(self.value)) + r"}",
         r"\noindent\begin{minipage}{0.9\textwidth}",
       ])
     elif output_format == OutputFormat.CANVAS:

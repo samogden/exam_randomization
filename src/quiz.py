@@ -139,6 +139,7 @@ class Quiz:
         r"\usepackage{multicol}",
         r"\usepackage{subcaption}",
         r"\usepackage{enumitem}",
+        r"\usepackage{setspace}"
         
         # r"\setlist{itemsep=1.25em}",
       
@@ -165,6 +166,9 @@ class Quiz:
           r"\noindent\textbf{Instructions:}",
           r"\noindent " + self.instructions
         ])
+      lines.extend([
+        r"\doublespacing"
+      ])
     else:
       lines.extend([
         f"{self.exam_name}",
