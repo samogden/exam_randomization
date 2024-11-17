@@ -86,11 +86,15 @@ class Question(abc.ABC):
   
   
   def __init__(self, name: str, value: float, kind: Question.TOPIC, *args, **kwargs):
+    if name is None:
+      name = self.__class__.__name__
     self.name = name
     self.value = value
     self.kind = kind
     
     self.extra_attrs = kwargs # clear page, etc.
+    
+    self.answers = []
     
     # todo: use these
     # self.given_vars = {}
@@ -110,7 +114,6 @@ class Question(abc.ABC):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
     return re.sub(r'\[.*?\]', r"\\answerblank{3}", question_text)
 
-  
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
     question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS)
@@ -199,12 +202,12 @@ class Question(abc.ABC):
     pass
   
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
-    log.warning("get_explanation using default empty implementation!  Consider implementing!")
+    log.warning("get_explanation using default implementation!  Consider implementing!")
     return []
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
-    log.warning("get_answers using default empty implementation!  Consider implementing!")
-    return Answer.AnswerKind.BLANK, []
+    log.warning("get_answers using default implementation!  Consider implementing!")
+    return Answer.AnswerKind.BLANK, [a.get_for_canvas() for a in self.answers]
 
   def instantiate(self):
     """If it is necessary to regenerate aspects between usages, this is the time to do it"""
@@ -219,10 +222,10 @@ class Question(abc.ABC):
     
     # Generation body and explanation based on the output format
     if output_format == OutputFormat.CANVAS:
-      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines()), 'html', format='md')
+      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines(output_format)), 'html', format='md')
       question_explanation = pypandoc.convert_text('\n'.join(self.get_explanation_lines()), 'html', format='md')
     elif output_format == OutputFormat.LATEX:
-      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines()), 'latex', format='md')
+      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines(output_format)), 'latex', format='md')
     question_body += self.get_footer(output_format)
     
     # Return question body, explanation, and answers
@@ -264,6 +267,38 @@ class Question_legacy(Question):
       ])
   
     return lines
+  
+  def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
+    
+    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS)
+    def replace_answers(input_str):
+      counter = 1
+      replacements = []
+      while "[answer]" in input_str:
+        placeholder = f"answer{counter}"
+        input_str = input_str.replace("[answer]", f"[{placeholder}]", 1)
+        replacements.append(placeholder)
+        counter += 1
+      return input_str, replacements
+    
+    question_text, occurances = replace_answers(question_text)
+    answers = [
+      {
+        "blank_id" : a,
+        "answer_text" : str(random.random()) # make it so there is always an answer
+      }
+      for a in occurances
+    ]
+    
+    # question_type, answers = self.get_answers(*args, **kwargs)
+    return {
+      "question_name": f"{self.name} ({datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')})",
+      "question_text": question_text,
+      "question_type": Answer.AnswerKind.BLANK.value, #e.g. "fill_in_multiple_blanks"
+      "points_possible": 1,
+      "answers": answers,
+      "neutral_comments_html": explanation_text
+    }
   
   def get_answers(self, *args, **kwargs) -> Tuple[str, List[Dict[str,Any]]]:
     answers = []

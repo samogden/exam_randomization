@@ -197,6 +197,7 @@ def generate_latex(q: Quiz):
   # tmp_tex.write(pypandoc.convert_text('\n'.join(q.get_lines(output_format=OutputFormat.LATEX)), 'latex', format='md'))
   tmp_tex.write(q.get_latex())
   tmp_tex.flush()
+  tmp_tex.flush()
   shutil.copy(f"{tmp_tex.name}", "debug.tex")
   p = subprocess.Popen(
     f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}",
@@ -223,20 +224,22 @@ def generate_latex(q: Quiz):
 if __name__ == "__main__":
   questions = []
   
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
+  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
+  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
+  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
+  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
+  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
   # questions.append(
   #   math_questions.AverageMemoryAccessTime
   # )
 
   # questions = [
-  #   math_questions.BitsAndBytes()
+  #   math_questions.BitsAndBytes(),
+  #   math_questions.HexAndBinary(),
+  #   math_questions.AverageMemoryAccessTime(),
   # ]
   
-  questions = question.Question_autoyaml.from_yaml("questions.yaml")
+  # questions = question.Question_autoyaml.from_yaml("questions.yaml")
 
   log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.value, questions))}")
   
@@ -273,6 +276,6 @@ if __name__ == "__main__":
     generate_latex(quiz)
   
   interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
-  interface.push_quiz_to_canvas(quiz, 10)
+  interface.push_quiz_to_canvas(quiz, 2)
   
   quiz.describe()
