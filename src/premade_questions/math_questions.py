@@ -142,8 +142,8 @@ class HexAndBinary(Question):
 
 class AverageMemoryAccessTime(Question):
   
-  def __init__(self, name: str = None, value: float = 1.0, kind: Question.TOPIC = Question.TOPIC.MISC, *args, **kwargs):
-    super().__init__(name, value, kind, *args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
     self.instantiate()
   
   def instantiate(self):
@@ -171,13 +171,13 @@ class AverageMemoryAccessTime(Question):
     ]
     
     info_lines = [
-      f"- Hit Latency: {self.hit_latency} cycles</li>"
-      f"- Miss Latency: {self.miss_latency} cycles</li>"
+      f"- Hit Latency: {self.hit_latency} cycles",
+      f"- Miss Latency: {self.miss_latency} cycles",
     ]
     if random.random() > 0.5:
-      info_lines.append(f"- Hit Rate: {100 * self.hit_rate: 0.2f}% </li>")
+      info_lines.append(f"- Hit Rate: {100 * self.hit_rate: 0.2f}%")
     else:
-      info_lines.append(f"- Miss Rate: {100 * (1 - self.hit_rate): 0.2f}% </li>")
+      info_lines.append(f"- Miss Rate: {100 * (1 - self.hit_rate): 0.2f}%")
     
     lines.extend(random.sample(info_lines, len(info_lines)))
     lines.append("")
@@ -192,9 +192,9 @@ class AverageMemoryAccessTime(Question):
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     lines = [
       "Remember that to calculate the Average Memory Access Time we weight both the hit and miss times by their relative likelihood.",
-      "That is, we calculate <tt>(hit_rate)*(hit_cost) + (1 - hit_rate)*(miss_cost)</tt>."
+      "That is, we calculate `(hit_rate)*(hit_cost) + (1 - hit_rate)*(miss_cost)`."
       "",
       "In this case, that calculation becomes:",
-      f"({self.hit_rate: 0.4f})*({self.hit_latency}) + ({1 - self.hit_rate: 0.4f})*({self.miss_latency}) = {self.amat:0.2f}cycles"
+      f"$({self.hit_rate: 0.4f})*({self.hit_latency}) + ({1 - self.hit_rate: 0.4f})*({self.miss_latency}) = {self.amat:0.2f}\\text{{cycles}}$"
     ]
     return lines

@@ -98,7 +98,6 @@ class Question(abc.ABC):
     self.extra_attrs = kwargs # clear page, etc.
     
     self.answers = []
-    log.debug(f"New question: {self.name} {self.points_value} {self.kind}")
     
   
   # def __eq__(self, other):

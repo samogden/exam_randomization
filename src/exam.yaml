@@ -5,6 +5,8 @@ questions:
       module: math_questions
     - class: HexAndBinary
       module: math_questions
+    - class: AverageMemoryAccessTime
+      module: math_questions
   4:
     - class: HexAndBinary
       module: math_questions
