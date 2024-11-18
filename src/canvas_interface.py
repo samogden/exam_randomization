@@ -97,7 +97,7 @@ class CanvasInterface:
         {
           "name": f"{question.name}",
           "pick_count": 1,
-          "question_points": 1
+          "question_points": question.points_value
         }
       ])
       

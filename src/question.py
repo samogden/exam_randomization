@@ -122,7 +122,7 @@ class Question(abc.ABC):
       "question_name": f"{self.name} ({datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')})",
       "question_text": question_text,
       "question_type": question_type.value, #e.g. "fill_in_multiple_blanks"
-      "points_possible": 1,
+      "points_possible": self.points_value,
       "answers": answers,
       "neutral_comments_html": explanation_text
     }
