@@ -38,7 +38,7 @@ def generate_exam(questions_file, exam_name) -> Tuple[str, List[question]]:
   question_set = question.QuestionSet(questions_file).questions
   question_set = sorted(
     question_set,
-    key=lambda q: (-q.value, ["languages", "memory", "processes", "bash", "grabbag"].index(q.subject))
+    key=lambda q: (-q.points_value, ["languages", "memory", "processes", "bash", "grabbag"].index(q.subject))
   )
   # return question_set
   
@@ -95,15 +95,15 @@ def main():
       for s in  set([q.subject for q in question_set])
     }
     for s in questions_by_subject.keys():
-      logging.info(f"subject: {s} {sum(map((lambda q: q.value), questions_by_subject[s]))}")
+      logging.info(f"subject: {s} {sum(map((lambda q: q.points_value), questions_by_subject[s]))}")
       counts_by_value = {
         # todo: there's a better way to do this, but I doubt I need to ever scale it up
-        val : len(list(filter((lambda q: q.value == val), questions_by_subject[s])))
-        for val in set([q.value for q in questions_by_subject[s]])
+        val : len(list(filter((lambda q: q.points_value == val), questions_by_subject[s])))
+        for val in set([q.points_value for q in questions_by_subject[s]])
       }
       for val in sorted(counts_by_value.keys(), reverse=True):
         logging.info(f"  {counts_by_value[val]}x {val}points")
-    logging.info(f"total: {sum(map((lambda q: q.value), question_set))}")
+    logging.info(f"total: {sum(map((lambda q: q.points_value), question_set))}")
     
   
   writer = pypdf.PdfWriter()

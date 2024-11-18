@@ -1,6 +1,9 @@
 #!env python
+from __future__ import annotations
+
 import collections
 import enum
+import importlib
 import itertools
 import os.path
 import pprint
@@ -10,6 +13,7 @@ import subprocess
 import tempfile
 
 import pypandoc
+import yaml
 
 import question
 import canvas_interface
@@ -44,16 +48,16 @@ class Quiz:
     def sort_func(q):
       if self.question_sort_order is not None:
         try:
-          return (-q.value, self.question_sort_order.index(q.kind))
+          return (-q.points_value, self.question_sort_order.index(q.kind))
         except ValueError:
-          return (-q.value, float('inf'))
-      return -q.value
+          return (-q.points_value, float('inf'))
+      return -q.points_value
     return iter(sorted(self.questions, key=sort_func))
     
   
   def describe(self):
-    counter = collections.Counter([q.value for q in self.questions])
-    log.info(f"{self.exam_name} : {sum(map(lambda q: q.value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
+    counter = collections.Counter([q.points_value for q in self.questions])
+    log.info(f"{self.exam_name} : {sum(map(lambda q: q.points_value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
     
   
   def select_questions(self, total_points=None, exam_outline: List[Dict]=None):
@@ -73,40 +77,49 @@ class Quiz:
     if exam_outline is not None:
       for requirements in exam_outline:
         # Filter out to only get appropriate questions
+        log.debug(requirements["filters"])
         appropriate_questions = list(filter(
           lambda q: all([getattr(q, attr_name) == attr_val for (attr_name, attr_val) in requirements["filters"].items()]),
           possible_questions
         ))
         
+        log.debug(f"{len(appropriate_questions)} appropriate questions")
+        
         # Pick the appropriate number of questions
         questions_picked.update(
-          random.sample(appropriate_questions, requirements["num_to_pick"])
+          random.sample(appropriate_questions, min(requirements["num_to_pick"], len(appropriate_questions)))
         )
         
         # Remove any questions that were just picked so we don't pick them again
         possible_questions = set(possible_questions).difference(set(questions_picked))
         
-    log.debug(f"Selected due to filters: {len(questions_picked)} ({sum(map(lambda q: q.value, questions_picked))}points)")
+    log.debug(f"Selected due to filters: {len(questions_picked)} ({sum(map(lambda q: q.points_value, questions_picked))}points)")
     
     if total_points is not None:
       # Figure out how many points we have left to select
-      num_points_left = total_points - sum(map(lambda q: q.value, questions_picked))
+      num_points_left = total_points - sum(map(lambda q: q.points_value, questions_picked))
       
       
       # To pick the remaining points, we want to take our remaining questions and select a subset that adds up to the required number of points
   
       # Find all combinations of objects that match the target value
+      log.debug("Finding all matching sets...")
       matching_sets = []
       for r in range(1, len(possible_questions) + 1):
         for combo in itertools.combinations(possible_questions, r):
-          if sum(q.value for q in combo) == num_points_left:
+          if sum(q.points_value for q in combo) == num_points_left:
             matching_sets.append(combo)
+            if len(matching_sets) > 1000:
+              break
+        if len(matching_sets) > 1000:
+          break
       
       # Pick a random matching set
       if matching_sets:
         random_set = random.choice(matching_sets)
       else:
         log.error("Cannot find any matching sets")
+        random_set = []
     
       questions_picked.update(random_set)
     else:
@@ -167,7 +180,7 @@ class Quiz:
           r"\noindent " + self.instructions
         ])
       lines.extend([
-        r"\doublespacing"
+        r"\onehalfspacing"
       ])
     else:
       lines.extend([
@@ -186,6 +199,26 @@ class Quiz:
   
   def set_sort_order(self, sort_order):
     self.question_sort_order = sort_order
+
+  @classmethod
+  def from_yaml(cls, path_to_yaml) -> Quiz:
+    
+    with open(path_to_yaml) as fid:
+      exam_dict = yaml.safe_load(fid)
+    log.debug(exam_dict)
+    
+    name = exam_dict["name"]
+    
+    exam_questions = []
+    for value, questions in exam_dict["questions"].items():
+      log.debug(f"{value} : {questions}")
+      for q_info in questions:
+        q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
+        q_class = getattr(q_module, q_info["class"])
+        exam_questions.append(q_class(points_value=int(value)))
+        
+    quiz_from_yaml = Quiz(name, exam_questions)
+    return quiz_from_yaml
 
 
 def generate_latex(q: Quiz):
@@ -220,28 +253,49 @@ def generate_latex(q: Quiz):
   proc.wait(timeout=30)
   tmp_tex.close()
   
+
+def main():
   
+  q = Quiz.from_yaml("exam.yaml")
+  q.select_questions()
+  generate_latex(q)
+  
+  interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
+  interface.push_quiz_to_canvas(q, 2)
+  
+  q.describe()
+  
+  
+
 if __name__ == "__main__":
-  questions = []
   
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
-  questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
-  # questions.append(
-  #   math_questions.AverageMemoryAccessTime
-  # )
-
-  # questions = [
-  #   math_questions.BitsAndBytes(),
-  #   math_questions.HexAndBinary(),
-  #   math_questions.AverageMemoryAccessTime(),
-  # ]
+  main()
   
-  # questions = question.Question_autoyaml.from_yaml("questions.yaml")
+  exit()
+  
+  
+  
+  
+  # questions = []
+  #
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
+  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
+  # # questions.append(
+  # #   math_questions.AverageMemoryAccessTime
+  # # )
+  #
+  # # questions = [
+  # #   math_questions.BitsAndBytes(),
+  # #   math_questions.HexAndBinary(),
+  # #   math_questions.AverageMemoryAccessTime(),
+  # # ]
+  #
+  # # questions = question.Question_autoyaml.from_yaml("questions.yaml")
 
-  log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.value, questions))}")
+  log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.points_value, questions))}")
   
   quiz = Quiz(
     "CST334 Exam 1",
@@ -253,27 +307,156 @@ if __name__ == "__main__":
       No devices besides calculators are allowed to be used during the exam.
     """
   )
-  quiz.select_questions(None,
+  quiz.select_questions(100,
     exam_outline=[
-      # {
-      #   "num_to_pick" : 2,
-      #   "filters" : {
-      #     "kind" : question.Question.KIND.MEMORY,
-      #     "value" : 8
-      #   }
-      # },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.PROGRAMMING,
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.CONCURRENCY,
+          "value" : 8
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.IO,
+          "value" : 8
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.MEMORY,
+          "value" : 8
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.PROCESS,
+          "value" : 8
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "value" : 8
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.CONCURRENCY,
+          "value" : 4
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.IO,
+          "value" : 4
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.MEMORY,
+          "value" : 4
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.PROCESS,
+          "value" : 4
+        }
+      },
+      {
+        "num_to_pick" : 3,
+        "filters" : {
+          "value" : 4
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.CONCURRENCY,
+          "value" : 2
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.IO,
+          "value" : 2
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.MEMORY,
+          "value" : 2
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.PROCESS,
+          "value" : 1
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.CONCURRENCY,
+          "value" : 1
+        }
+      },
+      {
+        "num_to_pick" : 2,
+        "filters" : {
+          "kind" : question.Question.TOPIC.IO,
+          "value" : 1
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.MEMORY,
+          "value" : 1
+        }
+      },
+      {
+        "num_to_pick" : 1,
+        "filters" : {
+          "kind" : question.Question.TOPIC.PROCESS,
+          "value" : 1
+        }
+      },
     ]
   )
   log.debug(quiz.questions)
   quiz.describe()
   
   quiz.set_sort_order([
+    question.Question.TOPIC.CONCURRENCY,
+    question.Question.TOPIC.IO,
     question.Question.TOPIC.MEMORY,
-    question.Question.TOPIC.PROCESS
+    question.Question.TOPIC.PROCESS,
+    question.Question.TOPIC.MISC,
+    question.Question.TOPIC.PROGRAMMING
   ])
   #
   for _ in range(1):
     generate_latex(quiz)
+  
+  exit(0)
   
   interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
   interface.push_quiz_to_canvas(quiz, 2)

@@ -1,0 +1,13 @@
+name: "CST 334 Exam 3 (Fall 2024)"
+questions:
+  8:
+    - class: BitsAndBytes
+      module: math_questions
+    - class: HexAndBinary
+      module: math_questions
+  4:
+    - class: HexAndBinary
+      module: math_questions
+  1:
+    - class: BitsAndBytes
+      module: math_questions

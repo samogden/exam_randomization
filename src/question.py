@@ -1,4 +1,5 @@
 #!env python
+from __future__ import annotations
 
 from __future__ import annotations
 
@@ -63,7 +64,7 @@ class Question(abc.ABC):
   class TOPIC(enum.Enum):
     PROCESS = enum.auto()
     MEMORY = enum.auto()
-    THREADS = enum.auto()
+    CONCURRENCY = enum.auto()
     IO = enum.auto()
     PROGRAMMING = enum.auto()
     MISC = enum.auto()
@@ -73,9 +74,11 @@ class Question(abc.ABC):
       mapping = {
         "processes": cls.PROCESS,
         "memory": cls.MEMORY,
-        "threads": cls.THREADS,
+        "threads": cls.CONCURRENCY,
+        "concurrency": cls.CONCURRENCY,
         "io": cls.IO,
-        "programing" : cls.PROGRAMMING,
+        "persistance": cls.IO,
+        "programming" : cls.PROGRAMMING,
         "misc": cls.MISC,
       }
       if string.lower() in mapping:
@@ -85,34 +88,30 @@ class Question(abc.ABC):
   # todo: Add in an enum for kind of answer, or a separate class that can handle formatting for us for ease.
   
   
-  def __init__(self, name: str, value: float, kind: Question.TOPIC, *args, **kwargs):
+  def __init__(self, name: str = None, points_value: float = 1.0, kind: Question.TOPIC = TOPIC.MISC, *args, **kwargs):
     if name is None:
       name = self.__class__.__name__
     self.name = name
-    self.value = value
+    self.points_value = points_value
     self.kind = kind
     
     self.extra_attrs = kwargs # clear page, etc.
     
     self.answers = []
+    log.debug(f"New question: {self.name} {self.points_value} {self.kind}")
     
-    # todo: use these
-    # self.given_vars = {}
-    # self.target_vars = {}
-    # self.intermediate_vars = {}
   
-  def __eq__(self, other):
-    if isinstance(other, self.__class__):
-      return all([self.blank_vars[key] == other.blank_vars[key] for key in self.blank_vars.keys()])
-    return False
-  
-  def __hash__(self):
-    logging.debug(f'hash: {[f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]}')
-    return hash(''.join([f"{self.blank_vars[key]}" for key in sorted(self.blank_vars.keys())]) + ''.join(self.get_question_body()))
+  # def __eq__(self, other):
+  #   if isinstance(other, self.__class__):
+  #     return all([self.blank_vars[key] == other.blank_vars[key] for key in self.blank_vars.keys()])
+  #   return False
+  #
+  # def __hash__(self):
+  #   return hash(''.join(self.get_body_lines(OutputFormat.CANVAS)))
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
-    return re.sub(r'\[.*?\]', r"\\answerblank{3}", question_text)
+    return re.sub(r'\[[a-z_][a-z_][a-z_][a-z_]+?\]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
@@ -130,10 +129,11 @@ class Question(abc.ABC):
   
   def get_header(self, output_format : OutputFormat, *args, **kwargs) -> str:
     lines = []
+    log.debug(f"Value: {self.points_value}")
     if output_format == OutputFormat.LATEX:
       lines.extend([
         r"\noindent\begin{minipage}{\textwidth}",
-        r"\question{" + str(int(self.value)) + r"}",
+        r"\question{" + str(int(self.points_value)) + r"}",
         r"\noindent\begin{minipage}{0.9\textwidth}",
       ])
     elif output_format == OutputFormat.CANVAS:
@@ -257,7 +257,7 @@ class Question_legacy(Question):
     lines = []
     if output_format == OutputFormat.LATEX:
       lines.extend([
-        self._jinja_env.from_string(self.text.replace("[answer]", "\\answerblank{3}")).render().replace('[', '{[').replace(']', ']}')
+        self._jinja_env.from_string(self.text.replace("[answer]", "\\answerblank{3}")).render() #.replace('[', '{[').replace(']', ']}')
       ])
       if self.extra_attrs.get("clear_page", False):
         lines.append(r"\vspace{10cm}")
@@ -332,7 +332,7 @@ class Question_legacy(Question):
               value=question_dict["value"],
               kind=Question.TOPIC.from_string(question_dict["subject"]),
               text=question_dict["text"],
-              # **extra_attrs
+              **extra_attrs
             )
           )
     return questions

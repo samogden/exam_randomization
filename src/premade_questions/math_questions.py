@@ -18,8 +18,8 @@ class BitsAndBytes(Question):
   MIN_BITS = 3
   MAX_BITS = 49
   
-  def __init__(self, name: str = None, value: float = 1.0, kind: Question.TOPIC = Question.TOPIC.MISC, *args, **kwargs):
-    super().__init__(name, value, kind, *args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
     self.instantiate()
   
   def instantiate(self):
@@ -60,22 +60,23 @@ class BitsAndBytes(Question):
     
     if self.from_binary:
       explanation_lines.extend([
-        f"\\( 2 ^ {{{self.num_bits}bits}} = \\textbf{{{self.num_bytes}}}bytes \\)"
+        f"$2 ^ {{{self.num_bits}bits}} = \\textbf{{{self.num_bytes}}}\\text{{bytes}}$"
       ])
     else:
       explanation_lines.extend([
-        f"$log_{2}({self.num_bytes} \\text{{bytes}}) = \\textbf{{{self.num_bits}}}\\text{{bits}}$"
+        f"$log_{{2}}({self.num_bytes} \\text{{bytes}}) = \\textbf{{{self.num_bits}}}\\text{{bits}}$"
       ])
     
     return explanation_lines
+
 
 class HexAndBinary(Question):
   
   MIN_HEXITS = 1
   MAX_HEXITS = 8
   
-  def __init__(self, name: str = None, value: float = 1.0, kind: Question.TOPIC = Question.TOPIC.MISC, *args, **kwargs):
-    super().__init__(name, value, kind, *args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
     self.instantiate()
   
   def instantiate(self):
