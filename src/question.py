@@ -175,12 +175,6 @@ class Question(abc.ABC):
     if sorted_keys is None:
       sorted_keys = sorted(table_data.keys())
     
-    log.debug("value_matrix:")
-    log.debug([
-      table_data[key]
-      for key in sorted_keys
-    ])
-    
     if not html_out:
       writer = pytablewriter.MarkdownTableWriter(
         headers = headers,
@@ -191,10 +185,8 @@ class Question(abc.ABC):
       )
     
       writer.type_hints = ["str" for _ in range(len(writer.value_matrix[0]))]
-      # writer.type_hint = "str"
-      log.debug("value_matrix:")
-      log.debug(writer.value_matrix)
-      return [writer.dumps()]
+      
+      return ['\n', writer.dumps(), '\n']
     
     
     
@@ -271,6 +263,8 @@ class Question(abc.ABC):
   def generate(self, output_format: OutputFormat):
     # Renew the problem as appropriate
     self.instantiate()
+    while (not self.is_interesting()):
+      self.instantiate()
     
     question_body = self.get_header(output_format)
     question_explanation = ""
@@ -286,6 +280,8 @@ class Question(abc.ABC):
     # Return question body, explanation, and answers
     return question_body, question_explanation, self.get_answers()
   
+  def is_interesting(self) -> bool:
+    return True
 
 class Question_legacy(Question):
   _jinja_env = None

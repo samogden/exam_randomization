@@ -99,7 +99,7 @@ class CachingQuestion(Question):
     self.instantiate()
   
   def instantiate(self):
-    
+    self.answers = []
     self.cache_policy = random.choice(list(self.Kind))
     
     self.requests = list(range(self.cache_size)) + random.choices(population=list(range(self.num_elements)), k=(self.num_requests))
@@ -126,11 +126,11 @@ class CachingQuestion(Question):
       
       log.debug(f"{request:>2} | {'hit' if was_hit else 'miss':<4} | {evicted if evicted is not None else '':<3} | {str(cache_state):<10}")
       
-    self.hit_rate = 100 * number_of_hits / (self.num_requests + 3)
+    self.hit_rate = 100 * number_of_hits / (self.num_requests)
     # self.hit_rate_var = VariableFloat("Hit Rate (%)", true_value=self.hit_rate)
     # self.blank_vars["hit_rate"] = self.hit_rate_var
     self.answers.extend([
-      Answer("hit_rate", self.hit_rate, Answer.AnswerKind.BLANK)
+      Answer("hit_rate", f"{self.hit_rate:0.2f}", Answer.AnswerKind.BLANK)
     ])
   
   def get_body_lines(self, *args, **kwargs) -> List[str]:
@@ -151,7 +151,7 @@ class CachingQuestion(Question):
       self.get_table_lines(
         { request_number :
           [
-            request_number,
+            self.requests[request_number],
             f"[hit-{request_number}]",
             f"[evicted-{request_number}]",
             f"[cache_state-{request_number}]"
@@ -165,7 +165,7 @@ class CachingQuestion(Question):
     )
     
     lines.extend([
-      "Hit rate, including compulsory misses and rounded to a single decimal place: [hit_rate]%"
+      "Hit rate, excluding compulsory misses and rounded to a single decimal place: [hit_rate]%"
     ])
     
     log.debug('\n'.join(lines))
@@ -205,7 +205,7 @@ class CachingQuestion(Question):
     lines.extend([
       "",
       "To calculate the hit rate we calculate the percentage of requests that were cache hits out of the total number of requests. "
-      "In this case we are counting all requests, including compulsory misses."
+      "In this case we are counting all requests, excluding compulsory misses."
     ])
     
     log.debug("******************* explanation *****************************")
@@ -213,4 +213,8 @@ class CachingQuestion(Question):
     log.debug("******************* /explanation *****************************")
     
     return lines
+  
+  def is_interesting(self) -> bool:
+    return (self.hit_rate / 100.0) < 0.5
+    
     
