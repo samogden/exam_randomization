@@ -928,10 +928,6 @@ class CachingQuestion(CanvasQuestion__fill_in_the_blanks):
       "Instead, it can be inferred from the change in the cache state."
     ]
     
-    # return ["explanation"]
-    
-    
-    
     table_headers = ["Page", "Hit/Miss", "Cache State"]
     lines.extend(
       self.get_table_lines_html(

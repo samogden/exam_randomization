@@ -153,6 +153,7 @@ class Quiz:
         r"\usepackage{subcaption}",
         r"\usepackage{enumitem}",
         r"\usepackage{setspace}",
+        r"\usepackage{longtable}",
         
         # r"\setlist{itemsep=1.25em}",
       
@@ -165,11 +166,15 @@ class Quiz:
         r"  \vspace{0.1cm}",
         r"}",
       
-      r"\providecommand{\tightlist}{%",
-      r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}",
-      
-      
-      r"\newcommand{\answerblank}[1]{\rule[-1.5mm]{#1cm}{0.15mm}}",
+        r"\providecommand{\tightlist}{%",
+        r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}",
+        r"}",
+        
+        r"\providecommand{\tightlist}{%",
+        r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}",
+        r"}",
+        
+        r"\newcommand{\answerblank}[1]{\rule[-1.5mm]{#1cm}{0.15mm}}",
         
         r"\title{" + self.exam_name + r"}",
         

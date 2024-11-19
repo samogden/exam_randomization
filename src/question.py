@@ -24,6 +24,7 @@ import logging
 
 from misc import OutputFormat
 import markdown
+import pytablewriter
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -110,7 +111,9 @@ class Question(abc.ABC):
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
-    return re.sub(r'\[[a-z_][a-z_][a-z_][a-z_]+?\]', r"\\answerblank{3}", question_text)
+    log.debug(f"Question text: \n***********************\n {question_text}")
+    log.debug("****************************")
+    return re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
@@ -156,39 +159,72 @@ class Question(abc.ABC):
       headers: List[str] = None,
       sorted_keys: List[str] = None,
       add_header_space: bool = False,
-      hide_keys: bool = False
+      hide_keys: bool = False,
+      html_out = False
   ) -> List[str]:
     
+    log.debug("get_table_lines")
+    log.debug(pprint.pformat(table_data))
+    
+    
+    log.debug("==============================================")
+    
+    
+    
     if headers is None: headers = []
-    
-    table_lines = ["<table  style=\"border: 1px solid black;\">"]
-    table_lines.append("<tr>")
-    if add_header_space:
-      table_lines.append("<th></th>")
-    table_lines.extend([
-      f"<th style=\"padding: 5px;\">{h}</th>"
-      for h in headers
-    ])
-    table_lines.append("</tr>")
-    
     if sorted_keys is None:
       sorted_keys = sorted(table_data.keys())
     
-    for key in sorted_keys:
+    log.debug("value_matrix:")
+    log.debug([
+      table_data[key]
+      for key in sorted_keys
+    ])
+    
+    if not html_out:
+      writer = pytablewriter.MarkdownTableWriter(
+        headers = headers,
+        value_matrix=[
+          [str(d) for d in table_data[key]]
+          for key in sorted_keys
+        ]
+      )
+    
+      writer.type_hints = ["str" for _ in range(len(writer.value_matrix[0]))]
+      # writer.type_hint = "str"
+      log.debug("value_matrix:")
+      log.debug(writer.value_matrix)
+      return [writer.dumps()]
+    
+    
+    
+    if html_out:
+      table_lines = ["<table  style=\"border: 1px solid black;\">"]
       table_lines.append("<tr>")
-      if not hide_keys:
-        table_lines.append(
-          f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
-        )
+      if add_header_space:
+        table_lines.append("<th></th>")
       table_lines.extend([
-        f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
-        for cell_text in table_data[key]
+        f"<th style=\"padding: 5px;\">{h}</th>"
+        for h in headers
       ])
       table_lines.append("</tr>")
-    
-    table_lines.append("</table>")
-    
-    return ['\n'.join(table_lines)]
+      
+      
+      for key in sorted_keys:
+        table_lines.append("<tr>")
+        if not hide_keys:
+          table_lines.append(
+            f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
+          )
+        table_lines.extend([
+          f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
+          for cell_text in table_data[key]
+        ])
+        table_lines.append("</tr>")
+      
+      table_lines.append("</table>")
+      
+      return ['\n'.join(table_lines)]
   
   @classmethod
   def from_yaml(cls, path_to_yaml):
@@ -200,9 +236,29 @@ class Question(abc.ABC):
   def get_body_lines(self, *args, **kwargs) -> List[str]:
     pass
   
+  def get_body(self, output_format:OutputFormat):
+    # lines should be in markdown
+    lines = self.get_body_lines()
+    
+    body = '\n'.join(lines)
+    if output_format == OutputFormat.LATEX:
+      body = re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", body)
+    
+    return body
+    
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     log.warning("get_explanation using default implementation!  Consider implementing!")
     return []
+  
+  
+  def get_explanation(self, output_format:OutputFormat):
+    # lines should be in markdown
+    lines = self.get_explanation_lines()
+    
+    explanation = '\n'.join(lines)
+    
+    return explanation
+  
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
     log.warning("get_answers using default implementation!  Consider implementing!")
@@ -221,10 +277,10 @@ class Question(abc.ABC):
     
     # Generation body and explanation based on the output format
     if output_format == OutputFormat.CANVAS:
-      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines(output_format)), 'html', format='md')
-      question_explanation = pypandoc.convert_text('\n'.join(self.get_explanation_lines()), 'html', format='md')
+      question_body += pypandoc.convert_text(self.get_body(output_format), 'html', format='md')
+      question_explanation = pypandoc.convert_text(self.get_explanation(output_format), 'html', format='md')
     elif output_format == OutputFormat.LATEX:
-      question_body += pypandoc.convert_text('\n'.join(self.get_body_lines(output_format)), 'latex', format='md')
+      question_body += pypandoc.convert_text(self.get_body(output_format), 'latex', format='md')
     question_body += self.get_footer(output_format)
     
     # Return question body, explanation, and answers

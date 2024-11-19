@@ -60,7 +60,7 @@ class HardDriveAccessTime(CanvasQuestion__fill_in_the_blanks):
   
   def get_question_body(self, *args, **kwargs) -> List[str]:
     lines = [
-      "Given the information below, please calculate the following values.  Make sure your answers are rounded to 2 decimal points (even if they are whole numbers)."
+      "Given the information below, please calculate the following values.  Make sure your answers are rounded to 2 decimal points (even if they are whole numbers), and do so after you finish all your calculations! (i.e. don't use your rounded answers to calculate your overall answer)"
       ]
     
     lines.extend(
@@ -113,13 +113,13 @@ class HardDriveAccessTime(CanvasQuestion__fill_in_the_blanks):
     
     lines.extend([
       r"Next we need to calculate our transfer delay, \(t_{transfer}\), which we do as:",
-      "$$ " + f"t_{{transfer}} = \\frac{{{self.number_of_reads} \\cdot {self.size_of_reads}KB}}{{1}} \\cdot \\frac{{1MB}}{{1024KB}} \\cdot \\frac{{1 second}}{{{self.transfer_rate}MB}} \\cdot \\frac{{1000ms}}{{1second}} = {self.transfer_delay:0.2}ms" + " $$",
+      "$$" + f"t_{{transfer}} = \\frac{{{self.number_of_reads} \\cdot {self.size_of_reads}KB}}{{1}} \\cdot \\frac{{1MB}}{{1024KB}} \\cdot \\frac{{1 second}}{{{self.transfer_rate}MB}} \\cdot \\frac{{1000ms}}{{1second}} = {self.transfer_delay:0.2}ms" + "$$",
       ""
     ])
     
     lines.extend([
       "Putting these together we see:",
-      "$$ " + f"t_{{total}} = (# reads) \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + " $$"
+      "$$" + f"t_{{total}} = (# reads) \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + "$$"
     ])
     return lines
 
@@ -197,7 +197,7 @@ class INodeAccesses(CanvasQuestion__fill_in_the_blanks):
       "If we are given an inode number, there are a few steps that we need to take to load the actual inode.  These consist of determining the address of the inode, which block would contain it, and then its address within the block.",
       ""
       "To find the inode address, we calculate:",
-      r"$$ {addr}_{inode} = {addr}_{inode\_start} + (\text{inode#}) \cdot (\text{inode size}) = " + f"{self.inode_start_location} + {self.inode_number} \\cdot {self.inode_size} = {self.inode_address}" + " $$",
+      r"$${addr}_{inode} = {addr}_{inode\_start} + (\text{inode#}) \cdot (\text{inode size}) = " + f"{self.inode_start_location} + {self.inode_number} \\cdot {self.inode_size} = {self.inode_address}" + "$$",
       "",
       "Next, we us this to figure out what block the inode is in.  We do this directly so we know what block to load, thus minimizing the number of loads we have to make."
       r"$$ \text{block_to_load} = {addr}_{inode} \mathbin{//} (\text{block size}) = " + f"{self.inode_address} \\mathbin{{//}} {self.block_size} = {self.inode_block}" + "$$",
@@ -205,7 +205,7 @@ class INodeAccesses(CanvasQuestion__fill_in_the_blanks):
       "When we load this block, we now have in our system memory (remember, blocks on the hard drive are effectively useless to us until they're in main memory!), the inode, so next we need to figure out where it is within that block."
       "This means that we'll need to find the offset into this block.  We'll calculate this both as the offset in bytes, and also in number of inodes, since we can use array indexing.",
       "",
-      r"$$ \text{offset within block} = {addr}_{inode} % (\text{block size}) = " + f"{self.inode_address} % {self.block_size} = {self.inode_address_in_block} Bytes offset" + "$$",
+      r"$$\text{offset within block} = {addr}_{inode} \% (\text{block size}) = " + f"{self.inode_address} % {self.block_size} = {self.inode_address_in_block} Bytes offset" + "$$",
       "and"
       r"$$ \text{index within block} = \frac{\text{offset within block}}{\text{inode size}} = " + f"\\frac{{{self.inode_address_in_block}}}{{{self.inode_size}}} = {self.inode_index_in_block}" + "$$"
     ])
