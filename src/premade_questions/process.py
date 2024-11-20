@@ -312,9 +312,9 @@ class SchedulingQuestion(Question):
       quiz: canvasapi.quiz.Quiz,
       image_dir="imgs",
   ) -> List[str]:
-    log.debug("get_explanation")
     
-    # todo: We should vary the phrasing depending on if it's response or TAT
+    return []
+    
     explanation_lines = []
     
     explanation_lines.extend([
