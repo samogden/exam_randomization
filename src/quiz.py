@@ -1,6 +1,7 @@
 #!env python
 from __future__ import annotations
 
+import argparse
 import collections
 import enum
 import importlib
@@ -274,10 +275,25 @@ def generate_latex(q: Quiz):
   proc.wait(timeout=30)
   tmp_tex.close()
   
+  
+def parse_args():
+  parser = argparse.ArgumentParser()
+  
+  parser.add_argument("--prod", action="store_true")
+  parser.add_argument("--course_id", default=25523, type=int)
+  
+  parser.add_argument("--quiz_yaml", required=True, default="/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
+  parser.add_argument("--num_canvas_variations", default=5)
+  parser.add_argument("--num_pdfs", default=45)
+  
+  args = parser.parse_args()
+  return args
 
 def main():
   
-  quiz = Quiz.from_yaml("/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
+  args = parse_args()
+  
+  quiz = Quiz.from_yaml(args.quiz_yaml)
   quiz.select_questions()
   
   quiz.set_sort_order([
@@ -289,10 +305,11 @@ def main():
     question.Question.TOPIC.MISC
   ])
   
-  generate_latex(quiz)
+  for _ in range(args.num_pdfs):
+    generate_latex(quiz)
   
-  # interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
-  # interface.push_quiz_to_canvas(q, 1)
+  interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)
+  interface.push_quiz_to_canvas(quiz, args.num_canvas_variations)
   
   quiz.describe()
   
