@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Type, Any
 import pypandoc
 
 from src.misc import OutputFormat
-from src.question import Question, Answer
+from src.question import Question, Answer, TableGenerator
 
 import random
 import math
@@ -21,13 +21,14 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
+
 class CachingQuestion(Question):
   
   class Kind(enum.Enum):
     FIFO = enum.auto()
     LRU = enum.auto()
     Belady = enum.auto()
-    LFU = enum.auto()
     def __str__(self):
       return self.name
   
@@ -72,12 +73,12 @@ class CachingQuestion(Question):
           key=(lambda e: self.last_used[e]),
           reverse=False
         )
-      elif self.kind == CachingQuestion.Kind.LFU:
-        self.cache_state = sorted(
-          self.cache_state,
-          key=(lambda e: (self.frequency[e], e)),
-          reverse=False
-        )
+      # elif self.kind == CachingQuestion.Kind.LFU:
+      #   self.cache_state = sorted(
+      #     self.cache_state,
+      #     key=(lambda e: (self.frequency[e], e)),
+      #     reverse=False
+      #   )
       elif self.kind == CachingQuestion.Kind.Belady:
         upcoming_requests = self.all_requests[request_number+1:]
         self.cache_state = sorted(
@@ -148,7 +149,7 @@ class CachingQuestion(Question):
     
     table_headers = ["Page Requested", "Hit/Miss", "Evicted", "Cache State"]
     lines.extend(
-      self.get_table_lines(
+      self.get_table_generator(
         { request_number :
           [
             self.requests[request_number],
@@ -168,7 +169,7 @@ class CachingQuestion(Question):
       "Hit rate, excluding compulsory misses and rounded to a single decimal place: [hit_rate]%"
     ])
     
-    log.debug('\n'.join(lines))
+    # log.debug('\n'.join(lines))
     
     return lines
   
@@ -186,7 +187,7 @@ class CachingQuestion(Question):
     
     table_headers = ["Page", "Hit/Miss", "Evicted", "Cache State"]
     lines.extend(
-      self.get_table_lines(
+      self.get_table_generator(
         { request_number :
           [
             self.request_results[request]["request"][1],
@@ -208,13 +209,211 @@ class CachingQuestion(Question):
       "In this case we are counting all requests, excluding compulsory misses."
     ])
     
-    log.debug("******************* explanation *****************************")
-    log.debug('\n'.join(lines))
-    log.debug("******************* /explanation *****************************")
-    
     return lines
   
   def is_interesting(self) -> bool:
     return (self.hit_rate / 100.0) < 0.5
+
+
+
+
+class MemoryAccessQuestion(Question):
+  PROBABILITY_OF_VALID = .875
+  
+class Paging(MemoryAccessQuestion):
+  
+  MIN_OFFSET_BITS = 3
+  MIN_VPN_BITS = 3
+  MIN_PFN_BITS = 3
+  
+  MAX_OFFSET_BITS = 8
+  MAX_VPN_BITS = 8
+  MAX_PFN_BITS = 16
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.num_elements = kwargs.get("num_elements", 5)
+    self.cache_size = kwargs.get("cache_size", 3)
+    self.num_requests = kwargs.get("num_requests", 10)
     
+    self.instantiate()
+  
+  def instantiate(self):
+    super().instantiate()
+    
+    self.num_offset_bits = random.randint(self.MIN_OFFSET_BITS, self.MAX_OFFSET_BITS)
+    self.num_vpn_bits = random.randint(self.MIN_VPN_BITS, self.MAX_VPN_BITS)
+    self.num_pfn_bits = random.randint(max([self.MIN_PFN_BITS, self.num_vpn_bits]), self.MAX_PFN_BITS)
+    
+    self.virtual_address = random.randint(0, 2**(self.num_vpn_bits + self.num_offset_bits))
+    
+    # Calculate these two
+    self.offset = self.virtual_address % (2**(self.num_offset_bits))
+    self.vpn = self.virtual_address // (2**(self.num_offset_bits))
+    
+    # Generate this randomly
+    self.pfn = random.randint(0, 2**(self.num_pfn_bits))
+    
+    # Calculate this
+    self.physical_address = self.pfn * (2**self.num_offset_bits) + self.offset
+    
+    # Set up variables for display
+    # self.vpn_bits_var = Variable("# VPN bits", self.num_vpn_bits)
+    # self.pfn_bits_var = Variable("# PFN bits", self.num_pfn_bits)
+    # self.offset_bits_var = Variable("# offset bits", self.num_offset_bits)
+    
+    # self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, num_bits=(self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
+    # self.vpn_var = VariableHex("VPN", self.vpn, num_bits=self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
+    
+    if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
+      self.is_valid = True
+      # Set our actual entry to be in the table and valid
+      self.pte = self.pfn + (2**(self.num_pfn_bits))
+      # self.physical_address_var = VariableHex("Physical Address", self.physical_address, num_bits=(self.num_pfn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
+      # self.pfn_var = VariableHex("PFN", self.pfn, num_bits=self.num_pfn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
+    else:
+      self.is_valid = False
+      # Leave it as invalid
+      self.pte = self.pfn
+      # self.physical_address_var = Variable("Physical Address", "INVALID")
+      # self.pfn_var = Variable("PFN",  "INVALID")
+    
+    # self.pte_var = VariableHex("PTE", self.pte, num_bits=(self.num_pfn_bits+1), default_presentation=VariableHex.PRESENTATION.BINARY)
+    
+    self.answers.extend([
+      Answer("answer__vpn",     self.vpn,     variable_kind=Answer.VariableKind.BINARY_OR_HEX, length=self.num_vpn_bits),
+      Answer("answer__offset",  self.offset,  variable_kind=Answer.VariableKind.BINARY_OR_HEX, length=self.num_offset_bits),
+      Answer("answer__pte",     self.pte,     variable_kind=Answer.VariableKind.BINARY_OR_HEX, length=(self.num_pfn_bits + 1)),
+    ])
+    
+    if self.is_valid:
+      self.answers.extend([
+        Answer("answer__is_valid",          "VALID"),
+        Answer("answer__pfn",               self.pfn,               variable_kind=Answer.VariableKind.BINARY_OR_HEX, length=self.num_pfn_bits),
+        Answer("answer__physical_address",  self.physical_address,  variable_kind=Answer.VariableKind.BINARY_OR_HEX, length=(self.num_pfn_bits + self.num_offset_bits)),
+      ])
+    else:
+      self.answers.extend([
+        Answer("answer__is_valid",          "INVALID"),
+        Answer("answer__pfn",               "INVALID"),
+        Answer("answer__physical_address",  "INVALID"),
+      ])
+  
+  def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
+    lines = [
+      "Given the below information please calculate the equivalent physical address of the given virtual address, filling out all steps along the way."
+    ]
+    
+    lines.extend([
+      TableGenerator(
+        value_matrix=[
+          ["Virtual Address", f"0b{self.virtual_address:0{self.num_vpn_bits + self.num_offset_bits}b}"],
+          ["# VPN bits", f"{self.num_vpn_bits}"],
+          ["# PFN bits", f"{self.num_pfn_bits}"],
+        ]
+      )
+    ])
+    
+    # Make values for Page Table
+    table_size = random.randint(5,10)
+    table_bottom = self.vpn - random.randint(0, table_size)
+    if table_bottom < 0:
+      table_bottom = 0
+    table_top = min([table_bottom + table_size, 2**self.num_vpn_bits])
+    
+    page_table = {}
+    page_table[self.vpn] = self.pte
+    
+    # Fill in the rest of the table
+    # for vpn in range(2**self.num_vpn_bits):
+    for vpn in range(table_bottom, table_top):
+      if vpn == self.vpn: continue
+      pte = page_table[self.vpn]
+      while pte in page_table.values():
+        pte = random.randint(0, 2**self.num_pfn_bits-1)
+        if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
+          # Randomly set it to be valid
+          pte += (2**(self.num_pfn_bits))
+      # Once we have a unique random entry, put it into the Page Table
+      page_table[vpn] = pte
+    
+    
+    lines.extend([
+      TableGenerator(
+        headers=["VPN", "PTE"],
+        value_matrix=[
+          [f"0b{vpn:0{self.num_vpn_bits}b}", f"0b{pte:0{(self.num_pfn_bits+1)}b}"]
+          for vpn, pte in sorted(page_table.items())
+        ]
+      )
+    ])
+    
+    lines.extend([
+      "- VPN: [answer__vpn]",
+      "- Offset: [answer__offset]",
+      "- PTE: [answer__pte]",
+      "- PFN: [answer__pfn]",
+      "- Physical Address: [answer__physical_address]",
+    ])
+    
+    return lines
+  
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
+    
+    lines = [
+      "The core idea of Paging is we want to break the virtual address into the VPN and the offset.  "
+      "From here, we get the Page Table Entry corresponding to the VPN, and check the validity of the entry.  "
+      "If it is valid, we clear the metadata and attach the PFN to the offset and have our physical address.",
+      "",
+      "Don't forget to pad with the appropriate number of 0s (the appropriate number is the number of bits)!",
+      "",
+      f"Virtual Address = VPN | offset",
+      f"<tt>0b{self.virtual_address:0{self.num_vpn_bits+self.num_offset_bits}b}</tt> = <tt>0b{self.vpn:0{self.num_vpn_bits}b}</tt> | <tt>0b{self.offset:0{self.num_offset_bits}b}</tt>",
+      ""
+    ]
+    
+    lines.extend([
+      "We next use our VPN to index into our page table and find the corresponding entry."
+      f"Our Page Table Entry is:",
+      "",
+      f"<tt>0b{self.pte:0{(self.num_pfn_bits+1)}b}</tt>"
+      f"which we found by looking for our VPN in the page table.",
+      "",
+    ])
+    
+    is_valid = (self.pte // (2**self.num_pfn_bits) == 1)
+    if is_valid:
+      lines.extend([
+        f"In our PTE we see that the first bit is <b>{self.pte // (2**self.num_pfn_bits)}</b> meaning that the translation is <b>VALID</b>"
+      ])
+    else:
+      lines.extend([
+        f"In our PTE we see that the first bit is <b>{self.pte // (2**self.num_pfn_bits)}</b> meaning that the translation is <b>INVALID</b>.",
+        "Therefore, we just write \"INVALID\" as our answer.",
+        "If it were valid we would complete the below steps.",
+        "",
+        "<hr>"
+        "\n",
+      ])
+    
+    lines.extend([
+      "Next, we convert our PTE to our PFN by removing our metadata.  In this case we're just removing the leading bit.  We can do this by applying a binary mask.",
+      f"PFN = PTE & mask",
+      f"which is,",
+      "",
+      f"<tt>{self.pfn:0{self.num_pfn_bits}b}</tt> = <tt>0b{self.pte:0{self.num_pfn_bits+1}b}</tt> & <tt>0b{(2**self.num_pfn_bits)-1:0{self.num_pfn_bits+1}b}</tt>"
+    ])
+    
+    lines.extend([
+      "We then add combine our PFN and offset",
+      "",
+      "Physical Address = PFN | offset",
+      f"{'<tt><b>' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'</b></tt>' if is_valid else ''} = <tt>0b{self.pfn:0{self.num_pfn_bits}b}</tt> | <tt>0b{self.offset:0{self.num_vpn_bits}b}</tt>",
+      "",
+      "",
+      "Note: Strictly speaking, this calculation is:",
+      f"{'<tt><b>' if is_valid else ''}0b{self.physical_address:0{self.num_pfn_bits+self.num_offset_bits}b}{'</b></tt>' if is_valid else ''} = <tt>0b{self.pfn:0{self.num_pfn_bits}b}{0:0{self.num_offset_bits}}</tt> + <tt>0b{self.offset:0{self.num_offset_bits}b}</tt>",
+      "But that's a lot of extra 0s, so I'm splitting them up for succinctness",
+      ""
+    ])
+    return lines
     

@@ -119,7 +119,7 @@ class HexAndBinary(Question):
     binary_str = f"{self.value:0{4*self.number_of_hexits}b}"
     hex_str = f"{self.value:0{self.number_of_hexits}X}"
     explanation_lines.extend(
-      self.get_table_lines(
+      self.get_table_generator(
         table_data={
           "0b" : [binary_str[i:i+4] for i in range(0, len(binary_str), 4)],
           "0x" : hex_str

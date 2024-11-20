@@ -5,6 +5,7 @@ from __future__ import annotations
 
 
 import abc
+import dataclasses
 import datetime
 import enum
 import inspect
@@ -39,13 +40,19 @@ class Answer():
     BLANK = "fill_in_multiple_blanks_question"
     MULTIPLE_CHOICE = enum.auto() # todo: have baffles?
   class VariableKind(enum.Enum): # todo: use these for generate variations?
+    STR = enum.auto()
     INT = enum.auto()
     FLOAT = enum.auto()
-  def __init__(self, key:str, value, kind : Answer.AnswerKind, display=None):
+    BINARY = enum.auto()
+    HEX = enum.auto()
+    BINARY_OR_HEX = enum.auto()
+  def __init__(self, key:str, value, kind : Answer.AnswerKind = AnswerKind.BLANK, variable_kind : Answer.VariableKind = VariableKind.STR, display=None, length=None):
     self.key = key
     self.value = value
     self.kind = kind
+    self.variable_kind = variable_kind
     self.display = display if display is not None else value
+    self.length = length # Used for bits and hex to be printed appropriately
   
   def get_for_canvas(self):
     canvas_answer = {
@@ -55,6 +62,88 @@ class Answer():
     }
     return canvas_answer
 
+@dataclasses.dataclass
+class TableGenerator:
+  headers : List[str] = None
+  value_matrix : List[List[str]] = None
+  
+  @staticmethod
+  def tex_escape(text):
+    """
+        :param text: a plain text message
+        :return: the message escaped to appear correctly in LaTeX
+    """
+    conv = {
+      '&': r'\&',
+      '%': r'\%',
+      '$': r'\$',
+      '#': r'\#',
+      '_': r'\_',
+      '{': r'\{',
+      '}': r'\}',
+      '~': r'\textasciitilde{}',
+      '^': r'\^{}',
+      '\\': r'\textbackslash{}',
+      '<': r'\textless{}',
+      '>': r'\textgreater{}',
+    }
+    regex = re.compile('|'.join(re.escape(str(key)) for key in sorted(conv.keys(), key = lambda item: - len(item))))
+    return regex.sub(lambda match: conv[match.group()], text)
+  
+  def generate(self, output_format: OutputFormat) -> str:
+    if output_format == OutputFormat.CANVAS:
+      table_writer = pytablewriter.HtmlTableWriter(
+        headers=self.headers,
+        value_matrix=self.value_matrix
+      )
+      return table_writer.dumps()
+    elif output_format == OutputFormat.LATEX:
+      table_lines = [
+        # r"\begin{table}[h!]",
+        # r"\centering",
+        r"\begin{tabular}{" + '|c' * len(self.value_matrix[0]) + '|}',
+        r"\toprule",
+      ]
+      if self.headers is not None:
+        table_lines.extend([
+          ' & '.join([self.tex_escape(element) for element in self.headers]) + r" \\",
+          r"\midrule"
+        ])
+      table_lines.extend([
+        ' & '.join([self.tex_escape(element) for element in line]) + r" \\"
+        for line in self.value_matrix
+      ])
+      table_lines.extend([
+        r"\bottomrule",
+        r"\end{tabular}"
+      ])
+      return '\n'.join(table_lines)
+    
+  
+  def generate_old(self, output_format: OutputFormat):
+    
+    if self.headers is None: headers = []
+    if self.value_matrix is None: self.value_matrix = [[]]
+    
+    if output_format == OutputFormat.LATEX:
+      table_writer = pytablewriter.LatexTableWriter(
+        headers=self.headers,
+        value_matrix=self.value_matrix
+      )
+      return "$" + table_writer.dumps() + "$"
+    elif output_format == OutputFormat.CANVAS:
+      table_writer = pytablewriter.HtmlTableWriter(
+        headers=self.headers,
+        value_matrix=self.value_matrix
+      )
+    else:
+      table_writer = pytablewriter.AbstractTableWriter(
+        headers=self.headers,
+        value_matrix=self.value_matrix
+      )
+    log.debug(f"---------------------------------\n{table_writer.dumps()}\n---------------------------------")
+    return table_writer.dumps()
+    
 class Question(abc.ABC):
   """
   A question base class that will be able to output questions to a variety of formats.
@@ -111,8 +200,9 @@ class Question(abc.ABC):
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
-    log.debug(f"Question text: \n***********************\n {question_text}")
-    log.debug("****************************")
+    log.debug(question_text)
+    # question_text = re.sub(r'^(\s*&)+\s*\\$', r'', question_text)
+    # log.debug(question_text)
     return re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
@@ -154,39 +244,46 @@ class Question(abc.ABC):
     return '\n'.join(lines)
 
   @staticmethod
-  def get_table_lines(
+  def get_table_generator(
       table_data: Dict[str,List[str]],
       headers: List[str] = None,
       sorted_keys: List[str] = None,
       add_header_space: bool = False,
       hide_keys: bool = False,
       html_out = False
-  ) -> List[str]:
+  ) -> List[str|TableGenerator]:
     
-    log.debug("get_table_lines")
-    log.debug(pprint.pformat(table_data))
-    
+    return [
+      TableGenerator(
+        headers = headers,
+        value_matrix=[
+          ([key] if not hide_keys else []) + [str(d) for d in table_data[key]]
+          for key in sorted_keys
+        ])
+    ]
     
     log.debug("==============================================")
     
-    
-    
-    if headers is None: headers = []
     if sorted_keys is None:
       sorted_keys = sorted(table_data.keys())
     
     if not html_out:
-      writer = pytablewriter.MarkdownTableWriter(
+      writer = pytablewriter.LatexTableWriter(
         headers = headers,
         value_matrix=[
-          [str(d) for d in table_data[key]]
+          ([key] if not hide_keys else []) + [str(d) for d in table_data[key]]
           for key in sorted_keys
         ]
       )
     
       writer.type_hints = ["str" for _ in range(len(writer.value_matrix[0]))]
+      if headers is None:
+        writer.headers = []
       
-      return ['\n', writer.dumps(), '\n']
+      table_str = writer.dumps()
+      log.debug(f"------------------------------------------------\n{table_str}\n-------------------------------------------")
+      
+      return ['\n', table_str, '\n']
     
     
     
@@ -225,14 +322,38 @@ class Question(abc.ABC):
       log.debug(pprint.pformat(list(question_dicts)))
   
   @abc.abstractmethod
-  def get_body_lines(self, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
     pass
   
   def get_body(self, output_format:OutputFormat):
     # lines should be in markdown
     lines = self.get_body_lines()
     
-    body = '\n'.join(lines)
+    parts = []
+    curr_part = ""
+    for line in lines:
+      if isinstance(line, TableGenerator):
+        
+        parts.append(
+          pypandoc.convert_text(
+            curr_part,
+            ('html' if output_format == OutputFormat.CANVAS else 'latex'),
+            format='md'
+          )
+        )
+        curr_part = ""
+        parts.append('\n' + line.generate(output_format) + '\n')
+      else:
+        curr_part += line + '\n'
+        
+    parts.append(
+      pypandoc.convert_text(
+        curr_part,
+        ('html' if output_format == OutputFormat.CANVAS else 'latex'),
+        format='md'
+      )
+    )
+    body = '\n'.join(parts)
     if output_format == OutputFormat.LATEX:
       body = re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", body)
     
@@ -258,7 +379,7 @@ class Question(abc.ABC):
 
   def instantiate(self):
     """If it is necessary to regenerate aspects between usages, this is the time to do it"""
-    pass
+    self.answers = []
 
   def generate(self, output_format: OutputFormat):
     # Renew the problem as appropriate
@@ -271,10 +392,12 @@ class Question(abc.ABC):
     
     # Generation body and explanation based on the output format
     if output_format == OutputFormat.CANVAS:
-      question_body += pypandoc.convert_text(self.get_body(output_format), 'html', format='md')
+      # question_body += pypandoc.convert_text(self.get_body(output_format), 'html', format='md')
+      question_body += self.get_body(output_format)
       question_explanation = pypandoc.convert_text(self.get_explanation(output_format), 'html', format='md')
     elif output_format == OutputFormat.LATEX:
-      question_body += pypandoc.convert_text(self.get_body(output_format), 'latex', format='md')
+      # question_body += pypandoc.convert_text(self.get_body(output_format), 'latex', format='md')
+      question_body += self.get_body(output_format)
     question_body += self.get_footer(output_format)
     
     # Return question body, explanation, and answers

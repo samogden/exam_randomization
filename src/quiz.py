@@ -154,6 +154,8 @@ class Quiz:
         r"\usepackage{enumitem}",
         r"\usepackage{setspace}",
         r"\usepackage{longtable}",
+        r"\usepackage{arydshln}",
+        r"\usepackage{ragged2e}\let\Centering\flushleft",
         
         # r"\setlist{itemsep=1.25em}",
       

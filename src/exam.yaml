@@ -3,13 +3,15 @@ questions:
   8:
     - class: CachingQuestion
       module: memory_questions
+    - class: Paging
+      module: memory_questions
 #  4:
 #    - class: HexAndBinary
 #      module: math_questions
-  1:
-    - class: BitsAndBytes
-      module: math_questions
-    - class: HexAndBinary
-      module: math_questions
-    - class: AverageMemoryAccessTime
-      module: math_questions
+#  1:
+#    - class: BitsAndBytes
+#      module: math_questions
+#    - class: HexAndBinary
+#      module: math_questions
+#    - class: AverageMemoryAccessTime
+#      module: math_questions
