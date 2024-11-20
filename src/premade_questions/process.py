@@ -37,9 +37,9 @@ class SchedulingQuestion(Question):
     RoundRobin = enum.auto()
   
   MAX_JOBS = 4
-  MAX_ARRIVAL_TIME = 15
+  MAX_ARRIVAL_TIME = 10
   MIN_JOB_DURATION = 2
-  MAX_JOB_DURATION = 15
+  MAX_JOB_DURATION = 10
   
   ANSWER_EPSILON = 1.0
   
@@ -234,7 +234,7 @@ class SchedulingQuestion(Question):
       SchedulingQuestion.Job(
         job_id,
         random.randint(0, self.MAX_ARRIVAL_TIME),
-        random.randint(self.MIN_JOB_DURATION, self.MIN_JOB_DURATION)
+        random.randint(self.MIN_JOB_DURATION, self.MAX_JOB_DURATION)
       )
       for job_id in range(self.num_jobs)
     ]
