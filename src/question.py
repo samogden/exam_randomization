@@ -55,6 +55,12 @@ class Answer():
     self.length = length # Used for bits and hex to be printed appropriately
   
   def get_for_canvas(self):
+    if self.variable_kind == Answer.VariableKind.FLOAT:
+      return {
+        "blank_id": self.key,
+        "answer_text": f"{self.value:0.2f}",
+        "answer_weight": 100,
+      }
     canvas_answer = {
       "blank_id": self.key,
       "answer_text": self.value,
