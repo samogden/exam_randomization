@@ -213,6 +213,7 @@ class Question(abc.ABC):
     self.name = name
     self.points_value = points_value
     self.kind = kind
+    self.spacing = kwargs.get("spacing", 3)
     
     self.extra_attrs = kwargs # clear page, etc.
     
@@ -220,7 +221,8 @@ class Question(abc.ABC):
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
-    log.debug(question_text)
+    question_text += f"\n\\vspace{{{self.spacing}cm}}"
+    # log.debug(question_text)
     # question_text = re.sub(r'^(\s*&)+\s*\\$', r'', question_text)
     # log.debug(question_text)
     return re.sub(r'\[answer.+]', r"\\answerblank{3}", question_text)

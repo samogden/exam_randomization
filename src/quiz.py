@@ -226,7 +226,8 @@ class Quiz:
       for q_info in questions:
         q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
         q_class = getattr(q_module, q_info["class"])
-        exam_questions.append(q_class(points_value=int(value)))
+        log.debug(q_info.get("kwargs", {}))
+        exam_questions.append(q_class(points_value=int(value), **q_info.get("kwargs", {})))
         
     quiz_from_yaml = Quiz(name, exam_questions)
     return quiz_from_yaml

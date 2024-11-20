@@ -3,16 +3,24 @@ questions:
   8:
     - class: SchedulingQuestion
       module: process
+      kwargs:
+        spacing: 5
     - class: VSFS_states
       module: persistance_questions
+      kwargs:
+        spacing: 1
     - class: INodeAccesses
       module: persistance_questions
     - class: HardDriveAccessTime
       module: persistance_questions
     - class: CachingQuestion
       module: memory_questions
+      kwargs:
+        spacing: 1
     - class: Paging
       module: memory_questions
+      kwargs:
+        spacing: 1
 #  4:
 #    - class: HexAndBinary
 #      module: math_questions
