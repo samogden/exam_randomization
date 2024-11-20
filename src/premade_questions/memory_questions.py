@@ -166,7 +166,7 @@ class CachingQuestion(Question):
     )
     
     lines.extend([
-      "Hit rate, excluding compulsory misses and rounded to a single decimal place: [answer__hit_rate]%"
+      "Hit rate, excluding compulsory misses: [answer__hit_rate]%"
     ])
     
     # log.debug('\n'.join(lines))

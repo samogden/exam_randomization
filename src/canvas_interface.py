@@ -128,6 +128,8 @@ class CanvasInterface:
           break
         if isinstance(q, question.FromText) and not isinstance(q, question.FromGenerator):
           break
+        if variation_count >= question.possible_variations:
+          break
         
 
 

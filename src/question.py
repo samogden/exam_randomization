@@ -219,6 +219,7 @@ class Question(abc.ABC):
     self.extra_attrs = kwargs # clear page, etc.
     
     self.answers = []
+    self.possible_variations = float('inf')
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
@@ -255,7 +256,7 @@ class Question(abc.ABC):
     lines = []
     if output_format == OutputFormat.LATEX:
       if self.spacing is not None:
-        lines.append(f"\\vspace{{{self.spacing}}}")
+        lines.append(f"\\vspace{{{self.spacing}cm}}")
       lines.extend([
         r"\end{minipage}",
         r"\end{minipage}"
@@ -543,6 +544,7 @@ class FromText(Question):
     super().__init__(*args, **kwargs)
     self.text = text
     self.answers = []
+    self.possible_variations = 1
   
   def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
     return [self.text]
@@ -555,6 +557,7 @@ class FromGenerator(FromText):
   
   def __init__(self, *args, generator, **kwargs):
     super().__init__(*args, text="", **kwargs)
+    self.possible_variations = float('inf')
     
     
     def attach_function_to_object(obj, function_code, function_name='get_body_lines'):
