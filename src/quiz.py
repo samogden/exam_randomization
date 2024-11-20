@@ -272,7 +272,7 @@ def main():
   generate_latex(q)
   
   interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
-  interface.push_quiz_to_canvas(q, 2)
+  interface.push_quiz_to_canvas(q, 1)
   
   q.describe()
   

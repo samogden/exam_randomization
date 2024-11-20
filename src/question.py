@@ -174,7 +174,7 @@ class Question(abc.ABC):
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
-    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS)
+    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS, course=course, quiz=quiz)
     
     question_type, answers = self.get_answers(*args, **kwargs)
     return {
@@ -222,7 +222,9 @@ class Question(abc.ABC):
     
     if sorted_keys is None:
       sorted_keys = sorted(table_data.keys())
-      
+    if add_header_space and headers is not None:
+      headers = [""] + headers
+    
     return [
       TableGenerator(
         headers = headers,
@@ -287,9 +289,9 @@ class Question(abc.ABC):
     return []
   
   
-  def get_explanation(self, output_format:OutputFormat):
+  def get_explanation(self, output_format:OutputFormat, *args, **kwargs):
     # lines should be in markdown
-    lines = self.get_explanation_lines()
+    lines = self.get_explanation_lines(*args, **kwargs)
     # log.debug(self.convert_from_lines_to_text(lines, output_format))
     return self.convert_from_lines_to_text(lines, output_format)
   
@@ -302,7 +304,7 @@ class Question(abc.ABC):
     """If it is necessary to regenerate aspects between usages, this is the time to do it"""
     self.answers = []
 
-  def generate(self, output_format: OutputFormat):
+  def generate(self, output_format: OutputFormat, *args, **kwargs):
     # Renew the problem as appropriate
     self.instantiate()
     while (not self.is_interesting()):
@@ -315,7 +317,7 @@ class Question(abc.ABC):
     if output_format == OutputFormat.CANVAS:
       # question_body += pypandoc.convert_text(self.get_body(output_format), 'html', format='md')
       question_body += self.get_body(output_format)
-      question_explanation = pypandoc.convert_text(self.get_explanation(output_format), 'html', format='md')
+      question_explanation = pypandoc.convert_text(self.get_explanation(output_format, *args, **kwargs), 'html', format='md')
     elif output_format == OutputFormat.LATEX:
       # question_body += pypandoc.convert_text(self.get_body(output_format), 'latex', format='md')
       question_body += self.get_body(output_format)
@@ -365,7 +367,7 @@ class Question_legacy(Question):
   
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
-    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS)
+    question_text, explanation_text, answers = self.generate(OutputFormat.CANVAS, *args, **kwargs)
     def replace_answers(input_str):
       counter = 1
       replacements = []
