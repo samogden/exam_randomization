@@ -91,13 +91,13 @@ class CanvasInterface:
     canvas_quiz = self.add_quiz(assignment_group)
     
     all_variations = set()
-    for question in quiz:
+    for q in quiz:
   
       group : canvasapi.quiz.QuizGroup = canvas_quiz.create_question_group([
         {
-          "name": f"{question.name}",
+          "name": f"{q.name}",
           "pick_count": 1,
-          "question_points": question.points_value
+          "question_points": q.points_value
         }
       ])
       
@@ -106,7 +106,7 @@ class CanvasInterface:
       for attempt_number in range(QUESTION_VARIATIONS_TO_TRY):
         
         # Get the question in a format that is ready for canvas (e.g. json)
-        question_for_canvas = question.get__canvas(self.course, canvas_quiz)
+        question_for_canvas = q.get__canvas(self.course, canvas_quiz)
         
         # log.debug(pprint.pformat(question_for_canvas))
         
@@ -119,12 +119,14 @@ class CanvasInterface:
         question_for_canvas["quiz_group_id"] = group.id
         
         # Push question to canvas
-        log.debug(f"Pushing {question.name} {variation_count+1} / {num_variations} to canvas...")
+        log.debug(f"Pushing {q.name} {variation_count+1} / {num_variations} to canvas...")
         canvas_quiz.create_question(question=question_for_canvas)
         
         # Update and check variations already seen
         variation_count += 1
         if variation_count >= num_variations:
+          break
+        if isinstance(q, question.FromText) and not isinstance(q, question.FromGenerator):
           break
         
 
