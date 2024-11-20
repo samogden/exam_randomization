@@ -1,6 +1,10 @@
 name: "CST 334 Exam 3 (Fall 2024)"
 questions:
   8:
+    - class: INodeAccesses
+      module: persistance_questions
+    - class: HardDriveAccessTime
+      module: persistance_questions
     - class: CachingQuestion
       module: memory_questions
     - class: Paging

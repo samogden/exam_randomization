@@ -214,9 +214,6 @@ class CachingQuestion(Question):
   def is_interesting(self) -> bool:
     return (self.hit_rate / 100.0) < 0.5
 
-
-
-
 class MemoryAccessQuestion(Question):
   PROBABILITY_OF_VALID = .875
   

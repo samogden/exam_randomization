@@ -120,8 +120,6 @@ class TableGenerator:
       ])
       return '\n'.join(table_lines)
     
-  
-    
 class Question(abc.ABC):
   """
   A question base class that will be able to output questions to a variety of formats.
@@ -231,6 +229,9 @@ class Question(abc.ABC):
       html_out = False
   ) -> List[str|TableGenerator]:
     
+    if sorted_keys is None:
+      sorted_keys = sorted(table_data.keys())
+      
     return [
       TableGenerator(
         headers = headers,
@@ -242,8 +243,6 @@ class Question(abc.ABC):
     
     log.debug("==============================================")
     
-    if sorted_keys is None:
-      sorted_keys = sorted(table_data.keys())
     
     if not html_out:
       writer = pytablewriter.LatexTableWriter(
