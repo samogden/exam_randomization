@@ -8,8 +8,8 @@ from typing import List, Tuple, Dict, Type, Any
 
 import pypandoc
 
-from src.misc import OutputFormat
-from src.question import Question, Answer, TableGenerator
+from misc import OutputFormat
+from question import Question, Answer, TableGenerator
 
 import random
 import math
@@ -115,10 +115,10 @@ class HardDriveAccessTime(Question):
     ])
     
     lines.extend([
-      "Putting these together we see:",
+      "Putting these together we get:",
       "",
-      "$$" + f"t_{{total}} = (# reads) \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + "$$",
-      ""
+      "$$" + f"t_{{total}} = \\text{{(# reads)}} \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + "$$",
+      "\n"
     ])
     return lines
 
@@ -194,17 +194,22 @@ class INodeAccesses(Question):
       "If we are given an inode number, there are a few steps that we need to take to load the actual inode.  These consist of determining the address of the inode, which block would contain it, and then its address within the block.",
       ""
       "To find the inode address, we calculate:",
-      r"$${addr}_{inode} = {addr}_{inode\_start} + (\text{inode#}) \cdot (\text{inode size}) = " + f"{self.inode_start_location} + {self.inode_number} \\cdot {self.inode_size} = {self.inode_address}" + "$$",
       "",
-      "Next, we us this to figure out what block the inode is in.  We do this directly so we know what block to load, thus minimizing the number of loads we have to make."
-      r"$$ \text{block_to_load} = {addr}_{inode} \mathbin{//} (\text{block size}) = " + f"{self.inode_address} \\mathbin{{//}} {self.block_size} = {self.inode_block}" + "$$",
+      r"$$(\text{Inode address}) = (\text{Inode Start Location}) + (\text{inode #}) \cdot (\text{inode size}) = " + f"{self.inode_start_location} + {self.inode_number} \\cdot {self.inode_size} = {self.inode_address}" + "$$",
+      "",
+      "Next, we us this to figure out what block the inode is in.  We do this directly so we know what block to load, thus minimizing the number of loads we have to make.",
+      "",
+      r"$$\text{Block containing inode} = (\text{Inode address}) \mathbin{//} (\text{block size}) = " + f"{self.inode_address} \\mathbin{{//}} {self.block_size} = {self.inode_block}" + "$$",
       "",
       "When we load this block, we now have in our system memory (remember, blocks on the hard drive are effectively useless to us until they're in main memory!), the inode, so next we need to figure out where it is within that block."
       "This means that we'll need to find the offset into this block.  We'll calculate this both as the offset in bytes, and also in number of inodes, since we can use array indexing.",
       "",
-      r"$$\text{offset within block} = {addr}_{inode} \% (\text{block size}) = " + f"{self.inode_address} % {self.block_size} = {self.inode_address_in_block} Bytes offset" + "$$",
-      "\nand\n"
-      r"$$ \text{index within block} = \frac{\text{offset within block}}{\text{inode size}} = " + f"\\frac{{{self.inode_address_in_block}}}{{{self.inode_size}}} = {self.inode_index_in_block}" + "$$"
+      r"$$\text{offset within block} = (\text{Inode address}) \% (\text{block size}) = " + f"{self.inode_address} \bmod {self.block_size} = {self.inode_address_in_block} Bytes offset" + "$$",
+      "",
+      "and",
+      "",
+      r"$$\text{index within block} = \frac{\text{offset within block}}{\text{inode size}} = " + f"\\frac{{{self.inode_address_in_block}}}{{{self.inode_size}}} = {self.inode_index_in_block}" + "$$",
+      ""
     ])
     
     return lines

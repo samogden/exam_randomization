@@ -13,8 +13,8 @@ import canvasapi
 import matplotlib.pyplot as plt
 import pypandoc
 
-from src.misc import OutputFormat
-from src.question import Question, Answer, TableGenerator
+from misc import OutputFormat
+from question import Question, Answer, TableGenerator
 
 import random
 import math

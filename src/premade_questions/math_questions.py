@@ -1,7 +1,7 @@
 #!env python
 from typing import List, Tuple, Dict, Type, Any
 
-from src.question import Question, Answer
+from question import Question, Answer
 
 import random
 import math
