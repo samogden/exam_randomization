@@ -113,11 +113,10 @@ class HardDriveAccessTime(Question):
     lines.extend([
       "Putting these together we see:",
       "",
-      "$$" + f"t_{{total}} = (# reads) \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + "$$"
+      "$$" + f"t_{{total}} = (# reads) \\cdot t_{{access}} + t_{{transfer}} = {self.number_of_reads} \\cdot {self.access_delay:0.2f} + {self.transfer_delay:0.2f} = {self.disk_access_delay:0.2f}ms" + "$$",
+      ""
     ])
     return lines
-
-
 
 
 class INodeAccesses(Question):
@@ -199,6 +198,71 @@ class INodeAccesses(Question):
       "\nand\n"
       r"$$ \text{index within block} = \frac{\text{offset within block}}{\text{inode size}} = " + f"\\frac{{{self.inode_address_in_block}}}{{{self.inode_size}}} = {self.inode_index_in_block}" + "$$"
     ])
+    
+    return lines
+
+
+class VSFS_states(Question):
+
+  from .ostep13_vsfs import fs as vsfs
+  
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    
+    self.instantiate()
+  
+  def instantiate(self):
+    super().instantiate()
+    
+    
+    fs = self.vsfs(4, 4)
+    operations = fs.run_for_steps(4)
+    
+    self.start_state = operations[-1]["start_state"]
+    self.end_state = operations[-1]["end_state"]
+    
+    wrong_answers = list(filter(
+      lambda o: o != operations[-1]["cmd"],
+      map(
+        lambda o: o["cmd"],
+        operations
+      )
+    ))
+    random.shuffle(wrong_answers)
+    
+    self.answers.extend([
+      Answer("answer__cmd",  f"{operations[-1]['cmd']}"),
+    ])
+  
+  def get_body_lines(self, *args, **kwargs) -> List[str]:
+    lines = []
+    
+    lines.extend([
+      "What operation happens between these two states?",
+      "",
+      "```",
+      self.start_state,
+      "```",
+      "[answer__cmd]",
+      "```",
+      self.end_state,
+      "```",
+    ])
+    
+    return lines
+  
+  def get_explanation_lines(self, *args, **kwargs) -> List[str]:
+    lines = [
+      "These questions are based on the VSFS simulator that our book mentions.  We will be discussing the interpretation of this in class, but you can also find information <a href=\"https://github.com/chyyuu/os_tutorial_lab/blob/master/ostep/ostep13-vsfs.md\">here</a>, as well as simulator code.  Please note that the code uses python 2.",
+      "",
+      "In general, I recommend looking for differences between the two outputs.  Recommended steps would be:",
+      "<ol>"
+      "<li> Check to see if there are differences between the bitmaps that could indicate a file/directroy were created or removed.</li>",
+      "<li>Check the listed inodes to see if any entries have changed.  This might be a new entry entirely or a reference count changing.  If the references increased then this was likely a link or creation, and if it decreased then it is likely an unlink.</li>",
+      "<li>Look at the data blocks to see if a new entry has been added to a directory or a new block has been mapped.</li>",
+      "</ol>",
+      "These steps can usually help you quickly identify what has occured in the simulation and key you in to the right answer."
+    ]
     
     return lines
   

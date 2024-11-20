@@ -114,15 +114,15 @@ class CachingQuestion(Question):
       if was_hit:
         number_of_hits += 1
       self.request_results[request_number] = {
-        "request" : (f"[request]", request),
-        "hit" : (f"[hit-{request_number}]", ('hit' if was_hit else 'miss')),
-        "evicted" : (f"[evicted-{request_number}]", ('-' if evicted is None else f"{evicted}")),
-        "cache_state" : (f"[cache_state-{request_number}]", ','.join(map(str, cache_state)))
+        "request" : (f"[answer__request]", request),
+        "hit" : (f"[answer__hit-{request_number}]", ('hit' if was_hit else 'miss')),
+        "evicted" : (f"[answer__evicted-{request_number}]", ('-' if evicted is None else f"{evicted}")),
+        "cache_state" : (f"[answer__cache_state-{request_number}]", ','.join(map(str, cache_state)))
       }
       self.answers.extend([
-        Answer(f"hit-{request_number}",         ('hit' if was_hit else 'miss'),          Answer.AnswerKind.BLANK),
-        Answer(f"evicted-{request_number}",     ('-' if evicted is None else f"{evicted}"),      Answer.AnswerKind.BLANK),
-        Answer(f"cache_state-{request_number}", ','.join(map(str, cache_state)),  Answer.AnswerKind.BLANK),
+        Answer(f"answer__hit-{request_number}",         ('hit' if was_hit else 'miss'),          Answer.AnswerKind.BLANK),
+        Answer(f"answer__evicted-{request_number}",     ('-' if evicted is None else f"{evicted}"),      Answer.AnswerKind.BLANK),
+        Answer(f"answer__cache_state-{request_number}", ','.join(map(str, cache_state)),  Answer.AnswerKind.BLANK),
       ])
       
       log.debug(f"{request:>2} | {'hit' if was_hit else 'miss':<4} | {evicted if evicted is not None else '':<3} | {str(cache_state):<10}")
@@ -131,7 +131,7 @@ class CachingQuestion(Question):
     # self.hit_rate_var = VariableFloat("Hit Rate (%)", true_value=self.hit_rate)
     # self.blank_vars["hit_rate"] = self.hit_rate_var
     self.answers.extend([
-      Answer("hit_rate", f"{self.hit_rate:0.2f}", Answer.AnswerKind.BLANK)
+      Answer("answer__hit_rate", f"{self.hit_rate:0.2f}", Answer.AnswerKind.BLANK)
     ])
   
   def get_body_lines(self, *args, **kwargs) -> List[str]:
@@ -153,9 +153,9 @@ class CachingQuestion(Question):
         { request_number :
           [
             self.requests[request_number],
-            f"[hit-{request_number}]",
-            f"[evicted-{request_number}]",
-            f"[cache_state-{request_number}]"
+            f"[answer__hit-{request_number}]",
+            f"[answer__evicted-{request_number}]",
+            f"[answer__cache_state-{request_number}]"
           ]
           for request_number in sorted(self.request_results.keys())
         },
@@ -166,7 +166,7 @@ class CachingQuestion(Question):
     )
     
     lines.extend([
-      "Hit rate, excluding compulsory misses and rounded to a single decimal place: [hit_rate]%"
+      "Hit rate, excluding compulsory misses and rounded to a single decimal place: [answer__hit_rate]%"
     ])
     
     # log.debug('\n'.join(lines))
@@ -252,14 +252,6 @@ class Paging(MemoryAccessQuestion):
     
     # Calculate this
     self.physical_address = self.pfn * (2**self.num_offset_bits) + self.offset
-    
-    # Set up variables for display
-    # self.vpn_bits_var = Variable("# VPN bits", self.num_vpn_bits)
-    # self.pfn_bits_var = Variable("# PFN bits", self.num_pfn_bits)
-    # self.offset_bits_var = Variable("# offset bits", self.num_offset_bits)
-    
-    # self.virtual_address_var = VariableHex("Virtual Address", self.virtual_address, num_bits=(self.num_vpn_bits+self.num_offset_bits), default_presentation=VariableHex.PRESENTATION.BINARY)
-    # self.vpn_var = VariableHex("VPN", self.vpn, num_bits=self.num_vpn_bits, default_presentation=VariableHex.PRESENTATION.BINARY)
     
     if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
       self.is_valid = True

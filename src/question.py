@@ -164,22 +164,13 @@ class Question(abc.ABC):
     self.extra_attrs = kwargs # clear page, etc.
     
     self.answers = []
-    
-  
-  # def __eq__(self, other):
-  #   if isinstance(other, self.__class__):
-  #     return all([self.blank_vars[key] == other.blank_vars[key] for key in self.blank_vars.keys()])
-  #   return False
-  #
-  # def __hash__(self):
-  #   return hash(''.join(self.get_body_lines(OutputFormat.CANVAS)))
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
     log.debug(question_text)
     # question_text = re.sub(r'^(\s*&)+\s*\\$', r'', question_text)
     # log.debug(question_text)
-    return re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", question_text)
+    return re.sub(r'\[answer.+]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
     
@@ -240,57 +231,6 @@ class Question(abc.ABC):
           for key in sorted_keys
         ])
     ]
-    
-    log.debug("==============================================")
-    
-    
-    if not html_out:
-      writer = pytablewriter.LatexTableWriter(
-        headers = headers,
-        value_matrix=[
-          ([key] if not hide_keys else []) + [str(d) for d in table_data[key]]
-          for key in sorted_keys
-        ]
-      )
-    
-      writer.type_hints = ["str" for _ in range(len(writer.value_matrix[0]))]
-      if headers is None:
-        writer.headers = []
-      
-      table_str = writer.dumps()
-      log.debug(f"------------------------------------------------\n{table_str}\n-------------------------------------------")
-      
-      return ['\n', table_str, '\n']
-    
-    
-    
-    if html_out:
-      table_lines = ["<table  style=\"border: 1px solid black;\">"]
-      table_lines.append("<tr>")
-      if add_header_space:
-        table_lines.append("<th></th>")
-      table_lines.extend([
-        f"<th style=\"padding: 5px;\">{h}</th>"
-        for h in headers
-      ])
-      table_lines.append("</tr>")
-      
-      
-      for key in sorted_keys:
-        table_lines.append("<tr>")
-        if not hide_keys:
-          table_lines.append(
-            f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\"><b>{key}</b></td>"
-          )
-        table_lines.extend([
-          f"<td style=\"border: 1px solid black; white-space:pre; padding: 5px;\">{cell_text}</td>"
-          for cell_text in table_data[key]
-        ])
-        table_lines.append("</tr>")
-      
-      table_lines.append("</table>")
-      
-      return ['\n'.join(table_lines)]
   
   @classmethod
   def from_yaml(cls, path_to_yaml):
@@ -320,6 +260,8 @@ class Question(abc.ABC):
         curr_part = ""
         parts.append('\n' + line.generate(output_format) + '\n')
       else:
+        if output_format == OutputFormat.LATEX:
+          line = re.sub(r'\[answer\S+]', r"\\answerblank{3}", line)
         curr_part += line + '\n'
     
     parts.append(
@@ -331,8 +273,8 @@ class Question(abc.ABC):
     )
     body = '\n'.join(parts)
     if output_format == OutputFormat.LATEX:
-      body = re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", body)
-    
+      body = re.sub(r'\[answer\S+]', r"\\answerblank{3}", body)
+    log.debug(body)
     return body
   
   def get_body(self, output_format:OutputFormat):
@@ -348,6 +290,7 @@ class Question(abc.ABC):
   def get_explanation(self, output_format:OutputFormat):
     # lines should be in markdown
     lines = self.get_explanation_lines()
+    # log.debug(self.convert_from_lines_to_text(lines, output_format))
     return self.convert_from_lines_to_text(lines, output_format)
   
   
