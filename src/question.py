@@ -222,7 +222,6 @@ class Question(abc.ABC):
   
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
-    question_text += f"\n\\vspace{{{self.spacing}cm}}"
     return re.sub(r'\[answer.+]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
@@ -255,6 +254,8 @@ class Question(abc.ABC):
   def get_footer(self, output_format : OutputFormat, *args, **kwargs) -> str:
     lines = []
     if output_format == OutputFormat.LATEX:
+      if self.spacing is not None:
+        lines.append(f"\\vspace{{{self.spacing}}}")
       lines.extend([
         r"\end{minipage}",
         r"\end{minipage}"
