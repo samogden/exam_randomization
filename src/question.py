@@ -96,6 +96,7 @@ class TableGenerator:
         headers=self.headers,
         value_matrix=self.value_matrix
       )
+      table_writer.type_hints = ["str" for _ in range(len(self.value_matrix[0]))]
       return table_writer.dumps()
     elif output_format == OutputFormat.LATEX:
       table_lines = [
@@ -120,29 +121,6 @@ class TableGenerator:
       return '\n'.join(table_lines)
     
   
-  def generate_old(self, output_format: OutputFormat):
-    
-    if self.headers is None: headers = []
-    if self.value_matrix is None: self.value_matrix = [[]]
-    
-    if output_format == OutputFormat.LATEX:
-      table_writer = pytablewriter.LatexTableWriter(
-        headers=self.headers,
-        value_matrix=self.value_matrix
-      )
-      return "$" + table_writer.dumps() + "$"
-    elif output_format == OutputFormat.CANVAS:
-      table_writer = pytablewriter.HtmlTableWriter(
-        headers=self.headers,
-        value_matrix=self.value_matrix
-      )
-    else:
-      table_writer = pytablewriter.AbstractTableWriter(
-        headers=self.headers,
-        value_matrix=self.value_matrix
-      )
-    log.debug(f"---------------------------------\n{table_writer.dumps()}\n---------------------------------")
-    return table_writer.dumps()
     
 class Question(abc.ABC):
   """
@@ -325,9 +303,8 @@ class Question(abc.ABC):
   def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
     pass
   
-  def get_body(self, output_format:OutputFormat):
-    # lines should be in markdown
-    lines = self.get_body_lines()
+  @staticmethod
+  def convert_from_lines_to_text(lines, output_format: OutputFormat):
     
     parts = []
     curr_part = ""
@@ -345,7 +322,7 @@ class Question(abc.ABC):
         parts.append('\n' + line.generate(output_format) + '\n')
       else:
         curr_part += line + '\n'
-        
+    
     parts.append(
       pypandoc.convert_text(
         curr_part,
@@ -358,6 +335,11 @@ class Question(abc.ABC):
       body = re.sub(r'\[[^\]]+\]', r"\\answerblank{3}", body)
     
     return body
+  
+  def get_body(self, output_format:OutputFormat):
+    # lines should be in markdown
+    lines = self.get_body_lines()
+    return self.convert_from_lines_to_text(lines, output_format)
     
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     log.warning("get_explanation using default implementation!  Consider implementing!")
@@ -367,10 +349,7 @@ class Question(abc.ABC):
   def get_explanation(self, output_format:OutputFormat):
     # lines should be in markdown
     lines = self.get_explanation_lines()
-    
-    explanation = '\n'.join(lines)
-    
-    return explanation
+    return self.convert_from_lines_to_text(lines, output_format)
   
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
