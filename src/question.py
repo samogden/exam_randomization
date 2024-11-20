@@ -548,5 +548,30 @@ class FromText(Question):
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
     return Answer.AnswerKind.ESSAY, []
+
+
+class FromGenerator(FromText):
   
+  def __init__(self, *args, generator, **kwargs):
+    super().__init__(*args, text="", **kwargs)
+    
+    
+    def attach_function_to_object(obj, function_code, function_name='get_body_lines'):
+      log.debug(f"\ndef {function_name}(self):\n" + "\n".join(f"    {line}" for line in function_code.splitlines()))
+      
+      # Define the function dynamically using exec
+      exec(f"def {function_name}(self):\n" + "\n".join(f"    {line}" for line in function_code.splitlines()), globals(), locals())
+      
+      # Get the function and bind it to the object
+      function = locals()[function_name]
+      setattr(obj, function_name, function.__get__(obj))
+    
+    # Attach the function dynamically
+    attach_function_to_object(self, generator, "generator")
+    
+    self.answers = []
+  
+  def instantiate(self):
+    super().instantiate()
+    self.text = self.generator()
   

@@ -274,12 +274,12 @@ def generate_latex(q: Quiz):
 
 def main():
   
-  q = Quiz.from_yaml("exam.yaml")
+  q = Quiz.from_yaml("/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
   q.select_questions()
   generate_latex(q)
   
-  interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
-  interface.push_quiz_to_canvas(q, 1)
+  # interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
+  # interface.push_quiz_to_canvas(q, 1)
   
   q.describe()
   
