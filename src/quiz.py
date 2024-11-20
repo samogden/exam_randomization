@@ -142,7 +142,7 @@ class Quiz:
     lines = []
     if output_format == OutputFormat.LATEX:
       lines.extend([
-        r"\documentclass{article}",
+        r"\documentclass[12pt]{article}",
         r"\usepackage[a4paper, margin=1in]{geometry}",
         r"\usepackage{times}",
         r"\usepackage{tcolorbox}",
