@@ -40,6 +40,7 @@ class Answer():
   class AnswerKind(enum.Enum):
     BLANK = "fill_in_multiple_blanks_question"
     MULTIPLE_CHOICE = enum.auto() # todo: have baffles?
+    ESSAY = "essay_question"
   class VariableKind(enum.Enum): # todo: use these for generate variations?
     STR = enum.auto()
     INT = enum.auto()
@@ -222,9 +223,6 @@ class Question(abc.ABC):
   def get__latex(self, *args, **kwargs):
     question_text, explanation_text, answers = self.generate(OutputFormat.LATEX)
     question_text += f"\n\\vspace{{{self.spacing}cm}}"
-    # log.debug(question_text)
-    # question_text = re.sub(r'^(\s*&)+\s*\\$', r'', question_text)
-    # log.debug(question_text)
     return re.sub(r'\[answer.+]', r"\\answerblank{3}", question_text)
 
   def get__canvas(self, course: canvasapi.course.Course, quiz : canvasapi.quiz.Quiz, *args, **kwargs):
@@ -343,13 +341,11 @@ class Question(abc.ABC):
     log.warning("get_explanation using default implementation!  Consider implementing!")
     return []
   
-  
   def get_explanation(self, output_format:OutputFormat, *args, **kwargs):
     # lines should be in markdown
     lines = self.get_explanation_lines(*args, **kwargs)
     # log.debug(self.convert_from_lines_to_text(lines, output_format))
     return self.convert_from_lines_to_text(lines, output_format)
-  
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
     log.warning("get_answers using default implementation!  Consider implementing!")
@@ -538,3 +534,19 @@ class Question_autoyaml(Question):
       
       questions.append(q)
     return questions
+
+
+class FromText(Question):
+  
+  def __init__(self, *args, text, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.text = text
+    self.answers = []
+  
+  def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
+    return [self.text]
+  
+  def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
+    return Answer.AnswerKind.ESSAY, []
+  
+  

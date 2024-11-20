@@ -221,10 +221,16 @@ class Quiz:
     name = exam_dict["name"]
     
     exam_questions = []
+    
     for value, questions in exam_dict["questions"].items():
+    
       log.debug(f"{value} : {questions}")
+    
       for q_info in questions:
-        q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
+        if q_info["module"] == "question":
+          q_module = importlib.import_module(f"{q_info['module']}")
+        else:
+          q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
         q_class = getattr(q_module, q_info["class"])
         log.debug(q_info.get("kwargs", {}))
         exam_questions.append(q_class(points_value=int(value), **q_info.get("kwargs", {})))
