@@ -9,6 +9,7 @@ import dataclasses
 import datetime
 import enum
 import inspect
+import itertools
 import pprint
 import random
 import re
@@ -54,19 +55,65 @@ class Answer():
     self.display = display if display is not None else value
     self.length = length # Used for bits and hex to be printed appropriately
   
-  def get_for_canvas(self):
+  def get_for_canvas(self) -> List[Dict]:
     if self.variable_kind == Answer.VariableKind.FLOAT:
-      return {
+      return [{
         "blank_id": self.key,
         "answer_text": f"{self.value:0.2f}",
         "answer_weight": 100,
-      }
+      }]
+    elif self.variable_kind == Answer.VariableKind.BINARY:
+      return [
+        {
+          "blank_id": self.key,
+          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}b}",
+          "answer_weight": 100,
+        },
+        {
+          "blank_id": self.key,
+          "answer_text": f"0b{self.value:0{self.length if self.length is not None else 0}b}",
+          "answer_weight": 100,
+        }
+      ]
+    elif self.variable_kind == Answer.VariableKind.HEX:
+      return [
+        {
+          "blank_id": self.key,
+          "answer_text": f"{self.value:0{(self.length // 8) + 1 if self.length is not None else 0}X}",
+          "answer_weight": 100,
+        },{
+          "blank_id": self.key,
+          "answer_text": f"0x{self.value:0{(self.length // 8) + 1 if self.length is not None else 0}X}",
+          "answer_weight": 100,
+        }
+      ]
+    elif self.variable_kind == Answer.VariableKind.BINARY_OR_HEX:
+      return [
+        {
+          "blank_id": self.key,
+          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}b}",
+          "answer_weight": 100,
+        },{
+          "blank_id": self.key,
+          "answer_text": f"0b{self.value:0{self.length if self.length is not None else 0}b}",
+          "answer_weight": 100,
+        },
+        {
+          "blank_id": self.key,
+          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}X}",
+          "answer_weight": 100,
+        },{
+          "blank_id": self.key,
+          "answer_text": f"0x{self.value:0{self.length if self.length is not None else 0}X}",
+          "answer_weight": 100,
+        }
+      ]
     canvas_answer = {
       "blank_id": self.key,
       "answer_text": self.value,
       "answer_weight": 100,
     }
-    return canvas_answer
+    return [canvas_answer]
 
 @dataclasses.dataclass
 class TableGenerator:
@@ -304,7 +351,7 @@ class Question(abc.ABC):
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
     log.warning("get_answers using default implementation!  Consider implementing!")
-    return Answer.AnswerKind.BLANK, [a.get_for_canvas() for a in self.answers]
+    return Answer.AnswerKind.BLANK, list(itertools.chain(*[a.get_for_canvas() for a in self.answers]))
 
   def instantiate(self):
     """If it is necessary to regenerate aspects between usages, this is the time to do it"""
