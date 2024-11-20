@@ -204,7 +204,7 @@ class INodeAccesses(Question):
       "When we load this block, we now have in our system memory (remember, blocks on the hard drive are effectively useless to us until they're in main memory!), the inode, so next we need to figure out where it is within that block."
       "This means that we'll need to find the offset into this block.  We'll calculate this both as the offset in bytes, and also in number of inodes, since we can use array indexing.",
       "",
-      r"$$\text{offset within block} = (\text{Inode address}) \% (\text{block size}) = " + f"{self.inode_address} \bmod {self.block_size} = {self.inode_address_in_block} Bytes offset" + "$$",
+      r"$$\text{offset within block} = (\text{Inode address}) \% (\text{block size}) = " + f"{self.inode_address} \\% {self.block_size} = {self.inode_address_in_block} \\text{{Bytes offset}}" + "$$",
       "",
       "and",
       "",
