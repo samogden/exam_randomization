@@ -58,6 +58,8 @@ class Quiz:
   def describe(self):
     counter = collections.Counter([q.points_value for q in self.questions])
     log.info(f"{self.exam_name} : {sum(map(lambda q: q.points_value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
+    for topic in self.question_sort_order:
+      log.info(f"{topic} : {sum(map(lambda q: q.points_value, filter(lambda q: q.kind == topic, self.questions)))} points")
     
   
   def select_questions(self, total_points=None, exam_outline: List[Dict]=None):
@@ -232,8 +234,9 @@ class Quiz:
         else:
           q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
         q_class = getattr(q_module, q_info["class"])
+        kind = question.Question.TOPIC.from_string(q_info.get("subject", "misc"))
         log.debug(q_info.get("kwargs", {}))
-        exam_questions.append(q_class(points_value=int(value), **q_info.get("kwargs", {})))
+        exam_questions.append(q_class(points_value=int(value), kind=kind, **q_info.get("kwargs", {})))
         
     quiz_from_yaml = Quiz(name, exam_questions)
     return quiz_from_yaml
@@ -274,14 +277,24 @@ def generate_latex(q: Quiz):
 
 def main():
   
-  q = Quiz.from_yaml("/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
-  q.select_questions()
-  generate_latex(q)
+  quiz = Quiz.from_yaml("/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
+  quiz.select_questions()
+  
+  quiz.set_sort_order([
+    question.Question.TOPIC.CONCURRENCY,
+    question.Question.TOPIC.IO,
+    question.Question.TOPIC.PROCESS,
+    question.Question.TOPIC.MEMORY,
+    question.Question.TOPIC.PROGRAMMING,
+    question.Question.TOPIC.MISC
+  ])
+  
+  generate_latex(quiz)
   
   # interface = canvas_interface.CanvasInterface(prod=True, course_id=25523)
   # interface.push_quiz_to_canvas(q, 1)
   
-  q.describe()
+  quiz.describe()
   
   
 

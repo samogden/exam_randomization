@@ -273,14 +273,18 @@ class SchedulingQuestion(Question):
       Answer("answer__average_turnaround_time", sum([job.turnaround_time for job in jobs]) / len(jobs), variable_kind=Answer.VariableKind.FLOAT)
     ])
   
-  def get_body_lines(self, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, output_format: OutputFormat|None = None, *args, **kwargs) -> List[str]:
     
     lines = []
     
     lines.extend([
       f"Given the below information, compute the required values if using <b>{self.SCHEDULER_NAME}</b> scheduling.  Break any ties using the job number.",
-      "Please round all answers to 2 decimal places (even if they are whole numbers)."
     ])
+    
+    if output_format is not None and output_format == OutputFormat.CANVAS:
+      lines.extend([
+        "Please round all answers to 2 decimal places (even if they are whole numbers)."
+      ])
     
     lines.extend(
       self.get_table_generator(

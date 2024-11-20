@@ -52,10 +52,14 @@ class HardDriveAccessTime(Question):
       Answer("answer__disk_access_delay", self.disk_access_delay),
     ])
   
-  def get_body_lines(self, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, output_format : OutputFormat|None = None, *args, **kwargs) -> List[str]:
     lines = [
-      "Given the information below, please calculate the following values.  Make sure your answers are rounded to 2 decimal points (even if they are whole numbers), and do so after you finish all your calculations! (i.e. don't use your rounded answers to calculate your overall answer)"
+      "Given the information below, please calculate the following values.",
     ]
+    if output_format is not None and output_format == OutputFormat.CANVAS:
+      lines.extend([
+        "Make sure your answers are rounded to 2 decimal points (even if they are whole numbers), and do so after you finish all your calculations! (i.e. don't use your rounded answers to calculate your overall answer)"
+      ])
     
     lines.extend([
       TableGenerator(
@@ -121,7 +125,7 @@ class HardDriveAccessTime(Question):
 
 class INodeAccesses(Question):
   
-  def __init__(self, *args, **kwargs):
+  def __init__(self, output_format : OutputFormat|None = None, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
     self.instantiate()
@@ -147,10 +151,14 @@ class INodeAccesses(Question):
       Answer("answer__inode_index_in_block", self.inode_index_in_block),
     ])
   
-  def get_body_lines(self, *args, **kwargs) -> List[str]:
+  def get_body_lines(self, output_format : OutputFormat|None = None,  *args, **kwargs) -> List[str]:
     lines = [
-      "Given the information below, please calculate the following values. (hint: they should all be round numbers)."
+      "Given the information below, please calculate the following values."
     ]
+    if output_format is not None and output_format == OutputFormat.CANVAS:
+      lines.extend([
+        " (hint: they should all be round numbers)."
+      ])
     
     lines.extend(
       self.get_table_generator(
@@ -216,7 +224,7 @@ class VSFS_states(Question):
     
     
     fs = self.vsfs(4, 4)
-    operations = fs.run_for_steps(4)
+    operations = fs.run_for_steps(3)
     
     self.start_state = operations[-1]["start_state"]
     self.end_state = operations[-1]["end_state"]
