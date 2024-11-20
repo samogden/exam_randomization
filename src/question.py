@@ -557,8 +557,7 @@ class FromGenerator(FromText):
   
   def __init__(self, *args, generator, **kwargs):
     super().__init__(*args, text="", **kwargs)
-    self.possible_variations = float('inf')
-    
+    self.possible_variations = kwargs.get("possible_variations", float('inf'))
     
     def attach_function_to_object(obj, function_code, function_name='get_body_lines'):
       log.debug(f"\ndef {function_name}(self):\n" + "\n".join(f"    {line}" for line in function_code.splitlines()))

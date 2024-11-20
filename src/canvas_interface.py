@@ -128,46 +128,12 @@ class CanvasInterface:
           break
         if isinstance(q, question.FromText) and not isinstance(q, question.FromGenerator):
           break
-        if variation_count >= question.possible_variations:
+        if variation_count >= q.possible_variations:
           break
         
 
-
-
-
-
 def main():
-  
-  dotenv.load_dotenv()
-  
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--course_id", type=int, default=25523)
-  parser.add_argument("--prod", action="store_true")
-  parser.add_argument("--test", action="store_true")
-  
-  parser.add_argument("--num_groups", type=int, default=5)
-  parser.add_argument("--questions_per_group", type=int, default=100)
-  
-  args = parser.parse_args()
-  
-  if args.prod:
-    canvas = canvasapi.Canvas(os.environ.get("CANVAS_API_URL_prod"), os.environ.get("CANVAS_API_KEY_prod"))
-  else:
-    canvas = canvasapi.Canvas(os.environ.get("CANVAS_API_URL"), os.environ.get("CANVAS_API_KEY"))
-  
-  course = canvas.get_course(args.course_id)
-  assignment_group = create_assignment_group(canvas, course)
-  create_quiz_with_questions(
-    canvas,
-    course,
-    question_classes=[
-      # math_questions.BitsAndBytes,
-    ],
-    # process_questions.SchedulingQuestion_canvas,
-    assignment_group=assignment_group,
-    num_groups=args.num_groups,
-    questions_per_group=args.questions_per_group,
-  )
+  pass
 
 if __name__ == "__main__":
   main()
