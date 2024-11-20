@@ -243,9 +243,10 @@ class Quiz:
     return quiz_from_yaml
 
 
-def generate_latex(q: Quiz):
+def generate_latex(q: Quiz, remove_previous=False):
   
-  if os.path.exists('out'): shutil.rmtree('out')
+  if remove_previous:
+    if os.path.exists('out'): shutil.rmtree('out')
   
   tmp_tex = tempfile.NamedTemporaryFile('w')
   
@@ -282,7 +283,7 @@ def parse_args():
   parser.add_argument("--prod", action="store_true")
   parser.add_argument("--course_id", default=25523, type=int)
   
-  parser.add_argument("--quiz_yaml", required=True, default="/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
+  parser.add_argument("--quiz_yaml", default="/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
   parser.add_argument("--num_canvas_variations", default=5)
   parser.add_argument("--num_pdfs", default=45)
   
@@ -305,8 +306,8 @@ def main():
     question.Question.TOPIC.MISC
   ])
   
-  for _ in range(args.num_pdfs):
-    generate_latex(quiz)
+  for i in range(args.num_pdfs):
+    generate_latex(quiz, remove_previous=(i==0))
   
   interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)
   interface.push_quiz_to_canvas(quiz, args.num_canvas_variations)
@@ -316,197 +317,5 @@ def main():
   
 
 if __name__ == "__main__":
-  
   main()
   
-  exit()
-  
-  
-  
-  
-  # questions = []
-  #
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/concurrency.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/memory.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/misc.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/persistance.yaml")))
-  # questions.extend(question.Question_legacy.from_yaml(os.path.expanduser("~/repos/data/CST334/exam_questions/2024/processes.yaml")))
-  # # questions.append(
-  # #   math_questions.AverageMemoryAccessTime
-  # # )
-  #
-  # # questions = [
-  # #   math_questions.BitsAndBytes(),
-  # #   math_questions.HexAndBinary(),
-  # #   math_questions.AverageMemoryAccessTime(),
-  # # ]
-  #
-  # # questions = question.Question_autoyaml.from_yaml("questions.yaml")
-
-  log.debug(f"Num questions available: {len(questions)}.  Total value: {sum(map(lambda q: q.points_value, questions))}")
-  
-  quiz = Quiz(
-    "CST334 Exam 1",
-    questions,
-    instructions="""
-      You have 110 minutes to complete this exam.
-      Questions are arranged in order of decreasing value.
-      Please fill out questions by circling the appropriate answer, or using the space provided.
-      No devices besides calculators are allowed to be used during the exam.
-    """
-  )
-  quiz.select_questions(100,
-    exam_outline=[
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.PROGRAMMING,
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.CONCURRENCY,
-          "value" : 8
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.IO,
-          "value" : 8
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.MEMORY,
-          "value" : 8
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.PROCESS,
-          "value" : 8
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "value" : 8
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.CONCURRENCY,
-          "value" : 4
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.IO,
-          "value" : 4
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.MEMORY,
-          "value" : 4
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.PROCESS,
-          "value" : 4
-        }
-      },
-      {
-        "num_to_pick" : 3,
-        "filters" : {
-          "value" : 4
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.CONCURRENCY,
-          "value" : 2
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.IO,
-          "value" : 2
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.MEMORY,
-          "value" : 2
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.PROCESS,
-          "value" : 1
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.CONCURRENCY,
-          "value" : 1
-        }
-      },
-      {
-        "num_to_pick" : 2,
-        "filters" : {
-          "kind" : question.Question.TOPIC.IO,
-          "value" : 1
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.MEMORY,
-          "value" : 1
-        }
-      },
-      {
-        "num_to_pick" : 1,
-        "filters" : {
-          "kind" : question.Question.TOPIC.PROCESS,
-          "value" : 1
-        }
-      },
-    ]
-  )
-  log.debug(quiz.questions)
-  quiz.describe()
-  
-  quiz.set_sort_order([
-    question.Question.TOPIC.CONCURRENCY,
-    question.Question.TOPIC.IO,
-    question.Question.TOPIC.MEMORY,
-    question.Question.TOPIC.PROCESS,
-    question.Question.TOPIC.MISC,
-    question.Question.TOPIC.PROGRAMMING
-  ])
-  #
-  for _ in range(1):
-    generate_latex(quiz)
-  
-  exit(0)
-  
-  interface = canvas_interface.CanvasInterface(prod=False, course_id=25523)
-  interface.push_quiz_to_canvas(quiz, 2)
-  
-  quiz.describe()
