@@ -46,10 +46,10 @@ class HardDriveAccessTime(Question):
     self.disk_access_delay = self.access_delay * self.number_of_reads + self.transfer_delay
     
     self.answers.extend([
-      Answer("answer__rotational_delay", self.rotational_delay, Answer.VariableKind.FLOAT),
-      Answer("answer__access_delay", self.access_delay, Answer.VariableKind.FLOAT),
-      Answer("answer__transfer_delay", self.transfer_delay, Answer.VariableKind.FLOAT),
-      Answer("answer__disk_access_delay", self.disk_access_delay, Answer.VariableKind.FLOAT),
+      Answer("answer__rotational_delay", self.rotational_delay, variable_kind=Answer.VariableKind.FLOAT),
+      Answer("answer__access_delay", self.access_delay, variable_kind=Answer.VariableKind.FLOAT),
+      Answer("answer__transfer_delay", self.transfer_delay, variable_kind=Answer.VariableKind.FLOAT),
+      Answer("answer__disk_access_delay", self.disk_access_delay, variable_kind=Answer.VariableKind.FLOAT),
     ])
   
   def get_body_lines(self, output_format : OutputFormat|None = None, *args, **kwargs) -> List[str]:

@@ -284,8 +284,8 @@ def parse_args():
   parser.add_argument("--course_id", default=25523, type=int)
   
   parser.add_argument("--quiz_yaml", default="/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
-  parser.add_argument("--num_canvas_variations", default=1)
-  parser.add_argument("--num_pdfs", default=0)
+  parser.add_argument("--num_canvas_variations", default=1, type=int)
+  parser.add_argument("--num_pdfs", default=0, type=int)
   
   args = parser.parse_args()
   return args
