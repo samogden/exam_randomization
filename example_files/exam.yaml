@@ -21,13 +21,14 @@ questions:
       module: memory_questions
       kwargs:
         spacing: 1
-#  4:
-#    - class: HexAndBinary
-#      module: math_questions
-#  1:
-#    - class: BitsAndBytes
-#      module: math_questions
-#    - class: HexAndBinary
-#      module: math_questions
-#    - class: AverageMemoryAccessTime
-#      module: math_questions
+  4:
+    - class: FromText
+      module: question
+      kwargs:
+        text: |
+          This is a question I can ask.
+    - class: FromGenerator
+      module: question
+      kwargs:
+        generator: |
+          return "This is a question I can generate"
