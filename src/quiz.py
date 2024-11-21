@@ -216,8 +216,11 @@ class Quiz:
       exam_dict = yaml.safe_load(fid)
     log.debug(exam_dict)
     
-    name = exam_dict["name"]
+    name = exam_dict.get("name", "Unnamed Exam")
     questions_for_exam = []
+    sort_order = list(map(lambda t: Question.TOPIC.from_string(t), exam_dict.get("sort order", [])))
+    sort_order = sort_order + list(filter(lambda t: t not in sort_order, Question.TOPIC))
+    
     
     for question_value, question_definitions in exam_dict["questions"].items():
       # todo: I can also add in "extra credit" and "mix-ins" as other keys to indicate extra credit or questions that can go anywhere
@@ -250,6 +253,7 @@ class Quiz:
           questions_for_exam.append(make_question(q_name, q_data))
         
     quiz_from_yaml = Quiz(name, questions_for_exam)
+    quiz_from_yaml.set_sort_order(sort_order)
     return quiz_from_yaml
 
   def generate_latex(self, remove_previous=False):

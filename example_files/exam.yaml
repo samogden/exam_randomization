@@ -1,4 +1,11 @@
 name: "CST 334 Exam 3 (Fall 2024)"
+sort order:
+  - memory
+  - concurrency
+  - io
+  - processes
+  - programming
+  - misc
 questions:
   8:
     process scheduling calculations:
@@ -15,6 +22,7 @@ questions:
         class: INodeAccesses
   4:
     text based question:
+      kind: memory
       class: FromText
       kwargs:
         text: |
