@@ -308,8 +308,6 @@ class SchedulingQuestion(ProcessQuestion):
       image_dir="imgs",
   ) -> List[str]:
     
-    return []
-    
     explanation_lines = []
     
     explanation_lines.extend([
@@ -402,8 +400,7 @@ class SchedulingQuestion(ProcessQuestion):
     log.debug(f"f: {pprint.pformat(f)}")
     
     explanation_lines.extend(
-      # [f"![Illustration of job execution.  White is running, grey is not running and red lines are job entry/exit points.]({image_path})"]
-      [f"<img src=\"/courses/{course.id}/files/{f['id']}/preview\"\"/>"]
+      [f"![Process Scheduling Overview](/courses/{course.id}/files/{f['id']}/preview)"]
     )
     
     return explanation_lines
