@@ -3,29 +3,24 @@ questions:
   8:
     process scheduling calculations:
       class: SchedulingQuestion
-      module: process
       kwargs:
         spacing: 5
     persistence group 1:
       pick: 1
       vsfs changes:
         class: VSFS_states
-        module: persistence_questions
         kwargs:
           spacing: 1
       inode access calculations:
         class: INodeAccesses
-        module: persistence_questions
   4:
     text based question:
       class: FromText
-      module: question
       kwargs:
         text: |
           This is a question I can ask.
     generated question:
       class: FromGenerator
-      module: question
       kwargs:
         generator: |
           return f"This is a question I can {random.choice(['generate', 'make up'])}."

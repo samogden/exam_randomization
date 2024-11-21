@@ -248,17 +248,6 @@ class Quiz:
           )
         else:
           questions_for_exam.append(make_question(q_name, q_data))
-        pass
-    
-      # for q_info in questions:
-      #   if q_info["module"] == "question":
-      #     q_module = importlib.import_module(f"{q_info['module']}")
-      #   else:
-      #     q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
-      #   q_class = getattr(q_module, q_info["class"])
-      #   kind = question.Question.TOPIC.from_string(q_info.get("subject", "misc"))
-      #   log.debug(q_info.get("kwargs", {}))
-      #   exam_questions.append(q_class(points_value=int(value), kind=kind, **q_info.get("kwargs", {})))
         
     quiz_from_yaml = Quiz(name, questions_for_exam)
     return quiz_from_yaml
