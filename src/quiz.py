@@ -52,7 +52,11 @@ class Quiz:
   def describe(self):
     counter = collections.Counter([q.points_value for q in self.questions])
     log.info(f"{self.exam_name} : {sum(map(lambda q: q.points_value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
-    for topic in self.question_sort_order:
+    
+    sort_order = self.question_sort_order
+    if sort_order is None:
+      sort_order = Question.TOPIC
+    for topic in sort_order:
       log.info(f"{topic} : {sum(map(lambda q: q.points_value, filter(lambda q: q.kind == topic, self.questions)))} points")
     
   def select_questions(self, total_points=None, exam_outline: List[Dict]=None):
@@ -223,17 +227,13 @@ class Quiz:
         kwargs= {
           "name" : q_name,
           "points_value" : question_value,
+          "kind" : Question.TOPIC.from_string(q_data.get("kind", "misc")),
           **q_data.get("kwargs", {})
         }
-        log.debug(f"Making question with: \n{pprint.pformat(kwargs)}")
-        
+        log.debug(kwargs)
         new_question = QuestionRegistry.create(
           q_data["class"],
-          **{
-            "name" : q_name,
-            "points_value" : question_value,
-            **q_data.get("kwargs", {})
-          }
+          **kwargs
         )
         return new_question
       
@@ -291,7 +291,7 @@ def parse_args():
   parser.add_argument("--prod", action="store_true")
   parser.add_argument("--course_id", default=25523, type=int)
   
-  parser.add_argument("--quiz_yaml", default="/Users/ssogden/repos/data/CST334/exam_questions/2024/exam3.yaml")
+  parser.add_argument("--quiz_yaml", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "../example_files/exam.yaml"))
   parser.add_argument("--num_canvas_variations", default=0, type=int)
   parser.add_argument("--num_pdfs", default=0, type=int)
   
@@ -305,14 +305,17 @@ def main():
   quiz = Quiz.from_yaml(args.quiz_yaml)
   quiz.select_questions()
   
-  quiz.set_sort_order([
-    Question.TOPIC.CONCURRENCY,
-    Question.TOPIC.IO,
-    Question.TOPIC.PROCESS,
-    Question.TOPIC.MEMORY,
-    Question.TOPIC.PROGRAMMING,
-    Question.TOPIC.MISC
-  ])
+  # quiz.set_sort_order([
+  #   Question.TOPIC.CONCURRENCY,
+  #   Question.TOPIC.IO,
+  #   Question.TOPIC.PROCESS,
+  #   Question.TOPIC.MEMORY,
+  #   Question.TOPIC.PROGRAMMING,
+  #   Question.TOPIC.MISC
+  # ])
+  
+  for q in quiz:
+    log.debug(q.kind)
   
   for i in range(args.num_pdfs):
     quiz.generate_latex(remove_previous=(i==0))
