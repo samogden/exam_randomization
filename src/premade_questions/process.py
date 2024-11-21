@@ -1,24 +1,21 @@
 #!env python
 from __future__ import annotations
 
+import collections
 import dataclasses
 import enum
+import logging
 import os
 import pprint
+import random
 import uuid
-from typing import List, Tuple, Dict, Type, Any
+from typing import List
 
-import canvasapi
+import canvasapi.course, canvasapi.quiz
 import matplotlib.pyplot as plt
 
 from misc import OutputFormat
-from question import Question, Answer, TableGenerator, QuestionRegistry
-
-import random
-import math
-import collections
-
-import logging
+from question import Question, Answer, QuestionRegistry
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -26,8 +23,14 @@ log.setLevel(logging.DEBUG)
 
 
 
+class ProcessQuestion(Question):
+  def __init__(self, *args, **kwargs):
+    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.PROCESS)
+    super().__init__(*args, **kwargs)
+
+
 @QuestionRegistry.register()
-class SchedulingQuestion(Question):
+class SchedulingQuestion(ProcessQuestion):
   class Kind(enum.Enum):
     FIFO = enum.auto()
     LIFO = enum.auto()
@@ -84,11 +87,9 @@ class SchedulingQuestion(Question):
         self.state_change_times.append(curr_time)
     
     def mark_start(self, curr_time) -> None:
-      log.debug(f"starting {self.arrival} -> {self.duration} at {curr_time}")
       self.start_time = curr_time
       self.response_time = curr_time - self.arrival + self.SCHEDULER_EPSILON
     def mark_end(self, curr_time) -> None:
-      log.debug(f"ending {self.arrival} -> {self.duration} at {curr_time}")
       self.end_time = curr_time
       self.turnaround_time = curr_time - self.arrival + self.SCHEDULER_EPSILON
     
@@ -116,9 +117,6 @@ class SchedulingQuestion(Question):
       self.timeline[job.arrival].append(f"Job{job.job_id} arrived")
     
     while len(jobs_to_run) > 0:
-      # log.debug(f"curr_time: {curr_time :0.{self.ROUNDING_DIGITS}f}")
-      # log.debug("\n\n")
-      # log.debug(f"jobs_to_run: {jobs_to_run}")
       
       possible_time_slices = []
       
@@ -162,8 +160,6 @@ class SchedulingQuestion(Question):
       if time_quantum is not None:
         possible_time_slices.append(time_quantum)
       
-      # log.debug(f"possible_time_slices: {possible_time_slices}")
-      
       ## Now we pick the minimum
       try:
         next_time_slice = min(possible_time_slices)
@@ -191,7 +187,6 @@ class SchedulingQuestion(Question):
       ))
       if len(jobs_to_run) == 0:
         break
-    log.debug(f"Completed in {curr_time}")
   
   
   
@@ -227,7 +222,6 @@ class SchedulingQuestion(Question):
     else:
       # then we default to FIFO
       pass
-    log.debug(f"Running a {self.SCHEDULER_KIND} simulation")
     
     jobs = [
       SchedulingQuestion.Job(

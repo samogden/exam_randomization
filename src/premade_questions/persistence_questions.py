@@ -13,8 +13,15 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
+class IOQuestion(Question):
+  def __init__(self, *args, **kwargs):
+    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.IO)
+    super().__init__(*args, **kwargs)
+  
+
 @QuestionRegistry.register()
-class HardDriveAccessTime(Question):
+class HardDriveAccessTime(IOQuestion):
   
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -115,7 +122,7 @@ class HardDriveAccessTime(Question):
 
 
 @QuestionRegistry.register()
-class INodeAccesses(Question):
+class INodeAccesses(IOQuestion):
   
   def __init__(self, output_format : OutputFormat|None = None, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -208,7 +215,7 @@ class INodeAccesses(Question):
 
 
 @QuestionRegistry.register()
-class VSFS_states(Question):
+class VSFS_states(IOQuestion):
 
   from .ostep13_vsfs import fs as vsfs
   

@@ -12,9 +12,7 @@ import importlib
 import itertools
 import pathlib
 import pkgutil
-import pprint
 import re
-import typing
 
 import canvasapi.course
 import canvasapi.quiz
@@ -226,6 +224,7 @@ class Question(abc.ABC):
     CONCURRENCY = enum.auto()
     IO = enum.auto()
     PROGRAMMING = enum.auto()
+    MATH = enum.auto()
     MISC = enum.auto()
     
     @classmethod
@@ -281,7 +280,6 @@ class Question(abc.ABC):
   
   def get_header(self, output_format : OutputFormat, *args, **kwargs) -> str:
     lines = []
-    log.debug(f"Value: {self.points_value}")
     if output_format == OutputFormat.LATEX:
       lines.extend([
         r"\noindent\begin{minipage}{\textwidth}",
@@ -333,7 +331,6 @@ class Question(abc.ABC):
   def from_yaml(cls, path_to_yaml):
     with open(path_to_yaml) as fid:
       question_dicts = yaml.safe_load_all(fid)
-      log.debug(pprint.pformat(list(question_dicts)))
   
   @abc.abstractmethod
   def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
@@ -371,7 +368,6 @@ class Question(abc.ABC):
     body = '\n'.join(parts)
     if output_format == OutputFormat.LATEX:
       body = re.sub(r'\[answer\S+]', r"\\answerblank{3}", body)
-    log.debug(body)
     return body
   
   def get_body(self, output_format:OutputFormat):
@@ -386,7 +382,6 @@ class Question(abc.ABC):
   def get_explanation(self, output_format:OutputFormat, *args, **kwargs):
     # lines should be in markdown
     lines = self.get_explanation_lines(*args, **kwargs)
-    # log.debug(self.convert_from_lines_to_text(lines, output_format))
     return self.convert_from_lines_to_text(lines, output_format)
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
@@ -422,6 +417,6 @@ class Question(abc.ABC):
   def is_interesting(self) -> bool:
     return True
 
-  @classmethod
-  def get_class(cls, class_name, module_name=None) -> typing.Type:
-    log.debug(pprint.pformat(cls.__subclasses__()))
+  # @classmethod
+  # def get_class(cls, class_name, module_name=None) -> typing.Type:
+  #   log.debug(pprint.pformat(cls.__subclasses__()))

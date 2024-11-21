@@ -20,12 +20,15 @@ questions:
           spacing: 1
       inode access calculations:
         class: INodeAccesses
+
     paging table question:
       class: Paging
-      kind: memory
+
+    memory access:
+      class: CachingQuestion
+
   4:
     text based question:
-      kind: memory
       class: FromText
       kwargs:
         text: |

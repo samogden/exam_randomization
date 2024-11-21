@@ -1,10 +1,8 @@
 #!env python
-from typing import List, Tuple, Dict, Type, Any
-
-import random
-import math
-
 import logging
+import math
+import random
+from typing import List
 
 from question import Question, QuestionRegistry, Answer
 
@@ -13,8 +11,14 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+class MathQuestion(Question):
+  def __init__(self, *args, **kwargs):
+    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.MATH)
+    super().__init__(*args, **kwargs)
+
+
 @QuestionRegistry.register()
-class BitsAndBytes(Question):
+class BitsAndBytes(MathQuestion):
   
   MIN_BITS = 3
   MAX_BITS = 49
@@ -72,7 +76,7 @@ class BitsAndBytes(Question):
 
 
 @QuestionRegistry.register()
-class HexAndBinary(Question):
+class HexAndBinary(MathQuestion):
   
   MIN_HEXITS = 1
   MAX_HEXITS = 8
@@ -143,7 +147,7 @@ class HexAndBinary(Question):
 
 
 @QuestionRegistry.register()
-class AverageMemoryAccessTime(Question):
+class AverageMemoryAccessTime(MathQuestion):
   
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)

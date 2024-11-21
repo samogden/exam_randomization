@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import enum
-import pprint
 from typing import List
 
 from question import Question, Answer, TableGenerator, QuestionRegistry
@@ -18,9 +17,14 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+class MemoryQuestion(Question):
+  def __init__(self, *args, **kwargs):
+    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.MEMORY)
+    super().__init__(*args, **kwargs)
+
 
 @QuestionRegistry.register()
-class CachingQuestion(Question):
+class CachingQuestion(MemoryQuestion):
   
   class Kind(enum.Enum):
     FIFO = enum.auto()
@@ -122,7 +126,7 @@ class CachingQuestion(Question):
         Answer(f"answer__cache_state-{request_number}", ','.join(map(str, cache_state)),  Answer.AnswerKind.BLANK),
       ])
       
-      log.debug(f"{request:>2} | {'hit' if was_hit else 'miss':<4} | {evicted if evicted is not None else '':<3} | {str(cache_state):<10}")
+      # log.debug(f"{request:>2} | {'hit' if was_hit else 'miss':<4} | {evicted if evicted is not None else '':<3} | {str(cache_state):<10}")
       
     self.hit_rate = 100 * number_of_hits / (self.num_requests)
     # self.hit_rate_var = VariableFloat("Hit Rate (%)", true_value=self.hit_rate)
@@ -171,16 +175,12 @@ class CachingQuestion(Question):
     return lines
   
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
-    log.debug("--------------------------------------------")
-    log.debug("Get explanation lines")
     lines = [
       # "Apologies for the below table not including the eviction data, but technical limitations prevented me from including it.  "
       # "Instead, it can be inferred from the change in the cache state.",
       "The full table can be seen below.",
       ""
     ]
-    
-    log.debug(pprint.pformat(self.request_results))
     
     table_headers = ["Page", "Hit/Miss", "Evicted", "Cache State"]
     lines.extend(
@@ -212,8 +212,7 @@ class CachingQuestion(Question):
     return (self.hit_rate / 100.0) < 0.5
 
 
-@QuestionRegistry.register()
-class MemoryAccessQuestion(Question):
+class MemoryAccessQuestion(MemoryQuestion):
   PROBABILITY_OF_VALID = .875
 
 
