@@ -1,9 +1,6 @@
 #!env python
 from __future__ import annotations
 
-from __future__ import annotations
-
-
 import abc
 import dataclasses
 import datetime
@@ -13,102 +10,19 @@ import itertools
 import pathlib
 import pkgutil
 import re
-
-import canvasapi.course
-import canvasapi.quiz
 import pypandoc
 import yaml
 from typing import List, Dict, Any, Tuple
-
-import logging
-
-from misc import OutputFormat
+import canvasapi.course, canvasapi.quiz
 import pytablewriter
 
+from misc import OutputFormat, Answer
+
+import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-
-class Answer():
-  class AnswerKind(enum.Enum):
-    BLANK = "fill_in_multiple_blanks_question"
-    MULTIPLE_CHOICE = enum.auto() # todo: have baffles?
-    ESSAY = "essay_question"
-  class VariableKind(enum.Enum): # todo: use these for generate variations?
-    STR = enum.auto()
-    INT = enum.auto()
-    FLOAT = enum.auto()
-    BINARY = enum.auto()
-    HEX = enum.auto()
-    BINARY_OR_HEX = enum.auto()
-  def __init__(self, key:str, value, kind : Answer.AnswerKind = AnswerKind.BLANK, variable_kind : Answer.VariableKind = VariableKind.STR, display=None, length=None):
-    self.key = key
-    self.value = value
-    self.kind = kind
-    self.variable_kind = variable_kind
-    self.display = display if display is not None else value
-    self.length = length # Used for bits and hex to be printed appropriately
-  
-  def get_for_canvas(self) -> List[Dict]:
-    if self.variable_kind == Answer.VariableKind.FLOAT:
-      return [{
-        "blank_id": self.key,
-        "answer_text": f"{self.value:0.2f}",
-        "answer_weight": 100,
-      }]
-    elif self.variable_kind == Answer.VariableKind.BINARY:
-      return [
-        {
-          "blank_id": self.key,
-          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}b}",
-          "answer_weight": 100,
-        },
-        {
-          "blank_id": self.key,
-          "answer_text": f"0b{self.value:0{self.length if self.length is not None else 0}b}",
-          "answer_weight": 100,
-        }
-      ]
-    elif self.variable_kind == Answer.VariableKind.HEX:
-      return [
-        {
-          "blank_id": self.key,
-          "answer_text": f"{self.value:0{(self.length // 8) + 1 if self.length is not None else 0}X}",
-          "answer_weight": 100,
-        },{
-          "blank_id": self.key,
-          "answer_text": f"0x{self.value:0{(self.length // 8) + 1 if self.length is not None else 0}X}",
-          "answer_weight": 100,
-        }
-      ]
-    elif self.variable_kind == Answer.VariableKind.BINARY_OR_HEX:
-      return [
-        {
-          "blank_id": self.key,
-          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}b}",
-          "answer_weight": 100,
-        },{
-          "blank_id": self.key,
-          "answer_text": f"0b{self.value:0{self.length if self.length is not None else 0}b}",
-          "answer_weight": 100,
-        },
-        {
-          "blank_id": self.key,
-          "answer_text": f"{self.value:0{self.length if self.length is not None else 0}X}",
-          "answer_weight": 100,
-        },{
-          "blank_id": self.key,
-          "answer_text": f"0x{self.value:0{self.length if self.length is not None else 0}X}",
-          "answer_weight": 100,
-        }
-      ]
-    canvas_answer = {
-      "blank_id": self.key,
-      "answer_text": self.value,
-      "answer_weight": 100,
-    }
-    return [canvas_answer]
 
 @dataclasses.dataclass
 class TableGenerator:
@@ -243,9 +157,6 @@ class Question(abc.ABC):
       if string.lower() in mapping:
         return mapping.get(string.lower())
       return cls.MISC
-  
-  # todo: Add in an enum for kind of answer, or a separate class that can handle formatting for us for ease.
-  
   
   def __init__(self, name: str = None, points_value: float = 1.0, kind: Question.Topic = Topic.MISC, *args, **kwargs):
     if name is None:
