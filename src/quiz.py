@@ -3,43 +3,36 @@ from __future__ import annotations
 
 import argparse
 import collections
-import enum
-import importlib
 import itertools
+import logging
 import os.path
 import pprint
 import random
 import shutil
 import subprocess
 import tempfile
-
-import pypandoc
-import yaml
-
-import question
-import canvas_interface
-from premade_questions import math_questions
-from misc import OutputFormat
-
 from typing import List, Dict
 
-import logging
+import yaml
+
+import canvas_interface
+from misc import OutputFormat
+from question import Question, QuestionRegistry
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-
-  
 class Quiz:
   """
   A quiz object that will build up questions and output them in a range of formats (hopefully)
   It should be that a single quiz object can contain multiples -- essentially it builds up from the questions and then can generate a variety of questions.
   """
   
-  def __init__(self, exam_name, possible_questions: List[dict|question.Question], *args, **kwargs):
+  def __init__(self, exam_name, possible_questions: List[dict|Question], *args, **kwargs):
     self.exam_name = exam_name
     self.possible_questions = possible_questions
-    self.questions : List[question.Question] = []
+    self.questions : List[Question] = []
     self.instructions = kwargs.get("instructions", "")
     self.question_sort_order = None
     
@@ -62,7 +55,6 @@ class Quiz:
     for topic in self.question_sort_order:
       log.info(f"{topic} : {sum(map(lambda q: q.points_value, filter(lambda q: q.kind == topic, self.questions)))} points")
     
-  
   def select_questions(self, total_points=None, exam_outline: List[Dict]=None):
     # The exam_outline object should contain a description of the kinds of questions that we want.
     # It will be a list of dictionaries that has "num questions" and then the appropriate filters.
@@ -136,7 +128,6 @@ class Quiz:
       text += question.get__latex() + "\n\n"
     text += self.get_footer(OutputFormat.LATEX)
     return text
-  
   
   def get_header(self, output_format: OutputFormat, *args, **kwargs) -> str:
     lines = []
@@ -222,60 +213,88 @@ class Quiz:
     log.debug(exam_dict)
     
     name = exam_dict["name"]
+    questions_for_exam = []
     
-    exam_questions = []
-    
-    for value, questions in exam_dict["questions"].items():
-    
-      log.debug(f"{value} : {questions}")
-    
-      for q_info in questions:
-        if q_info["module"] == "question":
-          q_module = importlib.import_module(f"{q_info['module']}")
-        else:
-          q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
-        q_class = getattr(q_module, q_info["class"])
-        kind = question.Question.TOPIC.from_string(q_info.get("subject", "misc"))
-        log.debug(q_info.get("kwargs", {}))
-        exam_questions.append(q_class(points_value=int(value), kind=kind, **q_info.get("kwargs", {})))
+    for question_value, question_definitions in exam_dict["questions"].items():
+      # todo: I can also add in "extra credit" and "mix-ins" as other keys to indicate extra credit or questions that can go anywhere
+      log.info(f"Parsing {question_value} point questions")
+      
+      def make_question(q_name, q_data):
+        kwargs= {
+          "name" : q_name,
+          "points_value" : question_value,
+          **q_data.get("kwargs", {})
+        }
+        log.debug(f"Making question with: \n{pprint.pformat(kwargs)}")
         
-    quiz_from_yaml = Quiz(name, exam_questions)
+        new_question = QuestionRegistry.create(
+          q_data["class"],
+          **{
+            "name" : q_name,
+            "points_value" : question_value,
+            **q_data.get("kwargs", {})
+          }
+        )
+        return new_question
+      
+      for q_name, q_data in question_definitions.items():
+        log.debug(f"{q_name} : {q_data}")
+        if "pick" in q_data:
+          num_to_pick = q_data["pick"]
+          del q_data["pick"]
+          questions_for_exam.extend(
+            make_question(name, data) for name, data in
+            random.sample(list(q_data.items()), num_to_pick)
+          )
+        else:
+          questions_for_exam.append(make_question(q_name, q_data))
+        pass
+    
+      # for q_info in questions:
+      #   if q_info["module"] == "question":
+      #     q_module = importlib.import_module(f"{q_info['module']}")
+      #   else:
+      #     q_module = importlib.import_module(f"premade_questions.{q_info['module']}")
+      #   q_class = getattr(q_module, q_info["class"])
+      #   kind = question.Question.TOPIC.from_string(q_info.get("subject", "misc"))
+      #   log.debug(q_info.get("kwargs", {}))
+      #   exam_questions.append(q_class(points_value=int(value), kind=kind, **q_info.get("kwargs", {})))
+        
+    quiz_from_yaml = Quiz(name, questions_for_exam)
     return quiz_from_yaml
 
-
-def generate_latex(q: Quiz, remove_previous=False):
-  
-  if remove_previous:
-    if os.path.exists('out'): shutil.rmtree('out')
-  
-  tmp_tex = tempfile.NamedTemporaryFile('w')
-  
-  # tmp_tex.write(pypandoc.convert_text('\n'.join(q.get_lines(output_format=OutputFormat.LATEX)), 'latex', format='md'))
-  tmp_tex.write(q.get_latex())
-  tmp_tex.flush()
-  tmp_tex.flush()
-  shutil.copy(f"{tmp_tex.name}", "debug.tex")
-  p = subprocess.Popen(
-    f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}",
-    shell=True,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE)
-  try:
-    p.wait(30)
-  except subprocess.TimeoutExpired:
-    logging.error("Latex Compile timed out")
-    p.kill()
+  def generate_latex(self, remove_previous=False):
+    
+    if remove_previous:
+      if os.path.exists('out'): shutil.rmtree('out')
+    
+    tmp_tex = tempfile.NamedTemporaryFile('w')
+    
+    tmp_tex.write(self.get_latex())
+    tmp_tex.flush()
+    tmp_tex.flush()
+    shutil.copy(f"{tmp_tex.name}", "debug.tex")
+    p = subprocess.Popen(
+      f"latexmk -pdf -output-directory={os.path.join(os.getcwd(), 'out')} {tmp_tex.name}",
+      shell=True,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE)
+    try:
+      p.wait(30)
+    except subprocess.TimeoutExpired:
+      logging.error("Latex Compile timed out")
+      p.kill()
+      tmp_tex.close()
+      return
+    proc = subprocess.Popen(
+      f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}",
+      shell=True,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE
+    )
+    proc.wait(timeout=30)
     tmp_tex.close()
-    return
-  proc = subprocess.Popen(
-    f"latexmk -c {tmp_tex.name} -output-directory={os.path.join(os.getcwd(), 'out')}",
-    shell=True,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE
-  )
-  proc.wait(timeout=30)
-  tmp_tex.close()
-  
+    
   
 def parse_args():
   parser = argparse.ArgumentParser()
@@ -298,16 +317,16 @@ def main():
   quiz.select_questions()
   
   quiz.set_sort_order([
-    question.Question.TOPIC.CONCURRENCY,
-    question.Question.TOPIC.IO,
-    question.Question.TOPIC.PROCESS,
-    question.Question.TOPIC.MEMORY,
-    question.Question.TOPIC.PROGRAMMING,
-    question.Question.TOPIC.MISC
+    Question.TOPIC.CONCURRENCY,
+    Question.TOPIC.IO,
+    Question.TOPIC.PROCESS,
+    Question.TOPIC.MEMORY,
+    Question.TOPIC.PROGRAMMING,
+    Question.TOPIC.MISC
   ])
   
   for i in range(args.num_pdfs):
-    generate_latex(quiz, remove_previous=(i==0))
+    quiz.generate_latex(remove_previous=(i==0))
   
   if args.num_canvas_variations > 0:
     interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)

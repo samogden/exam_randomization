@@ -1,34 +1,31 @@
 name: "CST 334 Exam 3 (Fall 2024)"
 questions:
   8:
-    - class: SchedulingQuestion
+    process scheduling calculations:
+      class: SchedulingQuestion
       module: process
       kwargs:
         spacing: 5
-    - class: VSFS_states
-      module: persistance_questions
-      kwargs:
-        spacing: 1
-    - class: INodeAccesses
-      module: persistance_questions
-    - class: HardDriveAccessTime
-      module: persistance_questions
-    - class: CachingQuestion
-      module: memory_questions
-      kwargs:
-        spacing: 1
-    - class: Paging
-      module: memory_questions
-      kwargs:
-        spacing: 1
+    persistence group 1:
+      pick: 1
+      vsfs changes:
+        class: VSFS_states
+        module: persistence_questions
+        kwargs:
+          spacing: 1
+      inode access calculations:
+        class: INodeAccesses
+        module: persistence_questions
   4:
-    - class: FromText
+    text based question:
+      class: FromText
       module: question
       kwargs:
         text: |
           This is a question I can ask.
-    - class: FromGenerator
+    generated question:
+      class: FromGenerator
       module: question
       kwargs:
         generator: |
-          return "This is a question I can generate"
+          return f"This is a question I can {random.choice(['generate', 'make up'])}."
