@@ -416,7 +416,3 @@ class Question(abc.ABC):
   
   def is_interesting(self) -> bool:
     return True
-
-  # @classmethod
-  # def get_class(cls, class_name, module_name=None) -> typing.Type:
-  #   log.debug(pprint.pformat(cls.__subclasses__()))
