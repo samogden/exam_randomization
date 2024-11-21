@@ -193,7 +193,6 @@ class QuestionRegistry:
     if question_type.lower() not in cls._registry:
       raise ValueError(f"Unknown question type: {question_type}")
     
-    log.debug(kwargs)
     return cls._registry[question_type.lower()](**kwargs)
     
     
