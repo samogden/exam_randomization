@@ -13,7 +13,7 @@ log.setLevel(logging.DEBUG)
 
 class MathQuestion(Question):
   def __init__(self, *args, **kwargs):
-    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.MATH)
+    kwargs["kind"] = kwargs.get("kind", Question.Topic.MATH)
     super().__init__(*args, **kwargs)
 
 

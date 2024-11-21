@@ -25,7 +25,7 @@ log.setLevel(logging.DEBUG)
 
 class ProcessQuestion(Question):
   def __init__(self, *args, **kwargs):
-    kwargs["kind"] = kwargs.get("kind", Question.TOPIC.PROCESS)
+    kwargs["kind"] = kwargs.get("kind", Question.Topic.PROCESS)
     super().__init__(*args, **kwargs)
 
 

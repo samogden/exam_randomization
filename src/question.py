@@ -218,7 +218,7 @@ class Question(abc.ABC):
   
   # todo: when calculating hash, have an attribute "max repeats" that will return the hash with a field that will stop changing after a certain number of repeats
   
-  class TOPIC(enum.Enum):
+  class Topic(enum.Enum):
     PROCESS = enum.auto()
     MEMORY = enum.auto()
     CONCURRENCY = enum.auto()
@@ -228,7 +228,7 @@ class Question(abc.ABC):
     MISC = enum.auto()
     
     @classmethod
-    def from_string(cls, string) -> Question.TOPIC:
+    def from_string(cls, string) -> Question.Topic:
       mapping = {
         "processes": cls.PROCESS,
         "memory": cls.MEMORY,
@@ -247,7 +247,7 @@ class Question(abc.ABC):
   # todo: Add in an enum for kind of answer, or a separate class that can handle formatting for us for ease.
   
   
-  def __init__(self, name: str = None, points_value: float = 1.0, kind: Question.TOPIC = TOPIC.MISC, *args, **kwargs):
+  def __init__(self, name: str = None, points_value: float = 1.0, kind: Question.Topic = Topic.MISC, *args, **kwargs):
     if name is None:
       name = self.__class__.__name__
     self.name = name

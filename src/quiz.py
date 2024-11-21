@@ -54,7 +54,7 @@ class Quiz:
     
     sort_order = self.question_sort_order
     if sort_order is None:
-      sort_order = Question.TOPIC
+      sort_order = Question.Topic
     for topic in sort_order:
       log.info(f"{topic} : {sum(map(lambda q: q.points_value, filter(lambda q: q.kind == topic, self.questions)))} points")
     
@@ -217,8 +217,8 @@ class Quiz:
     
     name = exam_dict.get("name", "Unnamed Exam")
     questions_for_exam = []
-    sort_order = list(map(lambda t: Question.TOPIC.from_string(t), exam_dict.get("sort order", [])))
-    sort_order = sort_order + list(filter(lambda t: t not in sort_order, Question.TOPIC))
+    sort_order = list(map(lambda t: Question.Topic.from_string(t), exam_dict.get("sort order", [])))
+    sort_order = sort_order + list(filter(lambda t: t not in sort_order, Question.Topic))
     
     
     for question_value, question_definitions in exam_dict["questions"].items():
@@ -232,7 +232,7 @@ class Quiz:
           **q_data.get("kwargs", {})
         }
         if "kind" in q_data:
-          kwargs["kind"] = Question.TOPIC.from_string(q_data["kind"])
+          kwargs["kind"] = Question.Topic.from_string(q_data["kind"])
         log.debug(kwargs)
         new_question = QuestionRegistry.create(
           q_data["class"],
