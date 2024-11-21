@@ -19,7 +19,7 @@ log.setLevel(logging.DEBUG)
 
 class MemoryQuestion(Question):
   def __init__(self, *args, **kwargs):
-    kwargs["kind"] = kwargs.get("kind", Question.Topic.MEMORY)
+    kwargs["topic"] = kwargs.get("topic", Question.Topic.MEMORY)
     super().__init__(*args, **kwargs)
 
 

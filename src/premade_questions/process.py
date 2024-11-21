@@ -25,7 +25,7 @@ log.setLevel(logging.DEBUG)
 
 class ProcessQuestion(Question):
   def __init__(self, *args, **kwargs):
-    kwargs["kind"] = kwargs.get("kind", Question.Topic.PROCESS)
+    kwargs["topic"] = kwargs.get("topic", Question.Topic.PROCESS)
     super().__init__(*args, **kwargs)
 
 
@@ -232,9 +232,7 @@ class SchedulingQuestion(ProcessQuestion):
       for job_id in range(self.num_jobs)
     ]
     
-    log.info("Starting simulation")
     self.simulation(jobs, self.SELECTOR, self.PREEMPTABLE, self.TIME_QUANTUM)
-    log.info("Ending simulation")
     
     self.job_stats = {
       i : {

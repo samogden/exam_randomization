@@ -231,9 +231,10 @@ class Quiz:
           "points_value" : question_value,
           **q_data.get("kwargs", {})
         }
-        if "kind" in q_data:
-          kwargs["kind"] = Question.Topic.from_string(q_data["kind"])
-        log.debug(kwargs)
+        if "topic" in q_data:
+          kwargs["topic"] = Question.Topic.from_string(q_data["topic"])
+        elif "kind" in q_data:
+          kwargs["topic"] = Question.Topic.from_string(q_data["kind"])
         new_question = QuestionRegistry.create(
           q_data["class"],
           **kwargs

@@ -16,7 +16,7 @@ log.setLevel(logging.DEBUG)
 
 class IOQuestion(Question):
   def __init__(self, *args, **kwargs):
-    kwargs["kind"] = kwargs.get("kind", Question.Topic.IO)
+    kwargs["topic"] = kwargs.get("topic", Question.Topic.IO)
     super().__init__(*args, **kwargs)
   
 

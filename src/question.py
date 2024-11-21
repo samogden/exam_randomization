@@ -82,6 +82,7 @@ class TableGenerator:
       ])
       return '\n'.join(table_lines)
 
+
 class QuestionRegistry:
   _registry = {}
   _scanned = False
@@ -130,8 +131,6 @@ class Question(abc.ABC):
   A question base class that will be able to output questions to a variety of formats.
   """
   
-  # todo: when calculating hash, have an attribute "max repeats" that will return the hash with a field that will stop changing after a certain number of repeats
-  
   class Topic(enum.Enum):
     PROCESS = enum.auto()
     MEMORY = enum.auto()
@@ -158,12 +157,12 @@ class Question(abc.ABC):
         return mapping.get(string.lower())
       return cls.MISC
   
-  def __init__(self, name: str = None, points_value: float = 1.0, kind: Question.Topic = Topic.MISC, *args, **kwargs):
+  def __init__(self, name: str = None, points_value: float = 1.0, topic: Question.Topic = Topic.MISC, *args, **kwargs):
     if name is None:
       name = self.__class__.__name__
     self.name = name
     self.points_value = points_value
-    self.kind = kind
+    self.kind = topic
     self.spacing = kwargs.get("spacing", 3)
     
     self.extra_attrs = kwargs # clear page, etc.
