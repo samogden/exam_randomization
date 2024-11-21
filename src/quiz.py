@@ -6,7 +6,6 @@ import collections
 import itertools
 import logging
 import os.path
-import pprint
 import random
 import shutil
 import subprocess
