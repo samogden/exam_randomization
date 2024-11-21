@@ -63,7 +63,7 @@ def redact_directory(input_directory, output_directory):
     if not f.endswith(".pdf"): continue
     doc = fitz.open(f)
     page = doc[0]
-    page.draw_rect([370,100,500,150],  color = (0, 0, 0), width = 50)
+    page.draw_rect([360,70,600,110],  color = (0, 0, 0), width = 50)
     
   # Save pdf
     doc.save(f"{os.path.join(output_directory,pathlib.Path(f).name)}")
