@@ -8,3 +8,8 @@ PyYAML==6.0.1
 PyYAML==6.0.1
 Requests==2.32.2
 text2qti==0.7.1
+
+pypandoc~=1.6.3
+pytablewriter~=1.2.0
+canvasapi~=3.2.0
+pypdf~=4.1.0
