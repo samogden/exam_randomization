@@ -23,6 +23,7 @@ questions:
 
     paging table question:
       class: Paging
+      kind: programming
 
     memory access:
       class: CachingQuestion
