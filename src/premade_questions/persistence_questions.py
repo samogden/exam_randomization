@@ -13,8 +13,6 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-
-
 @QuestionRegistry.register()
 class HardDriveAccessTime(Question):
   

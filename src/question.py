@@ -237,6 +237,7 @@ class Question(abc.ABC):
         "concurrency": cls.CONCURRENCY,
         "io": cls.IO,
         "persistance": cls.IO,
+        "persistence": cls.IO,
         "programming" : cls.PROGRAMMING,
         "misc": cls.MISC,
       }
