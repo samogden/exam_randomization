@@ -5,16 +5,14 @@ import dataclasses
 import enum
 import os
 import pprint
-import re
 import uuid
 from typing import List, Tuple, Dict, Type, Any
 
 import canvasapi
 import matplotlib.pyplot as plt
-import pypandoc
 
 from misc import OutputFormat
-from question import Question, Answer, TableGenerator
+from question import Question, Answer, TableGenerator, QuestionRegistry
 
 import random
 import math
@@ -28,6 +26,7 @@ log.setLevel(logging.DEBUG)
 
 
 
+@QuestionRegistry.register()
 class SchedulingQuestion(Question):
   class Kind(enum.Enum):
     FIFO = enum.auto()

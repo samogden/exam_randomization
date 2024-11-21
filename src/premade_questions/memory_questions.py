@@ -3,13 +3,9 @@ from __future__ import annotations
 
 import enum
 import pprint
-import re
-from typing import List, Tuple, Dict, Type, Any
+from typing import List
 
-import pypandoc
-
-from misc import OutputFormat
-from question import Question, Answer, TableGenerator
+from question import Question, Answer, TableGenerator, QuestionRegistry
 
 import random
 import math
@@ -23,6 +19,7 @@ log.setLevel(logging.DEBUG)
 
 
 
+@QuestionRegistry.register()
 class CachingQuestion(Question):
   
   class Kind(enum.Enum):
@@ -214,9 +211,13 @@ class CachingQuestion(Question):
   def is_interesting(self) -> bool:
     return (self.hit_rate / 100.0) < 0.5
 
+
+@QuestionRegistry.register()
 class MemoryAccessQuestion(Question):
   PROBABILITY_OF_VALID = .875
-  
+
+
+@QuestionRegistry.register()
 class Paging(MemoryAccessQuestion):
   
   MIN_OFFSET_BITS = 3

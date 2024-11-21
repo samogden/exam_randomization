@@ -1,21 +1,13 @@
 #!env python
 from __future__ import annotations
 
-import enum
-import pprint
-import re
-from typing import List, Tuple, Dict, Type, Any
-
-import pypandoc
+import logging
+import math
+import random
+from typing import List
 
 from misc import OutputFormat
-from question import Question, Answer, TableGenerator
-
-import random
-import math
-import collections
-
-import logging
+from question import Question, Answer, TableGenerator, QuestionRegistry
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -23,6 +15,7 @@ log.setLevel(logging.DEBUG)
 
 
 
+@QuestionRegistry.register()
 class HardDriveAccessTime(Question):
   
   def __init__(self, *args, **kwargs):
@@ -123,6 +116,7 @@ class HardDriveAccessTime(Question):
     return lines
 
 
+@QuestionRegistry.register()
 class INodeAccesses(Question):
   
   def __init__(self, output_format : OutputFormat|None = None, *args, **kwargs):
@@ -215,6 +209,7 @@ class INodeAccesses(Question):
     return lines
 
 
+@QuestionRegistry.register()
 class VSFS_states(Question):
 
   from .ostep13_vsfs import fs as vsfs

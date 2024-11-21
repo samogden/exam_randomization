@@ -1,18 +1,19 @@
 #!env python
 from typing import List, Tuple, Dict, Type, Any
 
-from question import Question, Answer
-
 import random
 import math
 
 import logging
+
+from question import Question, QuestionRegistry, Answer
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+@QuestionRegistry.register()
 class BitsAndBytes(Question):
   
   MIN_BITS = 3
@@ -70,6 +71,7 @@ class BitsAndBytes(Question):
     return explanation_lines
 
 
+@QuestionRegistry.register()
 class HexAndBinary(Question):
   
   MIN_HEXITS = 1
@@ -140,6 +142,7 @@ class HexAndBinary(Question):
     return explanation_lines
 
 
+@QuestionRegistry.register()
 class AverageMemoryAccessTime(Question):
   
   def __init__(self, *args, **kwargs):
