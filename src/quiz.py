@@ -297,7 +297,7 @@ def parse_args():
   parser.add_argument("--course_id", default=25523, type=int)
   
   parser.add_argument("--quiz_yaml", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "../example_files/exam.yaml"))
-  parser.add_argument("--num_canvas_variations", default=0, type=int)
+  parser.add_argument("--num_canvas", default=0, type=int)
   parser.add_argument("--num_pdfs", default=0, type=int)
   
   args = parser.parse_args()
@@ -325,9 +325,9 @@ def main():
   for i in range(args.num_pdfs):
     quiz.generate_latex(remove_previous=(i==0))
   
-  if args.num_canvas_variations > 0:
+  if args.num_canvas > 0:
     interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)
-    interface.push_quiz_to_canvas(quiz, args.num_canvas_variations)
+    interface.push_quiz_to_canvas(quiz, args.num_canvas)
   
   quiz.describe()
   
