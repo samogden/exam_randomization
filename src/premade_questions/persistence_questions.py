@@ -132,10 +132,12 @@ class INodeAccesses(IOQuestion):
   def instantiate(self, *args, **kwargs):
     super().instantiate()
     
-    self.block_size = 1024 * random.randint(1,10)
-    self.inode_number = random.randint(0,1024)
+    # Calculating this first to use blocksize as an even multiple of it
+    self.inode_size = 2**random.randint(6, 10)
+    
+    self.block_size = self.inode_size * random.randint(8,20)
+    self.inode_number = random.randint(0,256)
     self.inode_start_location = self.block_size * random.randint(2, 5)
-    self.inode_size = 2**random.randint(6, int(math.log2(self.block_size)-2))
     
     self.inode_address = self.inode_start_location + self.inode_number * self.inode_size
     self.inode_block = self.inode_address // self.block_size
