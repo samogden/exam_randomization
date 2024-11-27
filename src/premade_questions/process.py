@@ -266,6 +266,11 @@ class SchedulingQuestion(ProcessQuestion):
       Answer("answer__average_response_time", sum([job.response_time for job in jobs]) / len(jobs), variable_kind=Answer.VariableKind.FLOAT),
       Answer("answer__average_turnaround_time", sum([job.turnaround_time for job in jobs]) / len(jobs), variable_kind=Answer.VariableKind.FLOAT)
     ])
+    
+    # Special looping behavior for this problem to ensure it will regenerate using the same scheduler.
+    # Otherwise, we end up with the distribution of schedulers being inversely proportional to how good they are
+    if not self.is_interesting():
+      self.instantiate(scheduler_kind=self.SCHEDULER_KIND)
   
   def get_body_lines(self, output_format: OutputFormat|None = None, *args, **kwargs) -> List[str]:
     
