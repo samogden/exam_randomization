@@ -21,7 +21,7 @@ def parse_flags():
   
   parser.add_argument("--input_dir", default=None)
   parser.add_argument("--leave_name", dest="override_name", action="store_false")
-  parser.add_argument("--base", default=0, type=int)
+  parser.add_argument("--base ", default=0, type=int)
   
   parser.add_argument("--testing", action="store_true")
   

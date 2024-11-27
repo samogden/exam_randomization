@@ -28,7 +28,7 @@ class HardDriveAccessTime(IOQuestion):
     
     self.instantiate()
   
-  def instantiate(self):
+  def instantiate(self, *args, **kwargs):
     super().instantiate()
     
     
@@ -129,7 +129,7 @@ class INodeAccesses(IOQuestion):
     
     self.instantiate()
   
-  def instantiate(self):
+  def instantiate(self, *args, **kwargs):
     super().instantiate()
     
     self.block_size = 1024 * random.randint(1,10)
@@ -224,7 +224,7 @@ class VSFS_states(IOQuestion):
     
     self.instantiate()
   
-  def instantiate(self):
+  def instantiate(self, *args, **kwargs):
     super().instantiate()
     
     

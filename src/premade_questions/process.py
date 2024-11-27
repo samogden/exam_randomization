@@ -195,9 +195,12 @@ class SchedulingQuestion(ProcessQuestion):
     self.num_jobs = num_jobs
     self.instantiate()
   
-  def instantiate(self):
+  def instantiate(self, scheduler_kind=None, *args, **kwargs):
     super().instantiate()
-    self.SCHEDULER_KIND = random.choice(list(SchedulingQuestion.Kind))
+    if scheduler_kind is None:
+      self.SCHEDULER_KIND = random.choice(list(SchedulingQuestion.Kind))
+    else:
+      self.SCHEDULER_KIND = scheduler_kind
     
     if self.SCHEDULER_KIND == SchedulingQuestion.Kind.FIFO:
       # This is the default case

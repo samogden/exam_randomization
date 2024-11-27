@@ -298,8 +298,11 @@ class Question(abc.ABC):
     log.warning("get_answers using default implementation!  Consider implementing!")
     return Answer.AnswerKind.BLANK, list(itertools.chain(*[a.get_for_canvas() for a in self.answers]))
 
-  def instantiate(self):
-    """If it is necessary to regenerate aspects between usages, this is the time to do it"""
+  def instantiate(self, *args, **kwargs):
+    """If it is necessary to regenerate aspects between usages, this is the time to do it
+    :param *args:
+    :param **kwargs:
+    """
     self.answers = []
 
   def generate(self, output_format: OutputFormat, *args, **kwargs):
