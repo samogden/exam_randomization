@@ -104,7 +104,11 @@ class CachingQuestion(MemoryQuestion):
     self.answers = []
     self.cache_policy = random.choice(list(self.Kind))
     
-    self.requests = list(range(self.cache_size)) + random.choices(population=list(range(self.num_elements)), k=(self.num_requests))
+    self.requests = (
+        list(range(self.cache_size)) # Prime the cache with the compulsory misses
+        + random.choices(population=list(range(self.cache_size-1)), k=1) # Add in one request that will differentiate clearly between FIFO and LRU
+        + random.choices(population=list(range(self.num_elements)), k=(self.num_requests-1)) ## Add in the rest of the requests
+    )
     
     self.cache = CachingQuestion.Cache(self.cache_policy, self.cache_size, self.requests)
     
@@ -209,6 +213,7 @@ class CachingQuestion(MemoryQuestion):
     return lines
   
   def is_interesting(self) -> bool:
+    # todo: interesting is more likely based on whether I can differentiate between it and another algo, so maybe rerun with a different approach but same requests?
     return (self.hit_rate / 100.0) < 0.5
 
 
