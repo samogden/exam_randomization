@@ -258,7 +258,7 @@ class Paging(MemoryAccessQuestion):
     # Calculate this
     self.physical_address = self.pfn * (2**self.num_offset_bits) + self.offset
     
-    if random.choices([True, False], weights=[(1-self.PROBABILITY_OF_VALID), self.PROBABILITY_OF_VALID], k=1)[0]:
+    if random.choices([True, False], weights=[(self.PROBABILITY_OF_VALID), (1-self.PROBABILITY_OF_VALID)], k=1)[0]:
       self.is_valid = True
       # Set our actual entry to be in the table and valid
       self.pte = self.pfn + (2**(self.num_pfn_bits))
