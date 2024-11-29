@@ -295,7 +295,7 @@ class Paging(MemoryAccessQuestion):
   def get_body_lines(self, *args, **kwargs) -> List[str|TableGenerator]:
     lines = [
       "Given the below information please calculate the equivalent physical address of the given virtual address, filling out all steps along the way.",
-      "Remmeber, we typically have the MSB representing valid or invalid."
+      "Remember, we typically have the MSB representing valid or invalid."
     ]
     
     lines.extend([
