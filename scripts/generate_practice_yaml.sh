@@ -10,5 +10,5 @@ for class in $question_classes ; do
   echo "    $(echo $class | sed 's/Question//g')"
   echo "      class: $class"
   echo "      repeat: 5"
-  echo "\n---\n"
+  echo "---"
 done > all_classes.yaml
