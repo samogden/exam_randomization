@@ -1,6 +1,6 @@
 #!env bash
 
-question_classes=$(grep register src/premade_questions/*.py -a1 | grep class | sed 's/.*class //g' | sed 's/(.*//g')
+question_classes=$(grep register src/premade_questions/*.py -a1 | grep -v basic.py | grep class | sed 's/.*class //g' | sed 's/(.*//g')
 
 for class in $question_classes ; do
   echo "name: \"(Ungraded) $(echo $class | sed 's/Question//g')\""
