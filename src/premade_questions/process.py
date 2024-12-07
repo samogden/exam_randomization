@@ -404,9 +404,6 @@ class SchedulingQuestion(ProcessQuestion):
     course.create_folder(f"{quiz.id}", parent_folder_path="Quiz Files")
     upload_success, f = course.upload(self.img, parent_folder_path=f"Quiz Files/{quiz.id}")
     
-    log.debug(f"f: {f}")
-    log.debug(f"f: {pprint.pformat(f)}")
-    
     explanation_lines.extend(
       [f"![Process Scheduling Overview](/courses/{course.id}/files/{f['id']}/preview)"]
     )
