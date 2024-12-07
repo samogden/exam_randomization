@@ -258,7 +258,7 @@ class Question(abc.ABC):
           pypandoc.convert_text(
             curr_part,
             ('html' if output_format == OutputFormat.CANVAS else 'latex'),
-            format='md'
+            format='md', extra_args=["-M2GB", "+RTS", "-K64m", "-RTS"]
           )
         )
         curr_part = ""
@@ -272,7 +272,7 @@ class Question(abc.ABC):
       pypandoc.convert_text(
         curr_part,
         ('html' if output_format == OutputFormat.CANVAS else 'latex'),
-        format='md'
+        format='md', extra_args=["-M2GB", "+RTS", "-K64m", "-RTS"]
       )
     )
     body = '\n'.join(parts)
@@ -295,7 +295,7 @@ class Question(abc.ABC):
     return self.convert_from_lines_to_text(lines, output_format)
   
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
-    log.warning("get_answers using default implementation!  Consider implementing!")
+    # log.warning("get_answers using default implementation!  Consider implementing!")
     return Answer.AnswerKind.BLANK, list(itertools.chain(*[a.get_for_canvas() for a in self.answers]))
 
   def instantiate(self, *args, **kwargs):
@@ -309,6 +309,7 @@ class Question(abc.ABC):
     # Renew the problem as appropriate
     self.instantiate()
     while (not self.is_interesting()):
+      log.debug("Still not interesting...")
       self.instantiate()
     
     question_body = self.get_header(output_format)
@@ -316,11 +317,9 @@ class Question(abc.ABC):
     
     # Generation body and explanation based on the output format
     if output_format == OutputFormat.CANVAS:
-      # question_body += pypandoc.convert_text(self.get_body(output_format), 'html', format='md')
       question_body += self.get_body(output_format)
-      question_explanation = pypandoc.convert_text(self.get_explanation(output_format, *args, **kwargs), 'html', format='md')
+      question_explanation = pypandoc.convert_text(self.get_explanation(output_format, *args, **kwargs), 'html', format='md', extra_args=["-M2GB", "+RTS", "-K64m", "-RTS"])
     elif output_format == OutputFormat.LATEX:
-      # question_body += pypandoc.convert_text(self.get_body(output_format), 'latex', format='md')
       question_body += self.get_body(output_format)
     question_body += self.get_footer(output_format)
     

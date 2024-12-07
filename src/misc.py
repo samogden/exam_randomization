@@ -13,7 +13,7 @@ class OutputFormat(enum.Enum):
 class Answer():
   class AnswerKind(enum.Enum):
     BLANK = "fill_in_multiple_blanks_question"
-    MULTIPLE_CHOICE = enum.auto() # todo: have baffles?
+    MULTIPLE_ANSWER = "multiple_answers_question" # todo: have baffles?
     ESSAY = "essay_question"
   class VariableKind(enum.Enum): # todo: use these for generate variations?
     STR = enum.auto()
@@ -22,13 +22,22 @@ class Answer():
     BINARY = enum.auto()
     HEX = enum.auto()
     BINARY_OR_HEX = enum.auto()
-  def __init__(self, key:str, value, kind : Answer.AnswerKind = AnswerKind.BLANK, variable_kind : Answer.VariableKind = VariableKind.STR, display=None, length=None):
+  def __init__(
+      self, key:str,
+      value,
+      kind : Answer.AnswerKind = AnswerKind.BLANK,
+      variable_kind : Answer.VariableKind = VariableKind.STR,
+      display=None,
+      length=None,
+      correct=True
+  ):
     self.key = key
     self.value = value
     self.kind = kind
     self.variable_kind = variable_kind
     self.display = display if display is not None else value
     self.length = length # Used for bits and hex to be printed appropriately
+    self.correct = correct
   
   def get_for_canvas(self) -> List[Dict]:
     if self.variable_kind == Answer.VariableKind.FLOAT:
@@ -86,6 +95,6 @@ class Answer():
     canvas_answer = {
       "blank_id": self.key,
       "answer_text": self.value,
-      "answer_weight": 100,
+      "answer_weight": 100 if self.correct else 0,
     }
     return [canvas_answer]
