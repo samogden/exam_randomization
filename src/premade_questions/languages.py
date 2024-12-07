@@ -39,6 +39,15 @@ class BNF:
     def print(self):
       for symbol in self.symbols:
         print(symbol.get_full_str())
+        
+    def get_grammar_string(self):
+      lines = []
+      lines.append('```')
+      for symbol in self.symbols:
+        lines.append(f"{symbol.get_full_str()}")
+      
+      lines.append('```')
+      return '\n'.join(lines)
       
   class Symbol:
     
@@ -52,6 +61,10 @@ class BNF:
       self.productions : List[BNF.Production] = [] # productions
     
     def __str__(self):
+      # if self.kind == BNF.Symbol.Kind.NonTerminal:
+      #   return f"`{self.symbol}`"
+      # else:
+      #   return f"{self.symbol}"
       return f"{self.symbol}"
     
     def get_full_str(self):
@@ -168,7 +181,8 @@ class LanguageQuestion(Question):
     lines = []
     lines.extend([
       "Given the following grammar, which of the below strings are part of the language?",
-      
+      "",
+      self.grammar_good.get_grammar_string()
     ])
     return lines
   
