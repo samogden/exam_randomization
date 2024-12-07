@@ -154,28 +154,35 @@ class LanguageQuestion(Question):
     self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
     self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
     
-    # for _ in range(5):
-    #   log.debug(f"good: {self.grammar_good.generate()}")
-    #   log.debug(f"bad: {self.grammar_bad.generate()}")
     
-    self.answers.extend([
+    self.answers.append(
       Answer(
-        f"good_answer_{i}",
+        f"answer_good",
         self.grammar_good.generate(),
         Answer.AnswerKind.MULTIPLE_ANSWER,
         correct=True
       )
-      for i in range(5)
-    ])
-    self.answers.extend([
+    )
+    
+    self.answers.append(
       Answer(
-        f"good_answer_{i}",
-        self.grammar_bad.generate(),
+        f"answer_bad",
+        self.grammar_good.generate(),
         Answer.AnswerKind.MULTIPLE_ANSWER,
         correct=False
       )
-      for i in range(5)
-    ])
+    )
+    
+    for i in range(8):
+      correct = random.choice([True, False])
+      self.answers.append(
+        Answer(
+          f"answer_{i}",
+          (self.grammar_good if correct else self.grammar_bad).generate(),
+          Answer.AnswerKind.MULTIPLE_ANSWER,
+          correct=correct
+        )
+      )
   
   def get_body_lines(self, *args, **kwargs) -> List[str]:
     lines = []
