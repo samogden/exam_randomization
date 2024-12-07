@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import enum
-from typing import List, Dict, Optional
+import itertools
+from typing import List, Dict, Optional, Tuple, Any
 import random
 import re
 
@@ -107,13 +108,14 @@ class BNF:
 
 
 @QuestionRegistry.register()
-class LanguageQuestion:
+class LanguageQuestion(Question):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
     self.instantiate()
   
   def instantiate(self, grammar_str: Optional[str] = None, *args, **kwargs):
+    log.debug("Instantiate")
     self.answers = []
     
     if grammar_str is not None:
@@ -139,18 +141,41 @@ class LanguageQuestion:
     self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
     self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
     
-    for _ in range(5):
-      log.debug(f"good: {self.grammar_good.generate()}")
-      log.debug(f"bad: {self.grammar_bad.generate()}")
+    # for _ in range(5):
+    #   log.debug(f"good: {self.grammar_good.generate()}")
+    #   log.debug(f"bad: {self.grammar_bad.generate()}")
     
     self.answers.extend([
-    
+      Answer(
+        f"good_answer_{i}",
+        self.grammar_good.generate(),
+        Answer.AnswerKind.MULTIPLE_ANSWER,
+        correct=True
+      )
+      for i in range(5)
+    ])
+    self.answers.extend([
+      Answer(
+        f"good_answer_{i}",
+        self.grammar_bad.generate(),
+        Answer.AnswerKind.MULTIPLE_ANSWER,
+        correct=False
+      )
+      for i in range(5)
     ])
   
   def get_body_lines(self, *args, **kwargs) -> List[str]:
     lines = []
+    lines.extend([
+      "Given the following grammar, which of the below strings are part of the language?",
+      
+    ])
     return lines
   
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     lines = []
     return lines
+
+  def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
+    
+    return Answer.AnswerKind.MULTIPLE_ANSWER, list(itertools.chain(*[a.get_for_canvas() for a in self.answers]))
