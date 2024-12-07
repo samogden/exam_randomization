@@ -195,6 +195,10 @@ class LanguageQuestion(Question):
   
   def get_explanation_lines(self, *args, **kwargs) -> List[str]:
     lines = []
+    lines.extend([
+      "Remember, for a string to be part of our language, we need to be able to derive it from our grammar.",
+      "Unfortunately, there isn't space here to demonstrate the derivation so please work through them on your own!"
+    ])
     return lines
 
   def get_answers(self, *args, **kwargs) -> Tuple[Answer.AnswerKind, List[Dict[str,Any]]]:
