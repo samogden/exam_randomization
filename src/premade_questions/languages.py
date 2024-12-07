@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 import random
 import re
 
@@ -27,9 +27,6 @@ class BNF:
       curr_symbols : List[BNF.Symbol] = [self.start_symbol]
       # Check to see if we have any non-terminals left
       while any(map(lambda s: s.kind == BNF.Symbol.Kind.NonTerminal, curr_symbols)):
-        
-        log.debug(f"curr_symbols: {' '.join([str(s) for s in curr_symbols])}")
-        
         # Walk through the current symbols and build a new list of symbols from it
         next_symbols : List[BNF.Symbol] = []
         for symbol in curr_symbols:
@@ -42,7 +39,6 @@ class BNF:
       for symbol in self.symbols:
         print(symbol.get_full_str())
       
-  
   class Symbol:
     
     class Kind(enum.Enum):
@@ -115,18 +111,37 @@ class LanguageQuestion:
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-    self.grammar_str = """
-      <expression> ::= <term> | <expression> "+" <term> | <expression> "-" <term>
-      <term>       ::= <factor> | <term> "*" <factor> | <term> "/" <factor>
-      <factor>     ::= <number> | "(" <expression> ")"
-      <number>     ::= <digit> | <number> <digit>
-      <digit>      ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-      """
-    
     self.instantiate()
   
-  def instantiate(self, *args, **kwargs):
+  def instantiate(self, grammar_str: Optional[str] = None, *args, **kwargs):
     self.answers = []
+    
+    if grammar_str is not None:
+      self.grammar_str = grammar_str
+    else:
+      # todo: make a few different kinds of grammars that could be picked
+      self.grammar_str_good = """
+        <expression> ::= <term> | <expression> + <term> | <expression> - <term>
+        <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
+        <factor>     ::= <number>
+        <number>     ::= <digit> | <number> <digit>
+        <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+      """
+      # Adding in a plus to number
+      self.grammar_str_bad = """
+        <expression> ::= <term> | <expression> + <term> | <expression> - <term>
+        <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
+        <factor>     ::= <number>
+        <number>     ::= <digit> + | <digit> <number>
+        <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+      """
+    
+    self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
+    self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
+    
+    for _ in range(5):
+      log.debug(f"good: {self.grammar_good.generate()}")
+      log.debug(f"bad: {self.grammar_bad.generate()}")
     
     self.answers.extend([
     
