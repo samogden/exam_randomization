@@ -64,7 +64,9 @@ class CanvasInterface:
   def add_quiz(
       self,
       assignment_group: canvasapi.course.AssignmentGroup,
-      title = None
+      title = None,
+      *,
+      is_practice=False
   ):
     if title is None:
       title = f"New Quiz {datetime.now().strftime('%m/%d/%y %H:%M:%S.%f')}"
@@ -77,6 +79,7 @@ class CanvasInterface:
       "allowed_attempts": -1,
       "shuffle_answers": True,
       "assignment_group_id": assignment_group.id,
+      "quiz_type" : "assignment" if not is_practice else "practice_quiz",
       "description": """
         This quiz is aimed to help you practice skills.
         Please take it as many times as necessary to get full marks!
@@ -86,18 +89,25 @@ class CanvasInterface:
     })
     return q
 
-  def push_quiz_to_canvas(self, quiz: quiz.Quiz, num_variations: int):
+  def push_quiz_to_canvas(
+      self,
+      quiz: quiz.Quiz,
+      num_variations: int,
+      title: typing.Optional[str] = None,
+      is_practice = False
+  ):
     assignment_group = self.create_assignment_group()
-    canvas_quiz = self.add_quiz(assignment_group)
+    canvas_quiz = self.add_quiz(assignment_group, title, is_practice=is_practice)
     
     all_variations = set()
-    for q in quiz:
+    for question_i, question in enumerate(quiz):
+      log.debug(f"Generating #{question_i} ({question.name})")
   
       group : canvasapi.quiz.QuizGroup = canvas_quiz.create_question_group([
         {
-          "name": f"{q.name}",
+          "name": f"{question.name}",
           "pick_count": 1,
-          "question_points": q.points_value
+          "question_points": question.points_value
         }
       ])
       
@@ -106,29 +116,34 @@ class CanvasInterface:
       for attempt_number in range(QUESTION_VARIATIONS_TO_TRY):
         
         # Get the question in a format that is ready for canvas (e.g. json)
-        question_for_canvas = q.get__canvas(self.course, canvas_quiz)
-        
-        # log.debug(pprint.pformat(question_for_canvas))
+        question_for_canvas = question.get__canvas(self.course, canvas_quiz)
+        question_fingerprint = question_for_canvas["question_text"]
+        question_fingerprint += ''.join([a["answer_text"] for a in question_for_canvas["answers"]])
         
         # if it is in the variations that we have already seen then skip ahead, else track
-        if question_for_canvas["question_text"] in all_variations:
+        if question_fingerprint in all_variations:
           continue
-        all_variations.add(question_for_canvas["question_text"])
+        all_variations.add(question_fingerprint)
         
         # Set group ID to add it to the question group
         question_for_canvas["quiz_group_id"] = group.id
         
         # Push question to canvas
-        log.debug(f"Pushing {q.name} {variation_count+1} / {num_variations} to canvas...")
-        canvas_quiz.create_question(question=question_for_canvas)
+        log.debug(f"Pushing #{question_i} ({question.name}) {variation_count+1} / {num_variations} to canvas...")
+        try:
+          canvas_quiz.create_question(question=question_for_canvas)
+        except canvasapi.exceptions.CanvasException as e:
+          log.warning("Encountered Canvas error.")
+          log.warning(e)
+          log.warning("Sleeping for 1s...")
+          time.sleep(1)
+          continue
         
         # Update and check variations already seen
         variation_count += 1
         if variation_count >= num_variations:
           break
-        if isinstance(q, question.FromText) and not isinstance(q, question.FromGenerator):
-          break
-        if variation_count >= q.possible_variations:
+        if variation_count >= question.possible_variations:
           break
         
 
