@@ -28,12 +28,13 @@ class Quiz:
   It should be that a single quiz object can contain multiples -- essentially it builds up from the questions and then can generate a variety of questions.
   """
   
-  def __init__(self, exam_name, possible_questions: List[dict|Question], *args, **kwargs):
-    self.exam_name = exam_name
+  def __init__(self, name, possible_questions: List[dict|Question], practice, *args, **kwargs):
+    self.name = name
     self.possible_questions = possible_questions
     self.questions : List[Question] = []
     self.instructions = kwargs.get("instructions", "")
     self.question_sort_order = None
+    self.practice = practice
     
     # Plan: right now we just take in questions and then assume they have a score and a "generate" button
   
@@ -50,7 +51,7 @@ class Quiz:
   
   def describe(self):
     counter = collections.Counter([q.points_value for q in self.questions])
-    log.info(f"{self.exam_name} : {sum(map(lambda q: q.points_value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
+    log.info(f"{self.name} : {sum(map(lambda q: q.points_value, self.questions))}points : {len(self.questions)} / {len(self.possible_questions)} questions picked.  {list(counter.items())}")
     
     sort_order = self.question_sort_order
     if sort_order is None:
@@ -175,10 +176,10 @@ class Quiz:
         
         r"\newcommand{\answerblank}[1]{\rule[-1.5mm]{#1cm}{0.15mm}}",
         
-        r"\title{" + self.exam_name + r"}",
+        r"\title{" + self.name + r"}",
         
         r"\begin{document}",
-        r"\noindent\Large " + self.exam_name + r"\hfill \normalsize Name: \answerblank{5}",
+        r"\noindent\Large " + self.name + r"\hfill \normalsize Name: \answerblank{5}",
         r"\vspace{0.5cm}"
       ])
       if len(self.instructions):
@@ -192,7 +193,7 @@ class Quiz:
       ])
     else:
       lines.extend([
-        f"{self.exam_name}",
+        f"{self.name}",
         "Name:"
       ])
     return '\n'.join(lines)
@@ -209,53 +210,63 @@ class Quiz:
     self.question_sort_order = sort_order
 
   @classmethod
-  def from_yaml(cls, path_to_yaml) -> Quiz:
+  def from_yaml(cls, path_to_yaml) -> List[Quiz]:
+    
+    quizes_loaded : List[Quiz] = []
     
     with open(path_to_yaml) as fid:
-      exam_dict = yaml.safe_load(fid)
-    log.debug(exam_dict)
+      list_of_exam_dicts = list(yaml.safe_load_all(fid))
+    log.debug(list_of_exam_dicts)
     
-    name = exam_dict.get("name", "Unnamed Exam")
-    questions_for_exam = []
-    sort_order = list(map(lambda t: Question.Topic.from_string(t), exam_dict.get("sort order", [])))
-    sort_order = sort_order + list(filter(lambda t: t not in sort_order, Question.Topic))
-    
-    
-    for question_value, question_definitions in exam_dict["questions"].items():
-      # todo: I can also add in "extra credit" and "mix-ins" as other keys to indicate extra credit or questions that can go anywhere
-      log.info(f"Parsing {question_value} point questions")
+    for exam_dict in list_of_exam_dicts:
+      # Get general quiz information from the dictionary
+      name = exam_dict.get("name", "Unnamed Exam")
+      practice = exam_dict.get("practice", False)
+      sort_order = list(map(lambda t: Question.Topic.from_string(t), exam_dict.get("sort order", [])))
+      sort_order = sort_order + list(filter(lambda t: t not in sort_order, Question.Topic))
       
-      def make_question(q_name, q_data):
-        kwargs= {
-          "name" : q_name,
-          "points_value" : question_value,
-          **q_data.get("kwargs", {})
-        }
-        if "topic" in q_data:
-          kwargs["topic"] = Question.Topic.from_string(q_data["topic"])
-        elif "kind" in q_data:
-          kwargs["topic"] = Question.Topic.from_string(q_data["kind"])
-        new_question = QuestionRegistry.create(
-          q_data["class"],
-          **kwargs
-        )
-        return new_question
-      
-      for q_name, q_data in question_definitions.items():
-        log.debug(f"{q_name} : {q_data}")
-        if "pick" in q_data:
-          num_to_pick = q_data["pick"]
-          del q_data["pick"]
-          questions_for_exam.extend(
-            make_question(name, data) for name, data in
-            random.sample(list(q_data.items()), num_to_pick)
-          )
-        else:
-          questions_for_exam.append(make_question(q_name, q_data))
+      # Load questions from the quiz dictionary
+      questions_for_exam = []
+      for question_value, question_definitions in exam_dict["questions"].items():
+        # todo: I can also add in "extra credit" and "mix-ins" as other keys to indicate extra credit or questions that can go anywhere
+        log.info(f"Parsing {question_value} point questions")
         
-    quiz_from_yaml = Quiz(name, questions_for_exam)
-    quiz_from_yaml.set_sort_order(sort_order)
-    return quiz_from_yaml
+        def make_question(q_name, q_data):
+          kwargs= {
+            "name" : q_name,
+            "points_value" : question_value,
+            **q_data.get("kwargs", {})
+          }
+          if "topic" in q_data:
+            kwargs["topic"] = Question.Topic.from_string(q_data["topic"])
+          elif "kind" in q_data:
+            kwargs["topic"] = Question.Topic.from_string(q_data["kind"])
+          new_question = QuestionRegistry.create(
+            q_data["class"],
+            **kwargs
+          )
+          return new_question
+        
+        for q_name, q_data in question_definitions.items():
+          log.debug(f"{q_name} : {q_data}")
+          if "pick" in q_data:
+            num_to_pick = q_data["pick"]
+            del q_data["pick"]
+            questions_for_exam.extend(
+              make_question(name, data) for name, data in
+              random.sample(list(q_data.items()), num_to_pick)
+            )
+          else:
+            questions_for_exam.extend([
+              make_question(q_name, q_data)
+              for _ in range(q_data.get("repeat", 1))
+            ]
+            )
+          
+      quiz_from_yaml = Quiz(name, questions_for_exam, practice)
+      quiz_from_yaml.set_sort_order(sort_order)
+      quizes_loaded.append(quiz_from_yaml)
+    return quizes_loaded
 
   def generate_latex(self, remove_previous=False):
     
@@ -307,29 +318,21 @@ def main():
   
   args = parse_args()
   
-  quiz = Quiz.from_yaml(args.quiz_yaml)
-  quiz.select_questions()
-  
-  # quiz.set_sort_order([
-  #   Question.TOPIC.CONCURRENCY,
-  #   Question.TOPIC.IO,
-  #   Question.TOPIC.PROCESS,
-  #   Question.TOPIC.MEMORY,
-  #   Question.TOPIC.PROGRAMMING,
-  #   Question.TOPIC.MISC
-  # ])
-  
-  for q in quiz:
-    log.debug(q.kind)
-  
-  for i in range(args.num_pdfs):
-    quiz.generate_latex(remove_previous=(i==0))
-  
-  if args.num_canvas > 0:
-    interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)
-    interface.push_quiz_to_canvas(quiz, args.num_canvas)
-  
-  quiz.describe()
+  quizzes = Quiz.from_yaml(args.quiz_yaml)
+  for quiz in quizzes:
+    quiz.select_questions()
+    
+    for q in quiz:
+      log.debug(q.kind)
+    
+    for i in range(args.num_pdfs):
+      quiz.generate_latex(remove_previous=(i==0))
+    
+    if args.num_canvas > 0:
+      interface = canvas_interface.CanvasInterface(prod=args.prod, course_id=args.course_id)
+      interface.push_quiz_to_canvas(quiz, args.num_canvas, title=quiz.name, is_practice=quiz.practice)
+    
+    quiz.describe()
   
   
 
