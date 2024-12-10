@@ -118,7 +118,12 @@ class CanvasInterface:
         # Get the question in a format that is ready for canvas (e.g. json)
         question_for_canvas = question.get__canvas(self.course, canvas_quiz)
         question_fingerprint = question_for_canvas["question_text"]
-        question_fingerprint += ''.join([a["answer_text"] for a in question_for_canvas["answers"]])
+        try:
+          question_fingerprint += ''.join([str(a["answer_text"]) for a in question_for_canvas["answers"]])
+        except TypeError as e:
+          log.error(e)
+          log.warning("Continuing anyway")
+          
         
         # if it is in the variations that we have already seen then skip ahead, else track
         if question_fingerprint in all_variations:
