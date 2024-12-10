@@ -5,17 +5,18 @@ import collections.abc
 import pprint
 import time
 import typing
-from datetime import datetime
-from typing import Dict, Set
+from datetime import datetime, timezone
+from typing import Dict, Set, List
 
 import canvasapi
 import canvasapi.course
 import canvasapi.quiz
+import canvasapi.assignment
+import canvasapi.submission
 import dotenv, os
 import sys
 
-import question
-import quiz
+from quiz import Quiz, Question
 
 import logging
 logging.basicConfig()
@@ -91,7 +92,7 @@ class CanvasInterface:
 
   def push_quiz_to_canvas(
       self,
-      quiz: quiz.Quiz,
+      quiz: Quiz,
       num_variations: int,
       title: typing.Optional[str] = None,
       is_practice = False
@@ -151,9 +152,49 @@ class CanvasInterface:
         if variation_count >= question.possible_variations:
           break
         
-
+  def get_assignments(self):
+    assignments = self.course.get_assignments()
+    return assignments
+  
+  
+  def get_submissions(self, assignments: List[canvasapi.assignment.Assignment]):
+    submissions : List[canvasapi.submission.Submission] = []
+    for assignment in assignments:
+      submissions.extend(assignment.get_submissions())
+    return submissions
+  
+  def get_username(self, user_id: int):
+    return self.course.get_user(user_id).name
+  
+class CanvasHelpers:
+  @staticmethod
+  def get_closed_assignments(interface: CanvasInterface) -> List[canvasapi.assignment.Assignment]:
+    return list(filter(
+      lambda a: a.published and a.lock_at is not None and (datetime.fromisoformat(a.lock_at) < datetime.now(timezone.utc)),
+      interface.get_assignments()
+    ))
+  
+  @staticmethod
+  def get_unsubmitted_submissions(interface: CanvasInterface, assignment: canvasapi.assignment.Assignment) -> List[canvasapi.submission.Submission]:
+    submissions : List[canvasapi.submission.Submission] = list(filter(
+      lambda s: s.workflow_state == "unsubmitted",
+      assignment.get_submissions()
+    ))
+    return submissions
+  
+  @classmethod
+  def clear_out_missing(cls, interface: CanvasInterface):
+    assignments = cls.get_closed_assignments(interface)
+    for assignment in assignments:
+      log.debug(f"Assignment: {assignment}")
+      for submission in cls.get_unsubmitted_submissions(interface, assignment):
+        log.debug(f"{submission.user_id} ({interface.get_username(submission.user_id)}) : {submission.workflow_state} : {submission.missing}")
+        submission.edit(submission={"late_policy_status" : "missing"})
+  
+ 
 def main():
-  pass
+  interface = CanvasInterface(course_id=25523, prod=False)
+  
 
 if __name__ == "__main__":
   main()
