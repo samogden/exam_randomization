@@ -216,6 +216,7 @@ class FromGenerator(FromText):
       function = locals()[function_name]
       setattr(obj, function_name, function.__get__(obj))
     
+    self.generator_text = generator
     # Attach the function dynamically
     attach_function_to_object(self, generator, "generator")
     
@@ -223,5 +224,9 @@ class FromGenerator(FromText):
   
   def instantiate(self, *args, **kwargs):
     super().instantiate()
-    self.text = self.generator()
+    try:
+      self.text = self.generator()
+    except TypeError:
+      log.debug(self.generator_text)
+      exit(8)
   
