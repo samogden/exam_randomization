@@ -24,17 +24,33 @@ class BNF:
       self.start_symbol = start_symbol if start_symbol is not None else symbols[0]
       self.symbols = symbols
   
-    def generate(self):
+    def generate(self, include_spaces=False, early_exit=False, early_exit_min_iterations=5):
       curr_symbols : List[BNF.Symbol] = [self.start_symbol]
+      prev_symbols: List[BNF.Symbol] = curr_symbols
+      
+      iteration_count = 0
       # Check to see if we have any non-terminals left
       while any(map(lambda s: s.kind == BNF.Symbol.Kind.NonTerminal, curr_symbols)):
+        # Grab the previous symbols in case we are early exitting
+        prev_symbols = curr_symbols
+        
         # Walk through the current symbols and build a new list of symbols from it
         next_symbols : List[BNF.Symbol] = []
         for symbol in curr_symbols:
           next_symbols.extend(symbol.expand())
         curr_symbols = next_symbols
+        
+        iteration_count += 1
+        
+        if early_exit and iteration_count > early_exit_min_iterations:
+          break
+        
+      if early_exit:
+        # If we are doing an early exit then we are going to return things with non-terminals
+        curr_symbols = prev_symbols
+      
       # Take all the current symbols and combine them
-      return ''.join([str(s) for s in curr_symbols])
+      return ('' if not include_spaces else ' ').join([str(s) for s in curr_symbols])
     
     def print(self):
       for symbol in self.symbols:
@@ -134,22 +150,73 @@ class LanguageQuestion(Question):
     if grammar_str is not None:
       self.grammar_str = grammar_str
     else:
-      # todo: make a few different kinds of grammars that could be picked
-      self.grammar_str_good = """
-        <expression> ::= <term> | <expression> + <term> | <expression> - <term>
-        <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
-        <factor>     ::= <number>
-        <number>     ::= <digit> | <number> <digit>
-        <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-      """
-      # Adding in a plus to number
-      self.grammar_str_bad = """
-        <expression> ::= <term> | <expression> + <term> | <expression> - <term>
-        <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
-        <factor>     ::= <number>
-        <number>     ::= <digit> + | <digit> <number>
-        <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-      """
+      which_grammar = random.choice(range(3))
+      
+      if which_grammar == 0:
+        # todo: make a few different kinds of grammars that could be picked
+        self.grammar_str_good = """
+          <expression> ::= <term> | <expression> + <term> | <expression> - <term>
+          <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
+          <factor>     ::= <number>
+          <number>     ::= <digit> | <number> <digit>
+          <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+        """
+        # Adding in a plus to number
+        self.grammar_str_bad = """
+          <expression> ::= <term> | <expression> + <term> | <expression> - <term>
+          <term>       ::= <factor> | <term> * <factor> | <term> / <factor>
+          <factor>     ::= <number>
+          <number>     ::= <digit> + | <digit> <number>
+          <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+        """
+        self.include_spaces = False
+      elif which_grammar == 1:
+        self.grammar_str_good = """
+          <sentence> ::= <subject> <verb> <object>
+          <subject> ::= The cat | A dog | The bird | A child | <adjective> <animal>
+          <animal> ::= cat | dog | bird | child
+          <adjective> ::= happy | sad | angry | playful
+          <verb> ::= chases | sees | hates | loves
+          <object> ::= the ball | the toy | the tree | <adjective> <object>
+        """
+        self.grammar_str_bad = """
+          <sentence> ::= <subject> <verb> <object>
+          <subject> ::= The human | The dog | A bird | Some child | <adjective> <animal>
+          <animal> ::= cat | dog | bird | child
+          <adjective> ::= happy | sad | angry | playful
+          <verb> ::= chases | sees | hates | loves
+          <object> ::= the ball | the toy | the tree | <adjective> <object>
+        """
+        self.include_spaces = True
+      elif which_grammar == 2:
+        self.grammar_str_good = """
+          <poem> ::= <line> | <line> <poem>
+          <line> ::= <subject> <verb> <object> <modifier>
+          <subject> ::= whispers | shadows | dreams | echoes | <compound-subject>
+          <compound-subject> ::= <subject> and <subject>
+          <verb> ::= dance | dissolve | shimmer | collapse | <compound-verb>
+          <compound-verb> ::= <verb> then <verb>
+          <object> ::= beneath | between | inside | around | <compound-object>
+          <compound-object> ::= <object> through <object>
+          <modifier> ::= silently | violently | mysteriously | endlessly | <recursive-modifier>
+          <recursive-modifier> ::= <modifier> and <modifier>
+        """
+        self.grammar_str_bad = """
+          <bad-poem> ::= <almost-valid-line> | <bad-poem> <bad-poem>
+          <almost-valid-line> ::= <tricky-subject> <tricky-verb> <tricky-object> <tricky-modifier>
+          <tricky-subject> ::= whispers | shadows and and | <duplicate-subject>
+          <duplicate-subject> ::= whispers whispers
+          <tricky-verb> ::= dance | <incorrect-verb-placement> | <verb-verb>
+          <incorrect-verb-placement> ::= dance dance
+          <verb-verb> ::= dance whispers
+          <tricky-object> ::= beneath | <object-verb-swap> | <duplicate-object>
+          <object-verb-swap> ::= dance beneath
+          <duplicate-object> ::= beneath beneath
+          <tricky-modifier> ::= silently | <modifier-subject-swap> | <duplicate-modifier>
+          <modifier-subject-swap> ::= whispers silently
+          <duplicate-modifier> ::= silently silently
+        """
+        self.include_spaces = True
     
     self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
     self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
@@ -158,7 +225,7 @@ class LanguageQuestion(Question):
     self.answers.append(
       Answer(
         f"answer_good",
-        self.grammar_good.generate(),
+        self.grammar_good.generate(self.include_spaces),
         Answer.AnswerKind.MULTIPLE_ANSWER,
         correct=True
       )
@@ -167,7 +234,15 @@ class LanguageQuestion(Question):
     self.answers.append(
       Answer(
         f"answer_bad",
-        self.grammar_good.generate(),
+        self.grammar_bad.generate(self.include_spaces),
+        Answer.AnswerKind.MULTIPLE_ANSWER,
+        correct=False
+      )
+    )
+    self.answers.append(
+      Answer(
+        f"answer_bad_early",
+        self.grammar_bad.generate(self.include_spaces, early_exit=True),
         Answer.AnswerKind.MULTIPLE_ANSWER,
         correct=False
       )
@@ -175,10 +250,18 @@ class LanguageQuestion(Question):
     
     for i in range(8):
       correct = random.choice([True, False])
+      if not correct:
+        early_exit = random.choice([True, False])
+      else:
+        early_exit = False
       self.answers.append(
         Answer(
           f"answer_{i}",
-          (self.grammar_good if correct else self.grammar_bad).generate(),
+          (
+            self.grammar_good
+            if correct
+            else self.grammar_bad
+          ).generate(self.include_spaces, early_exit=early_exit),
           Answer.AnswerKind.MULTIPLE_ANSWER,
           correct=correct
         )
