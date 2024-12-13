@@ -138,23 +138,26 @@ class Question(abc.ABC):
     IO = enum.auto()
     PROGRAMMING = enum.auto()
     MATH = enum.auto()
+    LANGUAGES = enum.auto()
+    SECURITY = enum.auto()
     MISC = enum.auto()
     
     @classmethod
     def from_string(cls, string) -> Question.Topic:
-      mapping = {
+      mappings = {
+        member.name.lower() : member for member in cls
+      }
+      mappings.update({
         "processes": cls.PROCESS,
-        "memory": cls.MEMORY,
         "threads": cls.CONCURRENCY,
-        "concurrency": cls.CONCURRENCY,
-        "io": cls.IO,
         "persistance": cls.IO,
         "persistence": cls.IO,
         "programming" : cls.PROGRAMMING,
         "misc": cls.MISC,
-      }
-      if string.lower() in mapping:
-        return mapping.get(string.lower())
+      })
+      
+      if string.lower() in mappings:
+        return mappings.get(string.lower())
       return cls.MISC
   
   def __init__(self, name: str = None, points_value: float = 1.0, topic: Question.Topic = Topic.MISC, *args, **kwargs):
