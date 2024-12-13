@@ -137,6 +137,7 @@ class Quiz:
     lines = []
     if output_format == OutputFormat.LATEX:
       lines.extend([
+      
         r"\documentclass[12pt]{article}",
         r"\usepackage[a4paper, margin=1in]{geometry}",
         r"\usepackage{times}",
@@ -149,32 +150,29 @@ class Quiz:
         r"\usepackage{booktabs}",
         r"\usepackage{multicol}",
         r"\usepackage{subcaption}",
-        r"\usepackage{enumitem}",
+        r"\usepackage{enumitem} % Ensure this is loaded only once",
         r"\usepackage{setspace}",
         r"\usepackage{longtable}",
         r"\usepackage{arydshln}",
         r"\usepackage{ragged2e}\let\Centering\flushleft",
-        
-        # r"\setlist{itemsep=1.25em}",
-      
+        r"% Custom commands",
         r"\newcounter{NumQuestions}",
         r"\newcommand{\question}[1]{ %",
-        r"  \vspace{0.5cm}",
-        r"  \stepcounter{NumQuestions} %",
-        r"  \noindent\textbf{Question \theNumQuestions:} \hfill \rule{0.5cm}{0.15mm} / #1",
-        r"  \par",
-        r"  \vspace{0.1cm}",
+        r"\vspace{0.5cm}",
+        r"\stepcounter{NumQuestions} %",
+        r"\noindent\textbf{Question \theNumQuestions:} \hfill \rule{0.5cm}{0.15mm} / #1",
+        r"\par",
+        r"\vspace{0.1cm}",
         r"}",
-      
-        r"\providecommand{\tightlist}{%",
-        r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}",
-        r"}",
-        
-        r"\providecommand{\tightlist}{%",
-        r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}",
-        r"}",
-        
         r"\newcommand{\answerblank}[1]{\rule[-1.5mm]{#1cm}{0.15mm}}",
+        r"\setlist[itemize]{itemsep=10pt, parsep=5pt} % Adjust these values as needed",
+        
+        
+        r"\providecommand{\tightlist}{%",
+        r"\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}",
+        r"}",
+        
+        
         
         r"\title{" + self.name + r"}",
         
