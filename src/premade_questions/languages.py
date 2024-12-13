@@ -138,6 +138,8 @@ class BNF:
 
 @QuestionRegistry.register()
 class LanguageQuestion(Question):
+  MAX_TRIES = 1000
+  
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
@@ -221,7 +223,6 @@ class LanguageQuestion(Question):
     self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
     self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
     
-    
     self.answers.append(
       Answer(
         f"answer_good",
@@ -248,24 +249,29 @@ class LanguageQuestion(Question):
       )
     )
     
-    for i in range(8):
+    answer_text_set = {a.value for a in self.answers}
+    num_tries = 0
+    while len(self.answers) < 10 and num_tries < self.MAX_TRIES:
+      
       correct = random.choice([True, False])
       if not correct:
         early_exit = random.choice([True, False])
       else:
         early_exit = False
-      self.answers.append(
-        Answer(
-          f"answer_{i}",
-          (
-            self.grammar_good
-            if correct
-            else self.grammar_bad
-          ).generate(self.include_spaces, early_exit=early_exit),
-          Answer.AnswerKind.MULTIPLE_ANSWER,
-          correct=correct
-        )
+      new_answer = Answer(
+        f"answer_{num_tries}",
+        (
+          self.grammar_good
+          if correct or early_exit
+          else self.grammar_bad
+        ).generate(self.include_spaces, early_exit=early_exit),
+        Answer.AnswerKind.MULTIPLE_ANSWER,
+        correct=correct
       )
+      if new_answer.value not in answer_text_set:
+        self.answers.append(new_answer)
+        answer_text_set.add(new_answer.value)
+      num_tries += 1
   
   def get_body_lines(self, *args, **kwargs) -> List[str]:
     lines = []
