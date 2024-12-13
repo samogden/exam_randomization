@@ -106,8 +106,9 @@ class CachingQuestion(MemoryQuestion):
     
     self.requests = (
         list(range(self.cache_size)) # Prime the cache with the compulsory misses
-        + random.choices(population=list(range(self.cache_size-1)), k=1) # Add in one request that will differentiate clearly between FIFO and LRU
-        + random.choices(population=list(range(self.num_elements)), k=(self.num_requests-1)) ## Add in the rest of the requests
+        + random.choices(population=list(range(self.cache_size-1)), k=1) # Add in one request to an earlier  that will differentiate clearly between FIFO and LRU
+        + random.choices(population=list(range(self.cache_size, self.num_elements)), k=1) ## Add in the rest of the requests
+        + random.choices(population=list(range(self.num_elements)), k=(self.num_requests-2)) ## Add in the rest of the requests
     )
     
     self.cache = CachingQuestion.Cache(self.cache_policy, self.cache_size, self.requests)
