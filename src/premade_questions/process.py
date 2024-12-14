@@ -117,7 +117,6 @@ class SchedulingQuestion(ProcessQuestion):
       self.timeline[job.arrival].append(f"Job{job.job_id} arrived")
     
     while len(jobs_to_run) > 0:
-      
       possible_time_slices = []
       
       # Get the jobs currently in the system
@@ -197,16 +196,21 @@ class SchedulingQuestion(ProcessQuestion):
   
   def instantiate(self, scheduler_kind=None, *args, **kwargs):
     super().instantiate()
+    self.job_stats = {}
     if scheduler_kind is None:
       self.SCHEDULER_KIND = random.choice(list(SchedulingQuestion.Kind))
     else:
       self.SCHEDULER_KIND = scheduler_kind
     
-    if self.SCHEDULER_KIND == SchedulingQuestion.Kind.FIFO:
-      # This is the default case
-      self.SCHEDULER_NAME = "FIFO"
-      self.SELECTOR = (lambda j, curr_time: (j.arrival, j.job_id))
-    elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestDuration:
+    log.debug(f"Using a {self.SCHEDULER_KIND} scheduler")
+    
+    # Default to FIFO an then change as necessary
+    # This is the default case
+    self.SCHEDULER_NAME = "FIFO"
+    self.SELECTOR = (lambda j, curr_time: (j.arrival, j.job_id))
+    self.PREEMPTABLE = False
+    self.TIME_QUANTUM = None
+    if self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestDuration:
       self.SCHEDULER_NAME = "Shortest Job First"
       self.SELECTOR = (lambda j, curr_time: (j.duration, j.job_id))
     elif self.SCHEDULER_KIND == SchedulingQuestion.Kind.ShortestTimeRemaining:
@@ -270,6 +274,7 @@ class SchedulingQuestion(ProcessQuestion):
     # Special looping behavior for this problem to ensure it will regenerate using the same scheduler.
     # Otherwise, we end up with the distribution of schedulers being inversely proportional to how good they are
     if not self.is_interesting():
+      log.debug("Is not interesting, rerunning...")
       self.instantiate(scheduler_kind=self.SCHEDULER_KIND)
   
   def get_body_lines(self, output_format: OutputFormat|None = None, *args, **kwargs) -> List[str]:
@@ -321,9 +326,9 @@ class SchedulingQuestion(ProcessQuestion):
     explanation_lines.extend([
       f"To calculate the overall Turnaround and Response times using {self.SCHEDULER_KIND} we want to first start by calculating the respective target and response times of all of our individual jobs."
     ])
-    
-    
-    
+
+
+
     # Give the general formula
     explanation_lines.extend([
       "We do this by subtracting arrival time from either the completion time or the start time.  That is:"
@@ -333,13 +338,13 @@ class SchedulingQuestion(ProcessQuestion):
       f"Job_response = Job_start - Job_arrival\n",
       "",
     ])
-    
+
     # Individual job explanation
     explanation_lines.extend([
       f"For each of our {len(self.job_stats.keys())} jobs, we can make these calculations.",
       ""
     ])
-    
+
     ## Add in TAT
     explanation_lines.extend([
       "For turnaround time (TAT) this would be:"
@@ -357,8 +362,8 @@ class SchedulingQuestion(ProcessQuestion):
       f"Avg(TAT) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.overall_stats['TAT']:0.{self.ROUNDING_DIGITS}f}",
       "\n",
     ])
-    
-    
+
+
     ## Add in Response
     explanation_lines.extend([
       "For response time this would be:"
@@ -367,7 +372,7 @@ class SchedulingQuestion(ProcessQuestion):
       f"Job{job_id}_response = {self.job_stats[job_id]['arrival'] + self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f} - {self.job_stats[job_id]['arrival']:0.{self.ROUNDING_DIGITS}f} = {self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}"
       for job_id in sorted(self.job_stats.keys())
     ])
-    
+
     explanation_lines.extend(["\n"])
     summation_line = ' + '.join([
       f"{self.job_stats[job_id]['Response']:0.{self.ROUNDING_DIGITS}f}" for job_id in sorted(self.job_stats.keys())
@@ -377,12 +382,12 @@ class SchedulingQuestion(ProcessQuestion):
       f"Avg(Response) = ({summation_line}) / ({len(self.job_stats.keys())}) = {self.overall_stats['Response']:0.{self.ROUNDING_DIGITS}f}",
       "\n",
     ])
-    
+
     explanation_lines.extend([
       "We can track these events either in a table or by drawing a diagram.  Note that in the diagram color corresponds to how many jobs are running at once, and events that happen at the same time may be merged together (i.e. there might not be 2N vertical lines for N jobs).",
       ""
     ])
-    
+
     ## Add in table
     explanation_lines.extend(
       self.get_table_generator(
@@ -403,7 +408,7 @@ class SchedulingQuestion(ProcessQuestion):
     image_path = self.make_image(image_dir)
     course.create_folder(f"{quiz.id}", parent_folder_path="Quiz Files")
     upload_success, f = course.upload(self.img, parent_folder_path=f"Quiz Files/{quiz.id}")
-    
+
     explanation_lines.extend(
       [f"![Process Scheduling Overview](/courses/{course.id}/files/{f['id']}/preview)"]
     )
@@ -442,12 +447,12 @@ class SchedulingQuestion(ProcessQuestion):
       for job_id in self.job_stats.keys():
         job_deltas[self.job_stats[job_id]["state_changes"][0]] += 1
         job_deltas[self.job_stats[job_id]["state_changes"][1]] -= 1
-      log.debug(f"job_deltas: {job_deltas}")
+      # log.debug(f"job_deltas: {job_deltas}")
       
       regimes_ranges = zip(sorted(job_deltas.keys()), sorted(job_deltas.keys())[1:])
       
       for (low, high) in regimes_ranges:
-        log.debug(f"(low, high): {(low, high)}")
+        # log.debug(f"(low, high): {(low, high)}")
         jobs_in_range = [
           i for i, job_id in enumerate(list(self.job_stats.keys())[::-1])
           if
@@ -456,7 +461,7 @@ class SchedulingQuestion(ProcessQuestion):
           (self.job_stats[job_id]["state_changes"][1] >= high)
         ]
         
-        log.debug(f"jobs_in_range: {jobs_in_range}")
+        # log.debug(f"jobs_in_range: {jobs_in_range}")
         if len(jobs_in_range) == 0: continue
         # continue
         ax.barh(
@@ -487,7 +492,7 @@ class SchedulingQuestion(ProcessQuestion):
     # plt.show()
     
     if not os.path.exists(image_dir): os.mkdir(image_dir)
-    image_path = os.path.join(image_dir, f"{uuid.uuid4()}.png")
+    image_path = os.path.join(image_dir, f"{self.SCHEDULER_NAME.replace(' ', '_')}-{uuid.uuid4()}.png")
     plt.savefig(image_path)
     
     self.img = image_path
