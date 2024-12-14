@@ -172,6 +172,7 @@ class LanguageQuestion(Question):
           <digit>      ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
         """
         self.include_spaces = False
+        self.MAX_LENGTH = 30
       elif which_grammar == 1:
         self.grammar_str_good = """
           <sentence> ::= <subject> <verb> <object>
@@ -183,13 +184,14 @@ class LanguageQuestion(Question):
         """
         self.grammar_str_bad = """
           <sentence> ::= <subject> <verb> <object>
-          <subject> ::= The human | The dog | A bird | Some child | <adjective> <animal>
+          <subject> ::= The human | The dog | A bird | Some child | A <adjective> <animal>
           <animal> ::= cat | dog | bird | child
           <adjective> ::= happy | sad | angry | playful
           <verb> ::= chases | sees | hates | loves
           <object> ::= the ball | the toy | the tree | <adjective> <object>
         """
         self.include_spaces = True
+        self.MAX_LENGTH = 100
       elif which_grammar == 2:
         self.grammar_str_good = """
           <poem> ::= <line> | <line> <poem>
@@ -219,6 +221,7 @@ class LanguageQuestion(Question):
           <duplicate-modifier> ::= silently silently
         """
         self.include_spaces = True
+        self.MAX_LENGTH = 100
     
     self.grammar_good = BNF.parse_bnf(self.grammar_str_good)
     self.grammar_bad = BNF.parse_bnf(self.grammar_str_bad)
@@ -268,7 +271,7 @@ class LanguageQuestion(Question):
         Answer.AnswerKind.MULTIPLE_ANSWER,
         correct=correct
       )
-      if new_answer.value not in answer_text_set:
+      if len(new_answer.value) < self.MAX_LENGTH and new_answer.value not in answer_text_set:
         self.answers.append(new_answer)
         answer_text_set.add(new_answer.value)
       num_tries += 1
